@@ -1,0 +1,209 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Marker, Autocomplete } from '@react-google-maps/api';
+import { FiCrosshair } from 'react-icons/fi';
+
+const libraries = ['places', 'geometry'];
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '256px'
+};
+
+const defaultCenter = {
+  lat: 28.6139,
+  lng: 77.2090
+};
+
+const LocationPicker = ({ onLocationSelect, initialPosition = null }) => {
+  const [map, setMap] = useState(null);
+  const [marker, setMarker] = useState(initialPosition || defaultCenter);
+  const [autocomplete, setAutocomplete] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries
+  });
+
+  // Update marker when initialPosition changes (from external selection)
+  useEffect(() => {
+    if (initialPosition) {
+      setMarker(initialPosition);
+      if (map) {
+        map.panTo(initialPosition);
+        map.setZoom(15);
+      }
+    }
+  }, [initialPosition, map]);
+
+  // Get user's current location on mount
+  useEffect(() => {
+    if (!initialPosition && navigator.geolocation && isLoaded) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const newPos = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+          setMarker(newPos);
+          if (map) {
+            map.panTo(newPos);
+          }
+          reverseGeocode(newPos);
+        },
+        (error) => {
+        }
+      );
+    }
+  }, [isLoaded, map]);
+
+  // Reverse geocode to get address from coordinates
+  const reverseGeocode = async (position) => {
+    if (!window.google) return;
+
+    setLoading(true);
+    const geocoder = new window.google.maps.Geocoder();
+
+    geocoder.geocode({ location: position }, (results, status) => {
+      setLoading(false);
+      if (status === 'OK' && results[0]) {
+        if (onLocationSelect) {
+          onLocationSelect({
+            lat: position.lat,
+            lng: position.lng,
+            address: results[0].formatted_address,
+            components: results[0].address_components
+          });
+        }
+      }
+    });
+  };
+
+  // Handle map click
+  const onMapClick = useCallback((e) => {
+    const newPos = {
+      lat: e.latLng.lat(),
+      lng: e.latLng.lng()
+    };
+    setMarker(newPos);
+    reverseGeocode(newPos);
+  }, []);
+
+  // Handle autocomplete place selection
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
+      if (place.geometry) {
+        const newPos = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        setMarker(newPos);
+        if (map) {
+          map.panTo(newPos);
+          map.setZoom(15);
+        }
+        if (onLocationSelect) {
+          onLocationSelect({
+            lat: newPos.lat,
+            lng: newPos.lng,
+            address: place.formatted_address
+          });
+        }
+      }
+    }
+  };
+
+  // Handle current location button
+  const handleCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setLoading(true); // Show loading state on button click
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLoading(false);
+          const newPos = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+          setMarker(newPos);
+          if (map) {
+            map.panTo(newPos);
+            map.setZoom(17); // Zoom in closer for better accuracy confirmation
+          }
+          reverseGeocode(newPos);
+        },
+        (error) => {
+          setLoading(false);
+          console.error("Geolocation error:", error);
+          let errorMessage = 'Unable to get your current location.';
+          if (error.code === 1) errorMessage = 'Location permission denied. Please enable location services.';
+          else if (error.code === 2) errorMessage = 'Location unavailable. Please check your GPS.';
+          else if (error.code === 3) errorMessage = 'Location request timed out.';
+
+          alert(`${errorMessage} Please select manually on the map.`);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser.');
+    }
+  };
+
+  if (loadError) {
+    return <div className="h-64 bg-gray-200 flex items-center justify-center">
+      <p className="text-red-600">Error loading Google Maps</p>
+    </div>;
+  }
+
+  if (!isLoaded) {
+    return <div className="h-64 bg-gray-200 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+    </div>;
+  }
+
+  return (
+    <div className="w-full">
+      <div className="relative h-64 bg-gray-200">
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={marker}
+          zoom={15}
+          onClick={onMapClick}
+          onLoad={setMap}
+          options={{
+            streetViewControl: false,
+            mapTypeControl: false,
+            fullscreenControl: false,
+            gestureHandling: 'greedy',
+            rotateControl: true,
+            tiltControl: true,
+            zoomControl: false
+          }}
+        >
+          {marker && <Marker position={marker} />}
+        </GoogleMap>
+
+        {/* Pin Instruction Overlay */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-10">
+          {loading ? 'Fetching address...' : 'Place the pin accurately on map'}
+        </div>
+
+        {/* Locate Me Button */}
+        {/* Locate Me Button - Now on right */}
+        <button
+          onClick={handleCurrentLocation}
+          className="absolute bottom-16 right-4 p-3 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all z-10"
+        >
+          <FiCrosshair className="w-6 h-6 text-gray-700" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default LocationPicker;
