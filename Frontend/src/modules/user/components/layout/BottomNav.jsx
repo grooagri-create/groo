@@ -8,34 +8,34 @@ import { useCart } from '../../../../context/CartContext';
 // Colorful theme for each nav item
 const navItemColors = {
   home: {
-    primary: '#3B82F6', // Blue
-    gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-    bg: 'rgba(59, 130, 246, 0.1)',
-    shadow: 'rgba(59, 130, 246, 0.4)'
+    primary: '#9E5A35', // Brown
+    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
+    bg: '#ebf2e3', // Light green
+    shadow: 'rgba(158, 90, 53, 0.4)'
   },
   bookings: {
-    primary: '#10B981', // Emerald
-    gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-    bg: 'rgba(16, 185, 129, 0.1)',
-    shadow: 'rgba(16, 185, 129, 0.4)'
+    primary: '#9E5A35',
+    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
+    bg: '#ebf2e3',
+    shadow: 'rgba(158, 90, 53, 0.4)'
   },
   scrap: {
-    primary: '#F59E0B', // Amber
-    gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-    bg: 'rgba(245, 158, 11, 0.1)',
-    shadow: 'rgba(245, 158, 11, 0.4)'
+    primary: '#9E5A35',
+    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
+    bg: '#ebf2e3',
+    shadow: 'rgba(158, 90, 53, 0.4)'
   },
   cart: {
-    primary: '#EC4899', // Pink
-    gradient: 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)',
-    bg: 'rgba(236, 72, 153, 0.1)',
-    shadow: 'rgba(236, 72, 153, 0.4)'
+    primary: '#9E5A35',
+    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
+    bg: '#ebf2e3',
+    shadow: 'rgba(158, 90, 53, 0.4)'
   },
   account: {
-    primary: '#8B5CF6', // Violet
-    gradient: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-    bg: 'rgba(139, 92, 246, 0.1)',
-    shadow: 'rgba(139, 92, 246, 0.4)'
+    primary: '#9E5A35',
+    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
+    bg: '#ebf2e3',
+    shadow: 'rgba(158, 90, 53, 0.4)'
   }
 };
 
