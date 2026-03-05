@@ -9,8 +9,8 @@ const Logo = forwardRef(({ className = "h-8 w-auto", ...props }, ref) => {
   return (
     <img
       ref={ref}
-      src="/Homster-logo.png"
-      alt="Homster"
+      src="/grooAgri-logo.png"
+      alt="GrooAgri"
       className={`${className} object-contain`}
       {...props}
     />
