@@ -70,6 +70,7 @@ const notificationSchema = new mongoose.Schema({
       'scrap_accepted',
       'scrap_completed',
       'vendor_withdrawal_request',
+      'soil_test_request',
       'general'
     ],
     index: true

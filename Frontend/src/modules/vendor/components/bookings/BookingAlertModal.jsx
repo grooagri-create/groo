@@ -218,7 +218,7 @@ const BookingAlertCard = ({ booking, onAccept, onReject, onAssign, initialTimeLe
             onClick={() => handleAction(onAssign, 'assign')}
             className="w-full py-4 rounded-2xl text-white font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
             style={{ background: themeColors.button }}>
-            {loadingAction === 'assign' ? 'Forwarding...' : 'Forward'} {loadingAction !== 'assign' && <FiUsers className="w-5 h-5" />}
+            {loadingAction === 'assign' ? 'Assigning...' : 'Assign to Operator'} {loadingAction !== 'assign' && <FiUsers className="w-5 h-5" />}
           </button>
 
           <button

@@ -51,7 +51,7 @@ const ActiveJobs = memo(() => {
         id: job._id || job.id,
         serviceType: job.serviceId?.title || job.serviceType || 'Service',
         user: {
-          name: job.userId?.name || job.customerName || 'Customer'
+          name: job.userId?.name || job.customerName || 'Farmer'
         },
         location: {
           address: job.address?.addressLine1 || job.location?.address || 'Address not available'
@@ -152,7 +152,7 @@ const ActiveJobs = memo(() => {
 
   return (
     <div className="min-h-screen pb-20" style={{ background: themeColors.backgroundGradient }}>
-      <Header title="Active Jobs" showSearch={true} />
+      <Header title="Active Operations" showSearch={true} />
 
       <main className="px-4 py-6">
         {/* Search Bar */}
@@ -161,7 +161,7 @@ const ActiveJobs = memo(() => {
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search jobs..."
+              placeholder="Search operations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-0"
@@ -240,7 +240,7 @@ const ActiveJobs = memo(() => {
             <FiBriefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-600 font-semibold mb-2">No jobs found</p>
             <p className="text-sm text-gray-500">
-              {searchQuery ? 'Try a different search term' : 'No active jobs at the moment'}
+              No active jobs at the moment
             </p>
           </div>
         ) : (
@@ -313,7 +313,7 @@ const ActiveJobs = memo(() => {
                         <div className="p-1 rounded" style={{ background: 'rgba(0, 0, 0, 0.03)' }}>
                           <FiUser className="w-4 h-4" style={{ color: statusColor }} />
                         </div>
-                        <span className="text-gray-700 font-medium">{job.user?.name || 'Customer'}</span>
+                        <span className="text-gray-700 font-medium">{job.user?.name || 'Farmer'}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm">
@@ -372,7 +372,7 @@ const ActiveJobs = memo(() => {
                           }}
                         >
                           <FiUser className="w-3.5 h-3.5" />
-                          Assign Worker
+                          Assign Driver
                         </button>
                       </div>
                     )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiBriefcase, FiUsers, FiBell, FiArrowRight, FiUser, FiClock, FiMapPin, FiCheckCircle, FiTrendingUp, FiChevronRight } from 'react-icons/fi';
+import { FiBriefcase, FiUsers, FiBell, FiArrowRight, FiUser, FiClock, FiMapPin, FiCheckCircle, FiTrendingUp, FiChevronRight, FiAlertTriangle, FiCalendar, FiBarChart2 } from 'react-icons/fi';
 import { FaWallet } from 'react-icons/fa';
 import { vendorTheme as themeColors } from '../../../../theme';
 import Header from '../../components/layout/Header';
@@ -33,10 +33,10 @@ const Dashboard = memo(() => {
     todayEarnings: 0,
     activeJobs: 0,
     pendingAlerts: 0,
-    workersOnline: 0,
     totalEarnings: 0,
     completedJobs: 0,
     rating: 0,
+    complianceAlerts: []
   });
   const [vendorProfile, setVendorProfile] = useState({
     name: 'Vendor Name',
@@ -112,7 +112,7 @@ const Dashboard = memo(() => {
         ...b, // Spread first!
         id,
         serviceType: b.serviceId?.title || 'Service Request',
-        customerName: b.userId?.name || 'Customer',
+        customerName: b.userId?.name || 'Farmer',
         location: {
           address: b.address?.addressLine1 || 'Address not available',
           distance: distance
@@ -162,17 +162,17 @@ const Dashboard = memo(() => {
       todayEarnings: apiStats.vendorEarnings || 0,
       activeJobs: apiStats.inProgressBookings || 0,
       pendingAlerts: mergedPending.length,
-      workersOnline: apiStats.workersOnline || 0,
       totalEarnings: apiStats.vendorEarnings || 0,
       completedJobs: apiStats.completedBookings || 0,
       rating: apiStats.rating || 0,
+      complianceAlerts: apiStats.complianceAlerts || []
     });
 
     // Recent jobs (non-requested)
     const recentJobsData = otherBookings.slice(0, 3).map(booking => ({
       id: booking._id,
       serviceType: booking.serviceId?.title || 'Service',
-      customerName: booking.userId?.name || 'Customer',
+      customerName: booking.userId?.name || 'Farmer',
       location: booking.address?.addressLine1 || 'Address not available',
       price: (booking.vendorEarnings > 0 ? booking.vendorEarnings : (booking.finalAmount ? booking.finalAmount * 0.9 : 0)).toFixed(2),
       vendorEarnings: booking.vendorEarnings,
@@ -276,27 +276,34 @@ const Dashboard = memo(() => {
   // Memoize quickActions to prevent recreation on every render
   const quickActions = useMemo(() => [
     {
-      title: 'Active Jobs',
+      title: 'Active Operations',
       icon: FiBriefcase,
       color: '#00a6a6',
       path: '/vendor/jobs',
       count: stats.activeJobs,
       subtitle: `${stats.activeJobs} running`,
     },
-    {
-      title: 'Manage Workers',
-      icon: FiUsers,
-      color: '#29ad81',
-      path: '/vendor/workers',
-      count: stats.workersOnline,
-      subtitle: `${stats.workersOnline} online`,
-    },
+
     {
       title: 'Wallet',
       icon: FaWallet,
       color: '#F59E0B',
       path: '/vendor/wallet',
       subtitle: `₹${stats.totalEarnings.toLocaleString()} total`,
+    },
+    {
+      title: 'Maintenance',
+      icon: FiCalendar,
+      color: '#10B981',
+      path: '/vendor/maintenance',
+      subtitle: 'Equipment Care',
+    },
+    {
+      title: 'Analytics',
+      icon: FiBarChart2,
+      color: '#0F766E',
+      path: '/vendor/analytics',
+      subtitle: 'Equipment ROI',
     },
   ], [stats.activeJobs, stats.workersOnline, stats.totalEarnings]);
 
@@ -330,7 +337,7 @@ const Dashboard = memo(() => {
       'in_progress': 'In Progress',
       'work_done': 'Work Done',
       'completed': 'Completed',
-      'worker_paid': 'Payment Done',
+      'worker_paid': 'Staff Paid',
       'settlement_pending': 'Settlement',
       'cancelled': 'Cancelled',
       'rejected': 'Rejected'
@@ -478,6 +485,53 @@ const Dashboard = memo(() => {
             </div>
           </div>
         )}
+        {/* Compliance Alerts Section */}
+        {stats.complianceAlerts && stats.complianceAlerts.length > 0 && (
+          <div className="px-4 pt-2 -mb-2">
+            <div
+              onClick={() => navigate('/vendor/compliance')}
+              className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm cursor-pointer hover:bg-red-100 transition-colors"
+            >
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <FiAlertTriangle className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-bold text-red-700">Compliance Alert</p>
+                  <p className="text-sm text-red-600">
+                    {stats.complianceAlerts[0].message}
+                    {stats.complianceAlerts.length > 1 && ` (+${stats.complianceAlerts.length - 1} more)`}
+                  </p>
+                </div>
+                <div className="ml-auto">
+                  <FiArrowRight className="h-4 w-4 text-red-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions Grid */}
+        <div className="px-4 py-4 grid grid-cols-2 gap-3">
+          {quickActions.map((action, index) => (
+            <div
+              key={index}
+              onClick={() => navigate(action.path)}
+              className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:scale-95 transition-all cursor-pointer flex items-center gap-3"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
+                style={{ backgroundColor: action.color }}
+              >
+                <action.icon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-gray-800 truncate">{action.title}</p>
+                <p className="text-[10px] text-gray-500 font-medium truncate">{action.subtitle}</p>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Stats Cards - Optimized Component */}
         <StatsCards stats={stats} />
@@ -597,7 +651,7 @@ const Dashboard = memo(() => {
           {/* Recent Jobs - List View */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">Active Jobs</h2>
+              <h2 className="text-lg font-bold text-gray-800">Active Operations</h2>
               {recentJobs.length > 0 && (
                 <button
                   onClick={() => navigate('/vendor/jobs')}
@@ -607,14 +661,6 @@ const Dashboard = memo(() => {
                     color: '#FFFFFF',
                     boxShadow: `0 4px 12px ${hexToRgba(themeColors.button, 0.3)}, 0 2px 6px ${hexToRgba(themeColors.button, 0.2)}`,
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = `0 6px 16px ${hexToRgba(themeColors.button, 0.4)}, 0 3px 8px ${hexToRgba(themeColors.button, 0.3)}`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = `0 4px 12px ${hexToRgba(themeColors.button, 0.3)}, 0 2px 6px ${hexToRgba(themeColors.button, 0.2)}`;
-                  }}
                 >
                   View All
                 </button>
@@ -623,7 +669,6 @@ const Dashboard = memo(() => {
             {recentJobs.length > 0 ? (
               <div className="space-y-3">
                 {recentJobs.map((job, index) => {
-                  // Alternating colors
                   const isDarkBlue = index % 2 === 0;
                   const accentColor = isDarkBlue ? '#001947' : '#406788';
 
@@ -637,18 +682,14 @@ const Dashboard = memo(() => {
                         border: '1px solid rgba(0, 0, 0, 0.1)',
                       }}
                     >
-                      {/* Left accent border */}
                       <div
                         className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
                         style={{
                           background: `linear-gradient(180deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
                         }}
                       />
-
-                      {/* Compact Content - All in one row */}
                       <div className="px-3 py-2.5">
                         <div className="flex items-center gap-3">
-                          {/* Profile Image Circle */}
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                             style={{
@@ -659,10 +700,7 @@ const Dashboard = memo(() => {
                           >
                             <FiUser className="w-5 h-5" style={{ color: accentColor }} />
                           </div>
-
-                          {/* Main Content */}
                           <div className="flex-1 min-w-0">
-                            {/* Name and Service in one line */}
                             <div className="flex items-center gap-2 mb-1.5">
                               <p className="text-sm font-bold text-gray-800 truncate">{job.customerName}</p>
                               <span
@@ -676,8 +714,6 @@ const Dashboard = memo(() => {
                                 {job.serviceType || 'Service'}
                               </span>
                             </div>
-
-                            {/* Address, Time, Status in one line */}
                             <div className="flex items-center gap-2 flex-wrap">
                               <div
                                 className="flex items-center gap-1 px-2 py-0.5 rounded"
@@ -711,25 +747,15 @@ const Dashboard = memo(() => {
                               </span>
                             </div>
                           </div>
-
-                          {/* Navigate Button */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/vendor/booking/${job.id}`);
                             }}
-                            className="p-2 rounded-lg flex-shrink-0 transition-all duration-300 active:scale-95"
+                            className="p-2 rounded-lg flex-shrink-0"
                             style={{
                               background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                              boxShadow: `0 3px 10px ${hexToRgba(accentColor, 0.3)}, 0 2px 5px ${hexToRgba(accentColor, 0.2)}`,
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.transform = 'scale(1.1)';
-                              e.currentTarget.style.boxShadow = `0 5px 14px ${hexToRgba(accentColor, 0.4)}, 0 3px 7px ${hexToRgba(accentColor, 0.3)}`;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.transform = 'scale(1)';
-                              e.currentTarget.style.boxShadow = `0 3px 10px ${hexToRgba(accentColor, 0.3)}, 0 2px 5px ${hexToRgba(accentColor, 0.2)}`;
+                              boxShadow: `0 3px 10px ${hexToRgba(accentColor, 0.3)}`,
                             }}
                           >
                             <FiArrowRight className="w-4 h-4" style={{ color: '#FFFFFF' }} />
@@ -749,13 +775,14 @@ const Dashboard = memo(() => {
                 }}
               >
                 <FiBriefcase className="w-12 h-12 mx-auto mb-3" style={{ color: '#D1D5DB' }} />
-                <p className="text-sm text-gray-600 mb-1">No active jobs</p>
+                <p className="text-sm text-gray-600 mb-1">No active operations</p>
                 <p className="text-xs text-gray-500">New bookings will appear here</p>
               </div>
             )}
           </div>
         </div>
       </main>
+
       {/* Slick New Booking Alert Modal */}
       <BookingAlertModal
         isOpen={activeAlertBookings.length > 0}
@@ -765,14 +792,11 @@ const Dashboard = memo(() => {
             await acceptBooking(id);
             await assignWorker(id, 'SELF');
 
-            // Remove from local storage
             const pendingJobs = JSON.parse(localStorage.getItem('vendorPendingJobs') || '[]');
             const updated = pendingJobs.filter(b => String(b.id || b._id) !== String(id));
             localStorage.setItem('vendorPendingJobs', JSON.stringify(updated));
 
-            // Dispatch remove event to update ignored list and UI
             window.dispatchEvent(new CustomEvent('removeVendorBooking', { detail: { id } }));
-
             setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
             window.dispatchEvent(new Event('vendorStatsUpdated'));
             toast.success('Job claimed successfully! Assigned to you.');
@@ -783,15 +807,10 @@ const Dashboard = memo(() => {
         onAssign={async (id) => {
           try {
             await acceptBooking(id);
-
-            // Remove from local storage
             const pendingJobs = JSON.parse(localStorage.getItem('vendorPendingJobs') || '[]');
             const updated = pendingJobs.filter(b => String(b.id || b._id) !== String(id));
             localStorage.setItem('vendorPendingJobs', JSON.stringify(updated));
-
-            // Dispatch remove event
             window.dispatchEvent(new CustomEvent('removeVendorBooking', { detail: { id } }));
-
             setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
             window.dispatchEvent(new Event('vendorJobsUpdated'));
             toast.success('Job claimed! Redirecting to assign...');
@@ -803,28 +822,18 @@ const Dashboard = memo(() => {
         onReject={async (id) => {
           try {
             await rejectBooking(id, 'Vendor Declined');
-
-            // Remove from local storage
             const pendingJobs = JSON.parse(localStorage.getItem('vendorPendingJobs') || '[]');
             const updated = pendingJobs.filter(b => String(b.id || b._id) !== String(id));
             localStorage.setItem('vendorPendingJobs', JSON.stringify(updated));
-
-            // Dispatch remove event
             window.dispatchEvent(new CustomEvent('removeVendorBooking', { detail: { id } }));
-
             setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
             setPendingBookings(prev => prev.filter(b => b.id !== id));
           } catch (e) {
             setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
           }
         }}
-        onMinimize={() => {
-          setActiveAlertBookings([]);
-          // Sound is stopped inside the component
-        }}
+        onMinimize={() => setActiveAlertBookings([])}
       />
-
-
     </div>
   );
 });

@@ -17,6 +17,8 @@ import {
   FiPackage,
   FiTrash2,
   FiStar,
+  FiActivity,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import adminMenu from "../../config/adminMenu.json";
 import dashboardService from "../../services/dashboardService";
@@ -39,6 +41,13 @@ const iconMap = {
   Settlements: FiDollarSign,
   Settings: FiSettings,
   Plans: FiPackage,
+  "Agri Marketplace": FiShoppingBag,
+  "Soil Testing": FiActivity,
+  Disputes: FiAlertTriangle,
+  Operators: FiUser,
+  Farmers: FiUsers,
+  "Equipment Owners": FiBriefcase,
+  "Equipment Catalog": FiGrid,
 };
 
 // Helper function to convert child name to route path
@@ -57,10 +66,10 @@ const getChildRoute = (parentRoute, childName) => {
       "Vendor Payments": "/admin/vendors/payments",
     },
     "/admin/workers": {
-      "All Workers": "/admin/workers/all",
-      "Worker Jobs": "/admin/workers/jobs",
-      "Worker Analytics": "/admin/workers/analytics",
-      "Worker Payments": "/admin/workers/payments",
+      "All Operators": "/admin/workers/all",
+      "Operator Jobs": "/admin/workers/jobs",
+      "Operator Analytics": "/admin/workers/analytics",
+      "Operator Payments": "/admin/workers/payments",
     },
     "/admin/bookings": {
       "All Bookings": "/admin/bookings",
@@ -76,7 +85,7 @@ const getChildRoute = (parentRoute, childName) => {
     "/admin/payments": {
       "Payment Overview": "/admin/payments/overview",
       "User Payments": "/admin/payments/users",
-      "Worker Payments": "/admin/payments/workers",
+      "Operator Payments": "/admin/payments/workers",
       "Vendor Payments": "/admin/payments/vendors",
       "Admin Revenue": "/admin/payments/revenue",
       "Payment Reports": "/admin/payments/reports",
@@ -85,6 +94,7 @@ const getChildRoute = (parentRoute, childName) => {
       "Revenue Report": "/admin/reports/revenue",
       "Booking Report": "/admin/reports/bookings",
       "Payment Report": "/admin/payments/reports",
+      "Agriculture Insights": "/admin/reports/agri-insights",
     },
     "/admin/notifications": {
       "Push Notifications": "/admin/notifications/push",
@@ -93,7 +103,7 @@ const getChildRoute = (parentRoute, childName) => {
     },
     "/admin/settings": {
       "General Settings": "/admin/settings/general",
-      "Worker Assignment": "/admin/settings/worker-assignment",
+      "Operator Assignment": "/admin/settings/worker-assignment",
       "Service Configuration": "/admin/settings/service-config",
       "System Settings": "/admin/settings/system",
     },

@@ -127,19 +127,19 @@ const BookingTimeline = () => {
   const handleWorkerPayment = async () => {
     // Determine payment type
     const confirmMsg = booking?.cashCollected
-      ? `Worker has collected ₹${booking.finalAmount}. Confirm payment of ₹${booking.vendorEarnings} to worker?`
-      : `Confirm payment of ₹${booking.vendorEarnings} to the worker?`;
+      ? `Operator has collected ₹${booking.finalAmount}. Confirm payment of ₹${booking.vendorEarnings} to operator?`
+      : `Confirm payment of ₹${booking.vendorEarnings} to the operator?`;
 
     setConfirmDialog({
       isOpen: true,
-      title: 'Pay Worker',
+      title: 'Pay Operator',
       message: confirmMsg,
       type: 'info',
       onConfirm: async () => {
         try {
           setActionLoading(true);
           await payWorker(id);
-          toast.success('Worker payment processed successfully');
+          toast.success('Operator payment processed successfully');
           window.location.reload();
         } catch (e) {
           toast.error(e.response?.data?.message || 'Payment failed');
@@ -154,7 +154,7 @@ const BookingTimeline = () => {
     setConfirmDialog({
       isOpen: true,
       title: 'Approve Work',
-      message: "Approve worker's work and proceed to settlement?",
+      message: "Approve operator's work and proceed to settlement?",
       type: 'info',
       onConfirm: async () => {
         try {
@@ -266,14 +266,14 @@ const BookingTimeline = () => {
       title: 'Assigned',
       icon: FiUser,
       action: currentStage === 2 ? () => navigate(`/vendor/booking/${id}/assign-worker`) : null,
-      description: booking?.assignedTo ? `Assigned to ${booking.assignedTo.name}` : 'Assign worker or start yourself',
+      description: booking?.assignedTo ? `Assigned to ${booking.assignedTo.name}` : 'Assign operator or start yourself',
     },
     {
       id: 4,
       title: 'Journey Started',
       icon: FiMapPin,
       action: (currentStage === 3 && booking?.isSelfJob) ? handleStartSelfJob : null,
-      description: booking?.isSelfJob ? 'You started journey' : (booking?.assignedTo ? 'Worker started journey' : 'Waiting for journey start'),
+      description: booking?.isSelfJob ? 'You started journey' : (booking?.assignedTo ? 'Operator started journey' : 'Waiting for journey start'),
     },
     {
       id: 5,
@@ -291,7 +291,7 @@ const BookingTimeline = () => {
     },
     {
       id: 7,
-      title: booking?.isSelfJob ? 'Collect Payment' : 'Approve Worker Work',
+      title: booking?.isSelfJob ? 'Collect Payment' : 'Approve Operator Work',
       icon: FiCheckCircle,
       action: (() => {
         if (booking?.status === 'completed' || booking?.status === 'COMPLETED' || booking?.paymentStatus === 'SUCCESS' || booking?.paymentStatus === 'paid') return null;
@@ -305,14 +305,14 @@ const BookingTimeline = () => {
         }
         return null;
       })(),
-      description: booking?.isSelfJob ? 'Collect cash and complete booking' : 'Review and approve worker work',
+      description: booking?.isSelfJob ? 'Collect cash and complete booking' : 'Review and approve operator work',
     },
     {
       id: 8,
-      title: 'Pay Worker',
+      title: 'Pay Operator',
       icon: FiDollarSign,
       action: (currentStage === 8 && !(booking?.isWorkerPaid || booking?.workerPaymentStatus === 'PAID' || booking?.workerPaymentStatus === 'SUCCESS')) ? handleWorkerPayment : null,
-      description: (booking?.isWorkerPaid || booking?.workerPaymentStatus === 'PAID' || booking?.workerPaymentStatus === 'SUCCESS') ? 'Worker Paid' : 'Settle payment with worker',
+      description: (booking?.isWorkerPaid || booking?.workerPaymentStatus === 'PAID' || booking?.workerPaymentStatus === 'SUCCESS') ? 'Operator Paid' : 'Settle payment with operator',
     },
     {
       id: 9,
@@ -468,7 +468,7 @@ const BookingTimeline = () => {
                             boxShadow: `0 2px 8px ${themeColors.button}40`,
                           }}
                         >
-                          {stage.id === 3 ? 'Assign Worker' :
+                          {stage.id === 3 ? 'Assign Operator' :
                             stage.id === 4 ? 'Start Journey' :
                               stage.id === 5 ? 'Mark Arrived' :
                                 stage.id === 6 ? 'Mark workdone' :
@@ -477,7 +477,7 @@ const BookingTimeline = () => {
                                       ? 'Online Payment Done'
                                       : (booking?.isSelfJob ? 'Collect Cash' : 'Approve Work')
                                   ) :
-                                    stage.id === 8 ? 'Pay Worker' :
+                                    stage.id === 8 ? 'Pay Operator' :
                                       stage.id === 9 ? 'Final Settlement' : 'Continue'}
                         </button>
                       )}

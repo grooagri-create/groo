@@ -87,7 +87,7 @@ const WorkersList = () => {
 
   return (
     <div className="min-h-screen pb-20" style={{ background: themeColors.backgroundGradient }}>
-      <Header title="Workers" />
+      <Header title="Operators & Drivers" />
 
       <main className="px-4 py-6">
         {/* Search Bar */}
@@ -96,7 +96,7 @@ const WorkersList = () => {
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search workers by name or phone..."
+              placeholder="Search by name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3.5 bg-white rounded-2xl border border-gray-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all font-medium"
@@ -107,7 +107,7 @@ const WorkersList = () => {
         {/* Filter Buttons */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           {[
-            { id: 'all', label: 'All Workers' },
+            { id: 'all', label: 'All Staff' },
             { id: 'online', label: 'Online' },
             { id: 'offline', label: 'Offline' },
           ].map((option) => (
@@ -158,16 +158,16 @@ const WorkersList = () => {
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <FiUsers className="w-10 h-10 text-gray-200" />
             </div>
-            <p className="text-gray-600 font-bold mb-1">No workers found</p>
+            <p className="text-gray-600 font-bold mb-1">No operators found</p>
             <p className="text-xs text-gray-400 mb-6 font-medium">
-              {searchQuery ? 'Try matching a different name or phone' : 'Start by adding a worker to your team'}
+              {searchQuery ? 'Try matching a different name or phone' : 'Start by adding a driver/operator to your team'}
             </p>
             <button
               onClick={() => navigate('/vendor/workers/add')}
               className="px-8 py-3.5 rounded-xl font-bold text-white text-sm transition-all active:scale-95 shadow-lg shadow-teal-500/20"
               style={{ background: themeColors.button }}
             >
-              Add Worker
+              Add Operator
             </button>
           </div>
         ) : (

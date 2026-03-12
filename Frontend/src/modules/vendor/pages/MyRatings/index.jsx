@@ -133,7 +133,7 @@ const MyRatings = () => {
                       )}
                     </div>
                     <div>
-                      <h4 className="font-black text-gray-900">{rating.userId?.name || 'Customer'}</h4>
+                      <h4 className="font-black text-gray-900">{rating.userId?.name || 'Farmer'}</h4>
                       <div className="flex items-center gap-2 mt-0.5">
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((s) => (
@@ -169,7 +169,7 @@ const MyRatings = () => {
                 {rating.workerId && (
                   <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase">Service by:</span>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase">Operator:</span>
                       <span className="text-[11px] font-black text-teal-600">{rating.workerId.name}</span>
                     </div>
                     <span className="text-[10px] font-bold text-gray-300">#{rating.bookingNumber}</span>

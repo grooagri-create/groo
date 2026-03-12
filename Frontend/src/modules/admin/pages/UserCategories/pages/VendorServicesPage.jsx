@@ -240,7 +240,7 @@ const VendorServicesPage = () => {
               value={form.name}
               onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
               className="w-full px-4 py-2 border rounded-xl"
-              placeholder="e.g. AC Service"
+              placeholder="e.g. Tractor Repair Service"
             />
           </div>
           <div>

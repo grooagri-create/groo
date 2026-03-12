@@ -1,12 +1,5 @@
 import React from 'react';
 import CategoryCard from '../../../components/common/CategoryCard';
-import electricianIcon from '../../../../../assets/images/icons/services/electrician.png';
-import womensSalonIcon from '../../../../../assets/images/icons/services/womens-salon-spa-icon.png';
-import massageMenIcon from '../../../../../assets/images/icons/services/massage-men-icon.png';
-import cleaningIcon from '../../../../../assets/images/icons/services/cleaning-icon.png';
-import electricianPlumberIcon from '../../../../../assets/images/icons/services/electrician-plumber-carpenter-icon.png';
-import acApplianceRepairIcon from '../../../../../assets/images/icons/services/ac-appliance-repair-icon.png';
-
 const toAssetUrl = (url) => {
   if (!url) return '';
   const clean = url.replace('/api/upload', '/upload');
@@ -36,7 +29,7 @@ const ServiceCategories = React.memo(({ categories, onCategoryClick, onSeeAllCli
             Agriculture Seva Shreniyan
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
           </h2>
-          <p className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-[0.14em] mt-0.5">PREMIUM HOME SERVICES</p>
+          <p className="text-[10px] sm:text-[11px] text-gray-500 font-bold uppercase tracking-[0.14em] mt-0.5">PREMIUM AGRICULTURE SERVICES</p>
         </div>
 
       </div>

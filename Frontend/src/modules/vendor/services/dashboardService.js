@@ -60,5 +60,19 @@ export const vendorDashboardService = {
       console.error('Error fetching service performance:', error);
       throw error;
     }
+  },
+
+  /**
+   * Get equipment ROI analytics
+   * @returns {Promise<Object>} Equipment ROI data
+   */
+  getEquipmentROIAnalytics: async () => {
+    try {
+      const response = await api.get('/vendors/dashboard/equipment-roi');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching equipment ROI analytics:', error);
+      throw error;
+    }
   }
 };

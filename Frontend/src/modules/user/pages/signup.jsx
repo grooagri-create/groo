@@ -99,7 +99,7 @@ const Signup = () => {
 
           toast.success(
             <div className="flex flex-col">
-              <span className="font-bold">Welcome to Homster!</span>
+              <span className="font-bold">Welcome to GrooAgri!</span>
               <span className="text-xs">Your account has been created successfully.</span>
             </div>,
             { icon: <FiCheckCircle className="text-green-500" /> }
@@ -190,7 +190,7 @@ const Signup = () => {
 
         toast.success(
           <div className="flex flex-col">
-            <span className="font-bold">Welcome to Homster!</span>
+            <span className="font-bold">Welcome to GrooAgri!</span>
             <span className="text-xs">Account created successfully.</span>
           </div>,
           { icon: <FiCheckCircle className="text-green-500" /> }
@@ -294,7 +294,7 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className="block w-full py-4 bg-transparent border-none focus:ring-0 text-[#426B4F] font-bold placeholder-[#426B4F]/60 sm:text-sm"
-                  placeholder="user@mail.com"
+                  placeholder="farmer@agri.com"
                 />
                 {(formData.email && !signupSchema.safeParse({ ...formData }).error?.errors?.find(e => e.path.includes('email'))) && (
                   <FiCheckCircle className="text-green-500 absolute right-4 h-5 w-5" />

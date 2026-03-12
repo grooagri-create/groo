@@ -136,7 +136,7 @@ const AdminDashboard = () => {
       link: '/admin/reports/revenue'
     },
     {
-      title: 'Pending Bookings',
+      title: 'Active Operations',
       value: (stats.activeBookings || 0).toLocaleString(),
       change: 0,
       icon: FiShoppingBag,
@@ -158,7 +158,7 @@ const AdminDashboard = () => {
       link: '/admin/reports/bookings'
     },
     {
-      title: 'Total Users',
+      title: 'Total Farmers',
       value: (stats.totalUsers || 0).toLocaleString(),
       change: 0,
       icon: FiUser,
@@ -169,7 +169,7 @@ const AdminDashboard = () => {
       link: '/admin/users/analytics'
     },
     {
-      title: 'Total Vendors',
+      title: 'Equipment Owners',
       value: (stats.totalVendors || 0).toLocaleString(),
       change: 0,
       icon: FiBriefcase,
@@ -180,7 +180,7 @@ const AdminDashboard = () => {
       link: '/admin/vendors/analytics'
     },
     {
-      title: 'Total Workers',
+      title: 'Total Operators',
       value: (stats.totalWorkers || 0).toLocaleString(),
       change: 0,
       icon: FiUsers,

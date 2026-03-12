@@ -120,7 +120,7 @@ const AssignWorker = () => {
 
   return (
     <div className="min-h-screen pb-20" style={{ background: themeColors.backgroundGradient }}>
-      <Header title="Assign Worker" />
+      <Header title="Assign Operator" />
 
       <main className="px-4 py-6">
         {/* Booking Summary */}
@@ -187,7 +187,7 @@ const AssignWorker = () => {
 
         {/* Available Workers */}
         <div>
-          <h3 className="font-bold text-gray-800 mb-4">Available Workers</h3>
+          <h3 className="font-bold text-gray-800 mb-4">Available Operators</h3>
           {workers.length === 0 ? (
             <div
               className="bg-white rounded-xl p-6 text-center shadow-md"
@@ -196,8 +196,8 @@ const AssignWorker = () => {
               }}
             >
               <FiUser className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="text-gray-600 mb-2">No available workers</p>
-              <p className="text-sm text-gray-500 mb-4">All workers are currently assigned or offline</p>
+              <p className="text-gray-600 mb-2">No available operators</p>
+              <p className="text-sm text-gray-500 mb-4">All staff are currently assigned or offline</p>
               <button
                 onClick={() => navigate('/vendor/workers/add')}
                 className="px-4 py-2 rounded-lg font-semibold text-white text-sm"
@@ -206,7 +206,7 @@ const AssignWorker = () => {
                   boxShadow: `0 2px 8px ${themeColors.button}40`,
                 }}
               >
-                Add Worker
+                Add Operator
               </button>
             </div>
           ) : (
@@ -303,7 +303,7 @@ const AssignWorker = () => {
               </>
             ) : (
               <>
-                <span>Assign</span>
+                <span>Assign Operator</span>
                 <FiArrowRight className="w-5 h-5" />
               </>
             )}

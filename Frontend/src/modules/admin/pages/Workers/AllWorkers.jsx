@@ -78,7 +78,7 @@ const AllWorkers = () => {
         setWorkers(prev => prev.map(w =>
           w.id === workerId ? { ...w, approvalStatus: 'approved' } : w
         ));
-        toast.success('Worker approved successfully!');
+        toast.success('Operator approved successfully!');
       } else {
         toast.error(response.message || 'Failed to approve worker');
       }
@@ -95,7 +95,7 @@ const AllWorkers = () => {
         setWorkers(prev => prev.map(w =>
           w.id === workerId ? { ...w, approvalStatus: 'rejected' } : w
         ));
-        toast.success('Worker rejected successfully.');
+        toast.success('Operator rejected successfully.');
       } else {
         toast.error(response.message || 'Failed to reject worker');
       }
@@ -113,7 +113,7 @@ const AllWorkers = () => {
         setWorkers(prev => prev.map(w =>
           w.id === workerId ? { ...w, isActive: newStatus } : w
         ));
-        toast.success(`Worker ${newStatus ? 'activated' : 'deactivated'} successfully`);
+        toast.success(`Operator ${newStatus ? 'activated' : 'deactivated'} successfully`);
       } else {
         toast.error(response.message || 'Failed to update worker status');
       }
@@ -124,7 +124,7 @@ const AllWorkers = () => {
   };
 
   const handleDelete = async (workerId) => {
-    if (!window.confirm('Are you sure you want to delete this worker? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this operator? This action cannot be undone.')) {
       return;
     }
 
@@ -132,13 +132,13 @@ const AllWorkers = () => {
       const response = await adminWorkerService.deleteWorker(workerId);
       if (response.success) {
         setWorkers(prev => prev.filter(w => w.id !== workerId));
-        toast.success('Worker deleted successfully');
+        toast.success('Operator deleted successfully');
       } else {
         toast.error(response.message || 'Failed to delete worker');
       }
     } catch (error) {
       console.error('Error deleting worker:', error);
-      toast.error('Failed to delete worker');
+      toast.error('Failed to delete operator');
     }
   };
 
@@ -203,8 +203,8 @@ const AllWorkers = () => {
     <div className="space-y-4">
       <CardShell
         icon={FiFilter}
-        title="Worker Management"
-        subtitle="Manage and verify platform workers"
+        title="Operator Management"
+        subtitle="Manage and verify equipment operators"
       >
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -256,7 +256,7 @@ const AllWorkers = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Worker Details</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Operator Details</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -265,11 +265,11 @@ const AllWorkers = () => {
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">Loading workers...</td>
+                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">Loading operators...</td>
                   </tr>
                 ) : filteredWorkers.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">No workers found</td>
+                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">No operators found</td>
                   </tr>
                 ) : (
                   filteredWorkers.map((worker) => (
@@ -362,7 +362,7 @@ const AllWorkers = () => {
           setIsViewModalOpen(false);
           setSelectedWorker(null);
         }}
-        title="Worker Details"
+        title="Operator Details"
         size="lg"
       >
         {selectedWorker && (
@@ -481,7 +481,7 @@ const AllWorkers = () => {
                   className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <FiCheck className="w-5 h-5" />
-                  Approve Worker
+                  Approve Operator
                 </button>
                 <button
                   onClick={async () => {
@@ -492,7 +492,7 @@ const AllWorkers = () => {
                   className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <FiX className="w-5 h-5" />
-                  Reject Worker
+                  Reject Operator
                 </button>
               </div>
             )}

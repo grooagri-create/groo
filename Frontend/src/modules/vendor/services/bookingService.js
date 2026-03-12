@@ -137,6 +137,36 @@ export const completeSelfJob = async (bookingId, data) => {
 };
 
 /**
+ * Start Trip - Upload Start KM Photo + Verify Farmer OTP
+ * @param {string} bookingId
+ * @param {string} kmPhotoUrl - Cloudinary URL of start KM photo
+ * @param {string} otp        - OTP provided by farmer
+ */
+export const startTrip = async (bookingId, kmPhotoUrl, otp) => {
+  const response = await api.post(`/vendors/bookings/${bookingId}/trip/start`, {
+    start_kilometer_photo: kmPhotoUrl,
+    driver_start_otp: otp
+  });
+  return response.data;
+};
+
+/**
+ * End Trip - Upload End KM Photo + Verify Farmer OTP + Work Units
+ * @param {string} bookingId
+ * @param {string} kmPhotoUrl - Cloudinary URL of end KM photo
+ * @param {string} otp        - OTP provided by farmer
+ * @param {number} workUnits  - Total units (acres/quantity) for billing
+ */
+export const endTrip = async (bookingId, kmPhotoUrl, otp, workUnits) => {
+  const response = await api.post(`/vendors/bookings/${bookingId}/trip/end`, {
+    end_kilometer_photo: kmPhotoUrl,
+    driver_end_otp: otp,
+    workUnits: workUnits
+  });
+  return response.data;
+};
+
+/**
  * Collect Self Cash (Vendor)
  */
 export const collectSelfCash = async (bookingId, otp, amount) => {

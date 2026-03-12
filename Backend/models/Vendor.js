@@ -82,6 +82,39 @@ const vendorSchema = new mongoose.Schema({
     enum: Object.values(VENDOR_STATUS),
     default: VENDOR_STATUS.PENDING
   },
+  kyc_status: {
+    type: String,
+    enum: ['pending', 'verified', 'rejected'],
+    default: 'pending'
+  },
+  kyc_documents: [{
+    type: String
+  }],
+  // ==========================================
+  // AGRICULTURE COMPLIANCE DOCUMENTS
+  // ==========================================
+  complianceDocuments: {
+    drivingLicense: {
+      number: String,
+      document: String, // Cloudinary URL
+      expiryDate: Date
+    },
+    rcBook: {
+      number: String,
+      document: String, // Cloudinary URL
+      expiryDate: Date
+    },
+    insurance: {
+      number: String,
+      document: String, // Cloudinary URL
+      expiryDate: Date
+    },
+    fitnessCertificate: {
+      number: String,
+      document: String, // Cloudinary URL
+      expiryDate: Date
+    }
+  },
   approvalDate: {
     type: Date
   },

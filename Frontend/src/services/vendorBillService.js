@@ -35,6 +35,16 @@ const vendorBillService = {
   getPartsCatalog: async () => {
     const response = await api.get('/vendors/catalog/parts');
     return response.data;
+  },
+
+  /**
+   * Download Invoice PDF
+   */
+  downloadInvoice: async (bookingId) => {
+    const response = await api.get(`/vendors/bookings/${bookingId}/bill/download`, {
+      responseType: 'blob'
+    });
+    return response.data;
   }
 };
 

@@ -12,6 +12,7 @@ import { toast } from 'react-hot-toast';
 import { registerFCMToken } from '../../../../services/pushNotificationService';
 import { motion } from 'framer-motion';
 
+import { userAuthService } from '../../../../services/authService';
 // Lazy load heavy components for better initial load performance
 import PromoCarousel from './components/PromoCarousel';
 // Lazy load OTHER heavy components
@@ -23,6 +24,8 @@ const Banner = lazy(() => import('./components/Banner'));
 const ReferEarnSection = lazy(() => import('./components/ReferEarnSection'));
 import CategoryModal from './components/CategoryModal';
 import SearchOverlay from './components/SearchOverlay';
+import WeatherWidget from './components/WeatherWidget';
+import AgriMarketplaceSection from './components/AgriMarketplaceSection';
 import LogoLoader from '../../../../components/common/LogoLoader';
 import AddressSelectionModal from '../Checkout/components/AddressSelectionModal';
 
@@ -135,6 +138,20 @@ const Home = () => {
         setDetectedCityName(city);
         localStorage.setItem('currentCity', city);
 
+        // Sync location with profile for Weather Notifications
+        const accessToken = localStorage.getItem('accessToken');
+        if (accessToken && locationObj.lat && locationObj.lng) {
+          userAuthService.updateProfile({
+            addresses: [{
+              addressLine1: newAddress,
+              city: city,
+              lat: locationObj.lat,
+              lng: locationObj.lng,
+              isDefault: true
+            }]
+          }).catch(err => console.log('Manual location sync failed', err));
+        }
+
         // Immediate update of selected city if supported
         if (cities && cities.length > 0) {
           const matchedCity = cities.find(c =>
@@ -190,6 +207,21 @@ const Home = () => {
                   if (city) {
                     setDetectedCityName(city);
                     localStorage.setItem('currentCity', city);
+
+                    // Sync location with profile for Weather Notifications
+                    const accessToken = localStorage.getItem('accessToken');
+                    if (accessToken) {
+                      userAuthService.updateProfile({
+                        addresses: [{
+                          addressLine1: formattedAddress,
+                          city: city,
+                          state: state,
+                          lat: latitude,
+                          lng: longitude,
+                          isDefault: true
+                        }]
+                      }).catch(err => console.log('Location sync failed', err));
+                    }
 
                     // Immediate update of selected city if supported
                     if (cities && cities.length > 0) {
@@ -438,7 +470,7 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen pb-20 relative bg-white">
+    <div className="min-h-screen pb-20 relative" style={{ backgroundColor: '#F1F8E9' }}>
       {/* Refined Brand Mesh Gradient Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0"
@@ -449,7 +481,7 @@ const Home = () => {
               radial-gradient(at 100% 100%, ${themeColors?.brand?.orange || '#BB5F36'}15 0%, transparent 75%),
               radial-gradient(at 0% 100%, ${themeColors?.brand?.teal || '#347989'}10 0%, transparent 70%),
               radial-gradient(at 50% 50%, ${themeColors?.brand?.teal || '#347989'}03 0%, transparent 100%),
-              #FFFFFF
+              #F1F8E9
             `
           }}
         />
@@ -501,7 +533,7 @@ const Home = () => {
               <button
                 onClick={() => setIsAddressModalOpen(true)}
                 className="px-6 py-3 bg-primary-600 text-white rounded-xl font-semibold shadow-md hover:bg-primary-700 transition-all font-bold"
-                style={{ backgroundColor: '#2874f0' }}
+                style={{ backgroundColor: themeColors.button }}
               >
                 Change Location
               </button>
@@ -528,6 +560,9 @@ const Home = () => {
                   />
                 </motion.section>
               )}
+
+              {/* Weather Forecast Section */}
+              <WeatherWidget />
 
               {/* Categories Section */}
               {homeContent?.isCategoriesVisible !== false && (
@@ -600,6 +635,30 @@ const Home = () => {
                   </Suspense>
                 </motion.div>
               )}
+
+              {/* Soil Testing Banner */}
+              <motion.section variants={itemVariants} className="px-5">
+                <div
+                  onClick={() => navigate('/user/soil-testing')}
+                  className="bg-gradient-to-r from-[#347989] to-[#4fa1b3] rounded-[32px] p-6 text-white flex items-center justify-between relative overflow-hidden shadow-lg active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <div className="relative z-10 flex-1">
+                    <span className="bg-white/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-2 inline-block">New Service</span>
+                    <h2 className="text-xl font-black mb-1">Soil Testing</h2>
+                    <p className="text-[10px] font-bold text-white/80 leading-snug max-w-[180px]">Apni mitti ki jaanch karayein aur fasal badhayein.</p>
+                  </div>
+                  <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
+                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.673.337a4 4 0 01-2.506.326l-1.623-.27a2 2 0 00-1.182.15l-1.615.807a2 2 0 01-2.342-.308l-.337-.337a2 2 0 00-2.828 0l-.337.337a2 2 0 01-2.342.308l-1.615-.807a2 2 0 00-1.182-.15l-1.623.27a4 4 0 01-2.506-.326l-.673-.337a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547l-.337.337a2 2 0 01-2.342.308l-1.615-.807a2 2 0 00-1.182-.15l-1.623.27a4 4 0 01-2.506-.326l-.673-.337a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547l-.955 3.185a1 1 0 00.957 1.287h15.756a1 1 0 00.957-1.287l-.955-3.185z" />
+                    </svg>
+                  </div>
+                </div>
+              </motion.section>
+
+              {/* Agriculture Marketplace */}
+              <motion.div variants={itemVariants}>
+                <AgriMarketplaceSection />
+              </motion.div>
 
               {/* Dynamic Banner 1 */}
               {homeContent?.isBannersVisible !== false && (

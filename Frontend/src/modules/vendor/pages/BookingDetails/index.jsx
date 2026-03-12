@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiMapPin, FiClock, FiDollarSign, FiUser, FiPhone, FiNavigation, FiArrowRight, FiEdit, FiCheckCircle, FiCreditCard, FiX, FiCheck, FiTool, FiXCircle, FiAward, FiPackage, FiAlertCircle } from 'react-icons/fi';
+import { FiMapPin, FiClock, FiDollarSign, FiUser, FiPhone, FiNavigation, FiArrowRight, FiEdit, FiCheckCircle, FiCreditCard, FiX, FiCheck, FiTool, FiXCircle, FiAward, FiPackage, FiAlertCircle, FiDownload, FiAlertTriangle, FiLoader, FiKey } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { vendorTheme as themeColors } from '../../../../theme';
 import Header from '../../components/layout/Header';
@@ -12,10 +12,12 @@ import {
   startSelfJob,
   vendorReached,
   verifySelfVisit,
-  completeSelfJob
+  completeSelfJob,
+  startTrip,
+  endTrip
 } from '../../services/bookingService';
 import vendorBillService from '../../../../services/vendorBillService';
-import { CashCollectionModal, ConfirmDialog, WorkerPaymentModal } from '../../components/common';
+import { CashCollectionModal, ConfirmDialog, OperatorPaymentModal } from '../../components/common';
 import VisitVerificationModal from '../../components/common/VisitVerificationModal';
 // Import shared WorkCompletionModal from worker directory or move to shared
 import { WorkCompletionModal } from '../../../worker/components/common';
@@ -24,6 +26,10 @@ import vendorWalletService from '../../../../services/vendorWalletService';
 import { toast } from 'react-hot-toast';
 import { useAppNotifications } from '../../../../hooks/useAppNotifications';
 import { useLocationTracking } from '../../../../hooks/useLocationTracking';
+import TripFlowModal from '../../components/common/TripFlowModal';
+import DisputeModal from '../../../../components/common/DisputeModal'; // NEW
+import disputeService from '../../../../services/disputeService'; // NEW
+import LogoLoader from '../../../../components/common/LogoLoader'; // NEW
 
 export default function BookingDetails() {
   const { id } = useParams();
@@ -37,6 +43,11 @@ export default function BookingDetails() {
 
 
   const [actionLoading, setActionLoading] = useState(false);
+  // ──────── TRIP FLOW STATE (New - agriculture feature) ────────
+  const [isTripModalOpen, setIsTripModalOpen] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false); // NEW
+  const [tripMode, setTripMode] = useState('start'); // 'start' | 'end'
+  // ─────────────────────────────────────────────────────────────
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     title: '',
@@ -85,8 +96,8 @@ export default function BookingDetails() {
           ...apiData,
           bill: billData || apiData.bill, // Prioritize fetched bill
           id: apiData._id || apiData.id,
-          user: apiData.userId || apiData.user || { name: apiData.customerName || 'Customer', phone: apiData.customerPhone || 'Hidden' },
-          customerName: apiData.userId?.name || apiData.customerName || 'Customer',
+          user: apiData.userId || apiData.user || { name: apiData.customerName || 'Farmer', phone: apiData.customerPhone || 'Hidden' },
+          customerName: apiData.userId?.name || apiData.customerName || 'Farmer',
           customerPhone: apiData.userId?.phone || apiData.customerPhone || 'Hidden',
           serviceType: apiData.serviceId?.title || apiData.serviceName || apiData.serviceType || 'Service',
           items: apiData.bookedItems || [],
@@ -155,7 +166,11 @@ export default function BookingDetails() {
   const socket = useAppNotifications('vendor'); // Get socket
 
   // Optimized Live Location Tracking with distance filter and heading
-  const isTrackingActive = booking?.status === 'journey_started' || booking?.status === 'visited';
+  const isTrackingActive =
+    booking?.status === 'journey_started' ||
+    booking?.status === 'visited' ||
+    booking?.status === 'in_progress'; // Active during work/trip too for transparency
+
   useLocationTracking(socket, id, isTrackingActive, {
     distanceFilter: 10, // Only emit when moved 10+ meters
     interval: 3000,     // Minimum 3s between emissions
@@ -433,6 +448,26 @@ export default function BookingDetails() {
 
 
 
+  const handleDownloadInvoice = async () => {
+    try {
+      setActionLoading(true);
+      const blob = await vendorBillService.downloadInvoice(id);
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Invoice_${booking.bookingNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('Invoice Downloaded');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download invoice');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (!booking) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: themeColors.backgroundGradient }}>
@@ -508,6 +543,24 @@ export default function BookingDetails() {
     navigate(`/vendor/booking/${booking.id || id}/map`);
   };
 
+  // ──────── TRIP FLOW HANDLERS (New - agriculture feature) ────────
+  const openTripModal = (mode) => {
+    setTripMode(mode);
+    setIsTripModalOpen(true);
+  };
+
+  const handleTripSubmit = async (photoUrl, otp, workUnits) => {
+    if (tripMode === 'start') {
+      await startTrip(id, photoUrl, otp);
+      toast.success('🚜 Trip Started! KM Photo & OTP verified.');
+    } else {
+      await endTrip(id, photoUrl, otp, workUnits);
+      toast.success('🏁 Trip Ended! Bill Generated & Wallet Settled.');
+    }
+    window.location.reload();
+  };
+  // ──────────────────────────────────────────────────────────────
+
 
 
 
@@ -530,14 +583,14 @@ export default function BookingDetails() {
     setConfirmDialog({
       isOpen: true,
       title: 'Approve Work',
-      message: 'Approve the work done by the worker? This will mark the job as completed and enable payout.',
+      message: 'Approve the work done by the operator? This will mark the job as completed and enable payout.',
       type: 'success',
       onConfirm: async () => {
         setLoading(true);
         try {
           await updateBookingStatus(id, 'completed');
           window.dispatchEvent(new Event('vendorJobsUpdated'));
-          toast.success('Work Approved! You can now pay the worker.');
+          toast.success('Work Approved! You can now pay the operator.');
           window.location.reload();
         } catch (error) {
           console.error('Error approving work:', error);
@@ -649,7 +702,7 @@ export default function BookingDetails() {
                 <FiUser className="w-6 h-6" style={{ color: themeColors.icon }} />
               </div>
               <div>
-                <p className="font-semibold text-gray-800">{booking.user?.name || booking.customerName || 'Customer'}</p>
+                <p className="font-semibold text-gray-800">{booking.user?.name || booking.customerName || 'Farmer'}</p>
                 <p className="text-sm text-gray-600">{booking.user?.phone || booking.customerPhone || 'Phone hidden'}</p>
               </div>
             </div>
@@ -869,6 +922,16 @@ export default function BookingDetails() {
                 Plan Benefit Applied
               </span>
             )}
+            {hasBill && (
+              <button
+                onClick={handleDownloadInvoice}
+                disabled={actionLoading}
+                className="mt-4 flex items-center justify-center gap-2 w-full max-w-[200px] mx-auto py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-all active:scale-95 text-xs font-bold"
+              >
+                <FiDownload className="w-4 h-4" />
+                {actionLoading ? 'Generating...' : 'Download Invoice PDF'}
+              </button>
+            )}
           </div>
 
           <div className="p-6 space-y-6 text-sm">
@@ -1082,7 +1145,7 @@ export default function BookingDetails() {
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 text-sm">{booking.assignedTo.name}</h3>
-                  <p className="text-xs text-gray-500 font-medium">Service Partner</p>
+                  <p className="text-xs text-gray-500 font-medium">Equipment Operator</p>
                 </div>
               </div>
 
@@ -1127,7 +1190,7 @@ export default function BookingDetails() {
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-sm text-gray-900">Awaiting Acceptance</p>
-                    <p className="text-xs text-amber-700/80 font-medium mt-0.5">Worker has not responded yet</p>
+                    <p className="text-xs text-amber-700/80 font-medium mt-0.5">Operator has not responded yet</p>
                   </div>
                 </div>
               ) : booking.workerResponse === 'ACCEPTED' ? (
@@ -1194,11 +1257,11 @@ export default function BookingDetails() {
                     </div>
                     <div>
                       <p className="font-bold text-gray-900 text-base tracking-tight mb-0.5">
-                        {booking.status === 'journey_started' ? 'Worker is On the Way' :
-                          booking.status === 'visited' ? 'Worker Reached Location' :
+                        {booking.status === 'journey_started' ? 'Operator is On the Way' :
+                          booking.status === 'visited' ? 'Operator Reached Location' :
                             booking.status === 'in_progress' ? 'Work In Progress' :
                               ['work_done', 'completed'].includes(booking.status) ? 'Work Completed' :
-                                'Worker Accepted Job'}
+                                'Operator Accepted Job'}
                       </p>
                       <p className="text-xs text-gray-500 font-medium">
                         {booking.status === 'journey_started' ? 'Tracking is active. Monitor live location.' :
@@ -1215,7 +1278,7 @@ export default function BookingDetails() {
                   <FiXCircle className="w-5 h-5" />
                   <div className="flex-1">
                     <p className="font-bold text-sm">Request Declined</p>
-                    <p className="text-[10px] opacity-80">Worker is unavailable.</p>
+                    <p className="text-[10px] opacity-80">Operator is unavailable.</p>
                   </div>
                   <button onClick={handleAssignWorker} className="px-3 py-1 bg-white border border-red-200 rounded shadow-sm text-xs font-bold text-red-600 hover:bg-red-50">
                     Reassign
@@ -1262,7 +1325,7 @@ export default function BookingDetails() {
                     <span className="font-bold text-emerald-800">Base Service Covered by Plan</span>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    The base service fee is covered by customer's membership. You can add extra charges for parts or additional work.
+                    The base service fee is covered by farmer's membership. You can add extra charges for parts or additional work.
                   </p>
                 </div>
               ) : (
@@ -1276,7 +1339,7 @@ export default function BookingDetails() {
                   </div>
                   <div className="mt-3 flex items-start gap-2 text-[11px] text-orange-700/80 leading-relaxed">
                     <FiClock className="w-3 h-3 mt-0.5" />
-                    <span>Customer chose {booking.paymentMethod?.replace('_', ' ') || 'Cash'} payment. Please verify collection to proceed.</span>
+                    <span>Farmer chose {booking.paymentMethod?.replace('_', ' ') || 'Cash'} payment. Please verify collection to proceed.</span>
                   </div>
                 </div>
               )}
@@ -1312,38 +1375,9 @@ export default function BookingDetails() {
                 </div>
               </div>
               <div className="mt-4 bg-green-50/50 rounded-xl p-3 border border-green-100">
-                <p className="text-xs text-green-800 font-medium">Customer has paid ₹{booking.finalAmount.toLocaleString()} online via Razorpay. No cash collection needed.</p>
+                <p className="text-xs text-green-800 font-medium">Farmer has paid ₹{booking.finalAmount.toLocaleString()} online via Razorpay. No cash collection needed.</p>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Worker Payment Button */}
-        {canPayWorker(booking) && (
-          <div
-            id="worker-payment-section"
-            className="bg-white rounded-2xl p-5 mb-4 shadow-md border-l-4 border-green-500"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500">
-                <FiDollarSign className="w-5 h-5" />
-              </div>
-              <h3 className="font-bold text-gray-800">Worker Payout</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Service complete. Pay {booking.assignedTo?.name}'s share to close this booking.
-            </p>
-            <button
-              onClick={handlePayWorkerClick}
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md hover:brightness-105"
-              style={{
-                background: 'linear-gradient(135deg, #10B981, #059669)',
-              }}
-            >
-              <FiCheckCircle className="w-5 h-5" />
-              Pay Worker
-            </button>
           </div>
         )}
 
@@ -1410,34 +1444,10 @@ export default function BookingDetails() {
             <FiArrowRight className="w-5 h-5" />
           </button>
 
-          {(booking.status === 'confirmed' || (booking.assignedTo && booking.workerResponse === 'rejected')) && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleAssignToSelf}
-                className="flex-1 py-4 rounded-xl font-semibold border-2 transition-all active:scale-95"
-                style={{
-                  borderColor: themeColors.button,
-                  color: themeColors.button,
-                  background: 'white',
-                }}
-              >
-                Do it Myself
-              </button>
-              <button
-                onClick={handleAssignWorker}
-                className="flex-1 py-4 rounded-xl font-semibold text-white transition-all active:scale-95 px-4"
-                style={{
-                  background: themeColors.button,
-                  boxShadow: `0 4px 12px ${themeColors.button}40`,
-                }}
-              >
-                {booking.workerResponse === 'rejected' ? 'Reassign' : 'Assign'}
-              </button>
-            </div>
-          )}
 
-          {/* Self-Job Operational Buttons */}
-          {booking.assignedTo?.name === 'You (Self)' && (
+
+          {/* Self-Job Operational Buttons (Hidden for Agriculture to use new Trip Flow) */}
+          {booking.assignedTo?.name === 'You (Self)' && !booking.rental_type && booking.serviceCategory !== 'Agriculture' && (
             <div className="space-y-3 pt-2">
               {(booking.status === 'confirmed' || booking.status === 'assigned') && (
                 <button
@@ -1470,7 +1480,7 @@ export default function BookingDetails() {
                   }}
                 >
                   <FiMapPin className="w-5 h-5" />
-                  Arrived (Arrived at customer's site)
+                  Arrived (Arrived at farmer's site)
                 </button>
               )}
 
@@ -1490,12 +1500,75 @@ export default function BookingDetails() {
             </div>
           )}
         </div>
+
+        {/* ══════ EQUIPMENT TRIP FLOW (New - agriculture feature) ══════ */}
+        {/* Show Start Trip button when booking is confirmed/in_progress and trip not started yet */}
+        {!booking.start_kilometer_photo &&
+          ['confirmed', 'assigned', 'in_progress', 'journey_started'].includes(booking.status) && (
+            <div className="bg-white rounded-2xl mb-4 overflow-hidden shadow-lg border-t-4 border-green-500">
+              <div className="p-5">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Equipment Trip</p>
+                <button
+                  onClick={() => openTripModal('start')}
+                  className="w-full py-4 rounded-xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-200"
+                  style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+                >
+                  🚜 Equipment Arrived (KM Photo + OTP)
+                </button>
+              </div>
+            </div>
+          )}
+
+        {/* Show End Trip button when trip is started (KM photo uploaded) and end not done yet */}
+        {booking.start_kilometer_photo && !booking.end_kilometer_photo &&
+          ['confirmed', 'assigned', 'in_progress', 'journey_started', 'visited', 'work_done'].includes(booking.status) && (
+            <div className="bg-white rounded-2xl mb-4 overflow-hidden shadow-lg border-t-4 border-red-500">
+              <div className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-bold text-green-600">✅ Trip Started</span>
+                  <span className="text-[10px] text-gray-400">KM Photo uploaded</span>
+                </div>
+                <button
+                  onClick={() => openTripModal('end')}
+                  className="w-full py-4 rounded-xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-red-200"
+                  style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}
+                >
+                  🏁 End Trip (KM Photo + OTP)
+                </button>
+              </div>
+            </div>
+          )}
+
+        {/* Trip Completed Badge */}
+        {booking.start_kilometer_photo && booking.end_kilometer_photo && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl mb-4 p-4 flex items-center gap-3">
+            <span className="text-xl">✅</span>
+            <div>
+              <p className="text-sm font-bold text-green-800">Trip Verified</p>
+              <p className="text-[10px] text-green-600">Both KM photos & OTPs submitted successfully.</p>
+            </div>
+          </div>
+        )}
+        {/* ═══════════════════════════════════════════════════════════ */}
+
+        {/* Raise Dispute (Vendor Side) */}
+        {['completed', 'work_done', 'cancelled'].includes(booking.status?.toLowerCase()) && (
+          <div className="px-5 mb-10">
+            <button
+              onClick={() => setShowDisputeModal(true)}
+              className="w-full py-4 rounded-xl text-amber-600 font-bold text-xs bg-amber-50 border border-amber-100 flex items-center justify-center gap-2 active:scale-95 transition-all"
+            >
+              <FiAlertTriangle className="w-4 h-4" />
+              Report an Issue / Payment Dispute
+            </button>
+          </div>
+        )}
       </main>
 
 
 
-      {/* Pay Worker Modal */}
-      <WorkerPaymentModal
+      {/* Pay Operator Modal */}
+      <OperatorPaymentModal
         isOpen={isPayWorkerModalOpen}
         onClose={() => setIsPayWorkerModalOpen(false)}
         workerName={booking.assignedTo?.name}
@@ -1544,6 +1617,31 @@ export default function BookingDetails() {
       />
 
 
+
+      {/* Trip Flow Modal (New - agriculture feature) */}
+      <TripFlowModal
+        isOpen={isTripModalOpen}
+        onClose={() => setIsTripModalOpen(false)}
+        mode={tripMode}
+        rentalType={booking.rental_type}
+        onSubmit={handleTripSubmit}
+      />
+
+      {/* Dispute Modal */}
+      <DisputeModal
+        isOpen={showDisputeModal}
+        onClose={() => setShowDisputeModal(false)}
+        onSubmit={async (data) => {
+          try {
+            await disputeService.raiseDispute(data);
+            return { success: true };
+          } catch (err) {
+            toast.error(err?.message || 'Failed to raise dispute');
+            throw err;
+          }
+        }}
+        bookingId={id}
+      />
 
       <BottomNav />
     </div>

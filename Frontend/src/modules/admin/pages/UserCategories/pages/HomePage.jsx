@@ -1544,7 +1544,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
               value={promoForm.scrollToSection}
               onChange={(e) => setPromoForm((p) => ({ ...p, scrollToSection: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              placeholder="Waxing & threading"
+              placeholder="Soil Testing"
             />
           </div>
           <div className="flex gap-3 pt-4">
@@ -1582,7 +1582,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
               value={curatedForm.title}
               onChange={(e) => setCuratedForm((p) => ({ ...p, title: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              placeholder="Bathroom Deep Cleaning"
+              placeholder="Tractor Maintenance & Repair"
             />
           </div>
           <div>
@@ -1696,7 +1696,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
               value={noteworthyForm.title}
               onChange={(e) => setNoteworthyForm((p) => ({ ...p, title: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              placeholder="Bathroom & Kitchen Cleaning"
+              placeholder="Crop Care & Protection"
             />
           </div>
           <div>
@@ -1808,7 +1808,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
               value={bookedForm.title}
               onChange={(e) => setBookedForm((p) => ({ ...p, title: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              placeholder="Intense cleaning (2 bathrooms)"
+              placeholder="Advanced Soil Lab Analysis"
             />
           </div>
           <div>
@@ -1998,7 +1998,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
               value={categorySectionForm.title}
               onChange={(e) => setCategorySectionForm((p) => ({ ...p, title: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              placeholder="e.g. Cleaning Essentials"
+              placeholder="e.g. Farming Essentials"
             />
           </div>
           <RedirectionSelector
@@ -2149,7 +2149,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
               value={cardForm.title}
               onChange={(e) => setCardForm((p) => ({ ...p, title: e.target.value }))}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white"
-              placeholder="e.g. Salon for Women"
+              placeholder="e.g. Organic Fertilizers"
             />
           </div>
 

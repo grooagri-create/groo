@@ -183,6 +183,7 @@ const initializeSocket = (server) => {
       try {
         const Vendor = require('../models/Vendor');
         const Worker = require('../models/Worker');
+        const Booking = require('../models/Booking');
 
         const updateData = {
           location: {
@@ -197,10 +198,23 @@ const initializeSocket = (server) => {
           }
         };
 
+        // Update Provider (Vendor/Worker) location
         if (socket.userRole === 'VENDOR') {
           await Vendor.findByIdAndUpdate(socket.userId, updateData);
         } else if (socket.userRole === 'WORKER') {
           await Worker.findByIdAndUpdate(socket.userId, updateData);
+        }
+
+        // Update the specific Booking with live tracking data
+        if (data.bookingId) {
+          await Booking.findByIdAndUpdate(data.bookingId, {
+            liveLocation: {
+              lat,
+              lng,
+              heading,
+              updatedAt: new Date()
+            }
+          });
         }
       } catch (error) {
         console.error('Error saving live location:', error);

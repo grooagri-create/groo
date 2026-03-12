@@ -215,13 +215,21 @@ const BookingTrack = () => {
           // 2. Source (Provider Location) - ONLY on first load if no socket location received yet
           if (isFirstLoad && !locationFromSocketRef.current) {
             const provider = response.data.workerId || response.data.assignedTo || response.data.vendorId || {};
-            if (provider.location && provider.location.lat && provider.location.lng) {
+            const liveLoc = response.data.liveLocation;
+
+            // Priority 1: Direct booking live location (Persistent)
+            if (liveLoc && liveLoc.lat && liveLoc.lng) {
+              setCurrentLocation({ lat: parseFloat(liveLoc.lat), lng: parseFloat(liveLoc.lng) });
+              if (liveLoc.heading) setHeading(parseFloat(liveLoc.heading));
+            }
+            // Priority 2: Provider's current location (Dynamic)
+            else if (provider.location && provider.location.lat && provider.location.lng) {
               setCurrentLocation({ lat: parseFloat(provider.location.lat), lng: parseFloat(provider.location.lng) });
-            } else if (response.data.vendorId && provider.address && provider.address.lat && provider.address.lng) {
-              // Fallback to vendor address
+            }
+            // Priority 3: Vendor's address (Static Fallback)
+            else if (response.data.vendorId && provider.address && provider.address.lat && provider.address.lng) {
               setCurrentLocation({ lat: parseFloat(provider.address.lat), lng: parseFloat(provider.address.lng) });
             } else {
-              // Reset if no location found to avoid wrong location display
               setCurrentLocation(null);
             }
           }
@@ -725,9 +733,11 @@ const BookingTrack = () => {
           <div>
             <p className="text-sm font-medium text-teal-600 mb-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse"></span>
-              {duration ? `Arriving in ${duration}` : 'Calculating time...'}
+              {duration ? (booking?.status === 'in_progress' ? 'Trip in progress' : `Approx. ${duration}`) : 'Monitoring...'}
             </p>
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight">On the way</h2>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">
+              {['in_progress', 'visited', 'work_done'].includes(booking?.status?.toLowerCase()) ? 'Equipment Status' : 'On the way'}
+            </h2>
           </div>
           {distance && (
             <div className="text-right">

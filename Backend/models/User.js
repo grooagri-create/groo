@@ -55,7 +55,9 @@ const userSchema = new mongoose.Schema({
     isDefault: {
       type: Boolean,
       default: false
-    }
+    },
+    lat: Number,
+    lng: Number
   }],
   wallet: {
     balance: {
@@ -89,6 +91,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // Equipment Owner KYC Properties
+  kyc_status: {
+    type: String,
+    enum: ['pending', 'verified', 'rejected'],
+    default: 'pending'
+  },
+  kyc_documents: [{
+    type: String
+  }],
   // Settings
   settings: {
     notifications: {

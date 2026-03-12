@@ -16,6 +16,7 @@ import { getPlans } from '../../services/planService';
 import { userAuthService } from '../../../../services/authService';
 import { useCart } from '../../../../context/CartContext';
 import LiveBookingCard from '../../components/booking/LiveBookingCard';
+import RentalTypeCard from './components/RentalTypeCard';
 
 const toAssetUrl = (url) => {
   if (!url) return '';
@@ -60,6 +61,11 @@ const Checkout = () => {
   const [visitedFee, setVisitedFee] = useState(29);
   const [gstPercentage, setGstPercentage] = useState(18);
   const [bookingType, setBookingType] = useState('instant'); // 'instant' | 'scheduled'
+  // ── Agriculture: Rental Type State (New - additive only) ──
+  const [rentalType, setRentalType] = useState('hourly'); // 'hourly' | 'land_based' | 'monthly'
+  const [cropType, setCropType] = useState('');           // Agriculture: crop type
+  const [landSize, setLandSize] = useState('');           // Agriculture: area in acres
+  // ──────────────────────────────────────────────────────────
 
   // Check if Razorpay is loaded (defer to avoid blocking initial render)
   useEffect(() => {
@@ -174,6 +180,19 @@ const Checkout = () => {
           });
         }
         setCartItems(items);
+
+        // ── Agriculture: Check for pre-selected slot ──
+        const itemWithSlot = items.find(i => i.scheduledDate || i.timeSlot);
+        if (itemWithSlot) {
+          if (itemWithSlot.scheduledDate) {
+            setSelectedDate(new Date(itemWithSlot.scheduledDate));
+          }
+          if (itemWithSlot.timeSlot) {
+            setSelectedTime(itemWithSlot.timeSlot.id || itemWithSlot.timeSlot.start);
+          }
+          setBookingType('scheduled');
+        }
+        // ──────────────────────────────────────────────
       } else {
         setCartItems([]);
       }
@@ -344,6 +363,7 @@ const Checkout = () => {
         },
 
         paymentMethod: 'online',
+        rental_type: rentalType,
         bookedItems: bookedItemsData
       });
 
@@ -533,6 +553,9 @@ const Checkout = () => {
         timeSlot: timeSlotObj,
         // userNotes: null, // Removed per request
         paymentMethod: amountToPay === 0 ? 'plan_benefit' : 'pay_at_home',
+        rental_type: rentalType,
+        cropType,
+        landSize,
         amount: amountToPay,
 
         // Pass Full Breakdown to Backend
@@ -906,7 +929,9 @@ const Checkout = () => {
               name: activePlan.name,
               freeCategories: activePlan.freeCategories || [],
               freeBrands: activePlan.freeBrands || [],
-              freeServices: activePlan.freeServices || []
+              freeServices: activePlan.freeServices || [],
+              marketplaceDiscountPercentage: activePlan.marketplaceDiscountPercentage || 0,
+              rentalDiscountPercentage: activePlan.rentalDiscountPercentage || 0
             });
 
           }
@@ -922,7 +947,14 @@ const Checkout = () => {
     }
   }, [plan]);
 
-  const [planBenefits, setPlanBenefits] = useState({ name: '', freeCategories: [], freeBrands: [], freeServices: [] });
+  const [planBenefits, setPlanBenefits] = useState({
+    name: '',
+    freeCategories: [],
+    freeBrands: [],
+    freeServices: [],
+    marketplaceDiscountPercentage: 0,
+    rentalDiscountPercentage: 0
+  });
 
   // Helper to normalize MongoDB IDs (handles strings, objects with _id, and $oid)
   const normalizeId = (id) => {
@@ -937,39 +969,69 @@ const Checkout = () => {
   const calculateItemPrice = (item) => {
     if (plan) return item.price || 0; // Plan purchase
 
+    // 1. Determine Base Price (Handles Agri Rental Logic)
+    let basePrice = item.price || 0;
+    const isAgri = item.categoryTitle === 'Agriculture' || item.category === 'Agriculture';
+
+    if (isAgri) {
+      const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+      if (rentalType === 'hourly') basePrice = svc.hourly_price || basePrice;
+      else if (rentalType === 'land_based') basePrice = svc.land_price || basePrice;
+      else if (rentalType === 'monthly') basePrice = svc.monthly_price || basePrice;
+    }
+
+    // 2. Identify Item for Plan Matching
     const itemCatId = normalizeId(item.categoryId);
     const itemBrandId = normalizeId(item.brandId || item.sectionId);
     const itemServiceId = normalizeId(item.serviceId);
 
-    // Check if free
-    const isFreeCategory = itemCatId && planBenefits.freeCategories.some(cat => {
-      return normalizeId(cat) === itemCatId;
-    });
-
-    const isFreeBrand = itemBrandId && planBenefits.freeBrands.some(brand => {
-      return normalizeId(brand) === itemBrandId;
-    });
-
-    const isFreeService = itemServiceId && planBenefits.freeServices.some(svc => {
-      return normalizeId(svc) === itemServiceId;
-    });
+    // 3. Check for Full Coverage (Free)
+    const isFreeCategory = itemCatId && planBenefits.freeCategories.some(cat => normalizeId(cat) === itemCatId);
+    const isFreeBrand = itemBrandId && planBenefits.freeBrands.some(brand => normalizeId(brand) === itemBrandId);
+    const isFreeService = itemServiceId && planBenefits.freeServices.some(svc => normalizeId(svc) === itemServiceId);
 
     if (isFreeCategory || isFreeBrand || isFreeService) {
       return 0;
     }
-    return item.price || 0;
+
+    // 4. Check for Partial Discounts (Agri-Specific)
+    const isRental = !!(item.rental_type || isAgri);
+    const isProduct = item.type === 'product' || item.category === 'Marketplace';
+
+    if (isRental && planBenefits.rentalDiscountPercentage > 0) {
+      return Math.round(basePrice * (1 - planBenefits.rentalDiscountPercentage / 100));
+    }
+
+    if (isProduct && planBenefits.marketplaceDiscountPercentage > 0) {
+      return Math.round(basePrice * (1 - planBenefits.marketplaceDiscountPercentage / 100));
+    }
+
+    return basePrice;
   };
 
   const itemTotal = cartItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
   // Calculate savings including Plan Savings
   const totalOriginalPrice = cartItems.reduce((sum, item) => {
-    const original = (item.originalPrice || item.unitPrice || (item.price / (item.serviceCount || 1))) * (item.serviceCount || 1);
+    const isAgri = item.categoryTitle === 'Agriculture' || item.category === 'Agriculture' || item.serviceCategory === 'Agriculture';
+    let base = (item.originalPrice || item.unitPrice || (item.price / (item.serviceCount || 1)));
+
+    // Dynamic price adjustment for Agriculture display
+    if (isAgri) {
+      const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+      if (rentalType === 'hourly') base = svc.hourly_price || base;
+      else if (rentalType === 'land_based') base = svc.land_price || base;
+      else if (rentalType === 'monthly') base = svc.monthly_price || base;
+    }
+
+    const original = base * (item.serviceCount || 1);
     // If priced 0, original is huge saving
     return sum + original;
   }, 0);
 
   const savings = totalOriginalPrice - itemTotal;
-  const taxesAndFee = Math.round((itemTotal * gstPercentage) / 100);
+  const hasAgriItems = cartItems.some(item => item.categoryTitle === 'Agriculture' || item.category === 'Agriculture' || item.category === 'Marketplace');
+  const currentGst = hasAgriItems ? 5 : gstPercentage;
+  const taxesAndFee = Math.round((itemTotal * currentGst) / 100);
   // Visited fee logic: if Total is 0 (All free), user might still pay visited fee?
   // User says "no payemtn". So maybe visited fee also waived? Or user pays visited fee?
   // "ask direct servicebooking" -> implies fully free.
@@ -983,7 +1045,7 @@ const Checkout = () => {
 
   // Helper for Free Plan Full Breakdown Display
   // If the booking is free, we still want to show what the Tax/Fee WOULD have been
-  const displayTax = totalAmount === 0 ? Math.round((totalOriginalPrice * gstPercentage) / 100) : taxesAndFee;
+  const displayTax = totalAmount === 0 ? Math.round((totalOriginalPrice * currentGst) / 100) : taxesAndFee;
   const displayFee = totalAmount === 0 ? visitedFee : finalVisitedFee;
   const displaySavings = totalAmount === 0 ? (totalOriginalPrice + displayTax + displayFee) : savings;
 
@@ -1000,6 +1062,17 @@ const Checkout = () => {
   };
 
   const getTimeSlots = () => {
+    // ── Agriculture: Different Time Slots for Equipment ──
+    const isAgri = cartItems.some(item => item.categoryTitle === 'Agriculture' || item.category === 'Agriculture');
+    if (isAgri) {
+      return [
+        { value: '06:00', end: '18:00', display: 'Full Day (6 AM - 6 PM)' },
+        { value: '06:00', end: '12:00', display: 'Morning Shift (6 AM - 12 PM)' },
+        { value: '12:00', end: '18:00', display: 'Afternoon Shift (12 PM - 6 PM)' },
+      ];
+    }
+    // ──────────────────────────────────────────────────────
+
     const allSlots = [
       { value: '09:00', end: '10:00', display: '9:00 AM' },
       { value: '10:00', end: '11:00', display: '10:00 AM' },
@@ -1230,7 +1303,55 @@ const Checkout = () => {
           })}
         </div>
 
-        {/* ... */}
+        {/* ══ RENTAL TYPE CARD (New - agriculture feature) ══ */}
+        {/* Only show when cart has items and cart is not a plan */}
+        {cartItems.length > 0 && !cartItems[0]?.isPlan && (
+          <RentalTypeCard
+            serviceId={
+              cartItems[0]?.serviceId
+                ? (typeof cartItems[0].serviceId === 'object'
+                  ? cartItems[0].serviceId._id || cartItems[0].serviceId.id
+                  : cartItems[0].serviceId)
+                : null
+            }
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            onRentalChange={(type) => setRentalType(type)}
+          />
+        )}
+
+        {/* ══ AGRI DETAILS CARD (New) ══ */}
+        {cartItems.some(item => item.category === 'Agriculture' || item.categoryTitle === 'Agriculture') && (
+          <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span className="w-6 h-6 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center">🌾</span>
+              Agriculture Details
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Crop Type</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Wheat, Rice"
+                  value={cropType}
+                  onChange={(e) => setCropType(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Area (Acres)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 5 Acres"
+                  value={landSize}
+                  onChange={(e) => setLandSize(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all font-medium"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ═══════════════════════════════════════════════════ */}
 
 
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
@@ -1238,7 +1359,7 @@ const Checkout = () => {
             <div className="flex items-center gap-3">
               <FiPhone className="w-5 h-5 text-gray-600" />
               <div>
-                <p className="text-sm font-medium text-black">{contactDetails.name || JSON.parse(localStorage.getItem('userData'))?.name || 'Verified Customer'}</p>
+                <p className="text-sm font-medium text-black">{contactDetails.name || JSON.parse(localStorage.getItem('userData'))?.name || 'Verified Farmer'}</p>
                 <p className="text-xs text-gray-600">{contactDetails.phone || userPhone || 'Loading...'}</p>
               </div>
             </div>

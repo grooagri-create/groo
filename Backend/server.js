@@ -19,6 +19,10 @@ connectDB();
 const { initRedis } = require('./services/redisService');
 initRedis();
 
+// Initialize Weather Notification Scheduler (Agriculture Feature)
+const { startWeatherScheduler } = require('./services/weatherNotificationService');
+startWeatherScheduler();
+
 // Initialize Express app
 const app = express();
 
@@ -186,6 +190,8 @@ app.use('/api/vendors/workers', require('./routes/vendor-routes/worker.routes'))
 app.use('/api/vendors/fcm-tokens', require('./routes/vendor-routes/fcmToken.routes'));
 app.use('/api/vendors', require('./routes/vendor-routes/vendorBill.routes'));
 app.use('/api/vendors/catalog', require('./routes/vendor-routes/catalog.routes'));
+app.use('/api/vendors/maintenance', require('./routes/vendor-routes/maintenance.routes'));
+app.use('/api/vendors/compliance', require('./routes/vendor-routes/compliance.routes'));
 
 // Worker routes
 app.use('/api/workers/auth', require('./routes/worker-routes/auth.routes'));
@@ -214,17 +220,24 @@ app.use('/api/admin', require('./routes/admin-routes/upload.routes'));
 app.use('/api/admin', require('./routes/admin-routes/planManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/settings.routes'));
 app.use('/api/admin', require('./routes/admin-routes/reviewManagement.routes'));
+app.use('/api/admin', require('./routes/admin-routes/productManagement.routes'));
+app.use('/api/admin', require('./routes/admin-routes/soilTest.routes'));
 app.use('/api/admin', require('./routes/admin-routes/reportManagement.routes'));
+app.use('/api/admin/disputes', require('./routes/admin-routes/disputeManagement.routes'));
 app.use('/api/admin/settlements', require('./routes/admin-routes/settlementManagement.routes'));
 app.use('/api/admin/admins', require('./routes/admin-routes/adminManagement.routes'));
 app.use('/api/image', require('./routes/admin-routes/image.routes'));
 app.use('/api', require('./routes/admin-routes/upload.routes')); // Generic upload access
+
+// User routes additions
+app.use('/api/user/soil-test', require('./routes/user-routes/soilTest.routes'));
 
 // Vendor Wallet/Ledger routes
 // Vendor Wallet/Ledger routes
 // WARNING: This mounts at /api/vendors, meaning routes inside are relative to that.
 // e.g., router.post('/withdrawal') becomes /api/vendors/withdrawal
 app.use('/api/vendors', require('./routes/vendor-routes/vendorWallet.routes'));
+app.use('/api/vendors/store', require('./routes/vendor-routes/productManagement.routes'));
 
 // Booking routes
 app.use('/api/bookings', require('./routes/booking-routes/userBooking.routes'));
@@ -236,10 +249,16 @@ app.use('/api/payments', require('./routes/payment-routes/payment.routes'));
 // Notification routes
 app.use('/api/notifications', require('./routes/notification.routes'));
 
+// Dispute routes (Common)
+app.use('/api/disputes', require('./routes/common-routes/dispute.routes'));
+
 // Public routes (no authentication required)
 app.use('/api/public', require('./routes/public-routes/catalog.routes'));
 app.use('/api/public', require('./routes/public-routes/plan.routes'));
 app.use('/api/public', require('./routes/public-routes/config.routes'));
+app.use('/api/products', require('./routes/public-routes/product.routes'));
+app.use('/api/weather', require('./routes/common-routes/weather.routes'));
+app.use('/api/availabilities', require('./routes/common-routes/availability.routes'));
 
 // 404 handler
 app.use((req, res) => {

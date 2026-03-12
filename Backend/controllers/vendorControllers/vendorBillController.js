@@ -1,5 +1,6 @@
 const VendorBill = require('../../models/VendorBill');
 const Booking = require('../../models/Booking');
+const { generateInvoicePDF } = require('../../utils/invoiceGenerator');
 const VendorServiceCatalog = require('../../models/VendorServiceCatalog');
 const VendorPartsCatalog = require('../../models/VendorPartsCatalog');
 const Settings = require('../../models/Settings');
@@ -284,7 +285,33 @@ const getBillByBookingId = async (req, res) => {
   }
 };
 
+/**
+ * Download Invoice as PDF
+ * GET /api/vendors/bookings/:bookingId/bill/download
+ */
+const downloadInvoice = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const bill = await VendorBill.findOne({ bookingId });
+    const booking = await Booking.findById(bookingId).populate('userId');
+
+    if (!bill) {
+      return res.status(404).json({ success: false, message: 'Invoice not generated yet' });
+    }
+
+    const fileName = `Invoice_${booking.bookingNumber}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+
+    generateInvoicePDF(bill, booking, res);
+  } catch (error) {
+    console.error('Download invoice error:', error);
+    res.status(500).json({ success: false, message: 'Failed to generate PDF' });
+  }
+};
+
 module.exports = {
   createOrUpdateBill,
-  getBillByBookingId
+  getBillByBookingId,
+  downloadInvoice
 };

@@ -111,7 +111,7 @@ const Tracking = () => {
               <thead className="sticky top-0 bg-white z-10 shadow-sm">
                 <tr className="bg-gray-50/50">
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">BOOKING ID</th>
-                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">CUSTOMER</th>
+                  <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">FARMER</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">STATUS</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">BOOKING DATE</th>
                   <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">ACTIONS</th>
@@ -189,7 +189,7 @@ const Tracking = () => {
               </div>
 
               <div className="mb-8">
-                <p className="text-sm text-gray-500 mb-1">Customer</p>
+                <p className="text-sm text-gray-500 mb-1">Farmer</p>
                 <p className="text-base font-semibold text-gray-900">{selectedOrder.userId?.name || 'Unknown'}</p>
                 <p className="text-xs text-gray-500">{selectedOrder.userId?.email}</p>
               </div>

@@ -10,28 +10,35 @@
  */
 
 const brand = {
-  teal: '#5A8231', // Primary Green (Keeping 'teal' name for backward compatibility)
-  yellow: '#DDA649', // Mustard Yellow
-  orange: '#9E5A35', // Brown/Terracotta
-  gradient: 'linear-gradient(135deg, #5A8231 0%, #DDA649 50%, #9E5A35 100%)',
-  conic: 'conic-gradient(from 0deg, #5A8231, #DDA649, #9E5A35, #5A8231)'
+  // Primary farm green
+  teal: '#2E7D32',
+  // Light supporting green
+  yellow: '#81C784',
+  // Soft accent green
+  orange: '#A5D6A7',
+  gradient: 'linear-gradient(135deg, #2E7D32 0%, #81C784 50%, #A5D6A7 100%)',
+  conic: 'conic-gradient(from 0deg, #2E7D32, #81C784, #A5D6A7, #2E7D32)'
 };
 
 const userTheme = {
-  backgroundGradient: 'linear-gradient(180deg, #e8f3e2 0%, #f4f8f0 15%, #FFFFFF 30%)',
+  // Very light green farm background
+  backgroundGradient: 'linear-gradient(180deg, #F1F8E9 0%, #FFFFFF 40%)',
   gradient: brand.gradient,
-  headerGradient: 'linear-gradient(135deg, #e8f3e2 0%, #e8f3e2 100%)',
-  headerBg: '#e8f3e2',
-  button: brand.orange,
-  icon: brand.orange,
-  cardShadow: '0 8px 16px -2px rgba(90, 130, 49, 0.15), 0 4px 8px -1px rgba(90, 130, 49, 0.1)',
-  cardBorder: '1px solid rgba(90, 130, 49, 0.15)',
+  // Soft green header
+  headerGradient: 'linear-gradient(135deg, #F1F8E9 0%, #A5D6A7 100%)',
+  headerBg: '#F1F8E9',
+  // Primary buttons/icons
+  button: brand.teal,
+  icon: brand.teal,
+  // Subtle green card styling
+  cardShadow: '0 8px 16px -2px rgba(46, 125, 50, 0.14), 0 4px 10px -1px rgba(46, 125, 50, 0.08)',
+  cardBorder: '1px solid rgba(165, 214, 167, 0.6)',
   brand: brand
 };
 
 // Vendor Theme Colors
 const vendorTheme = {
-  backgroundGradient: 'linear-gradient(to bottom, rgba(52, 121, 137, 0.03) 0%, rgba(187, 95, 54, 0.02) 10%, #ffffff 20%)',
+  backgroundGradient: 'linear-gradient(to bottom, rgba(46, 125, 50, 0.03) 0%, rgba(165, 214, 167, 0.04) 14%, #ffffff 26%)',
   gradient: brand.gradient,
   headerGradient: brand.teal,
   button: brand.teal,
@@ -41,7 +48,7 @@ const vendorTheme = {
 
 // Worker Theme Colors
 const workerTheme = {
-  backgroundGradient: 'linear-gradient(to bottom, rgba(52, 121, 137, 0.03) 0%, rgba(187, 95, 54, 0.02) 10%, #ffffff 20%)',
+  backgroundGradient: 'linear-gradient(to bottom, rgba(46, 125, 50, 0.03) 0%, rgba(165, 214, 167, 0.03) 12%, #ffffff 24%)',
   gradient: brand.gradient,
   headerGradient: brand.teal,
   button: brand.teal,

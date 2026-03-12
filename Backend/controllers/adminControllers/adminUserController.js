@@ -310,7 +310,7 @@ const getAllUserBookings = async (req, res) => {
           { phone: { $regex: search, $options: 'i' } }
         ]
       }).select('_id');
-      
+
       const userIds = users.map(u => u._id);
       query.userId = { $in: userIds };
     }
@@ -346,6 +346,37 @@ const getAllUserBookings = async (req, res) => {
   }
 };
 
+/**
+ * Update User KYC Status (for Equipment Owners)
+ */
+const updateKycStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['pending', 'verified', 'rejected'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.kyc_status = status;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `KYC status updated to ${status}`,
+      data: user
+    });
+  } catch (error) {
+    console.error('Update KYC status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update KYC status' });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserDetails,
@@ -353,6 +384,7 @@ module.exports = {
   deleteUser,
   getUserBookings,
   getUserWalletTransactions,
-  getAllUserBookings
+  getAllUserBookings,
+  updateKycStatus
 };
 

@@ -24,13 +24,18 @@ import {
   FiChevronRight,
   FiSearch,
   FiHome,
-  FiAlertCircle
+  FiAlertCircle,
+  FiCamera,
+  FiAlertTriangle,
+  FiCheckSquare
 } from 'react-icons/fi';
 import { bookingService } from '../../../../services/bookingService';
 import { paymentService } from '../../../../services/paymentService';
 import { cartService } from '../../../../services/cartService';
 import RatingModal from '../../components/booking/RatingModal';
 import PaymentVerificationModal from '../../components/booking/PaymentVerificationModal';
+import DisputeModal from '../../../../components/common/DisputeModal'; // NEW
+import disputeService from '../../../../services/disputeService'; // NEW
 import { ConfirmDialog } from '../../../../components/common';
 import ReviewCard from '../../components/booking/ReviewCard';
 import NotificationBell from '../../components/common/NotificationBell';
@@ -52,6 +57,7 @@ const BookingDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showDisputeModal, setShowDisputeModal] = useState(false); // NEW
   const [paying, setPaying] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -251,16 +257,19 @@ const BookingDetails = () => {
   };
 
   const getStatusLabel = (status) => {
+    const isAgri = ['agriculture', 'equipment', 'tractor'].includes(booking?.serviceCategory?.toLowerCase()) ||
+      ['agriculture', 'equipment', 'tractor'].includes(booking?.categoryTitle?.toLowerCase());
+
     switch (status) {
       case 'confirmed': return 'Confirmed';
-      case 'journey_started': return 'Agent En Route';
-      case 'visited': return 'Agent Arrived';
-      case 'in_progress': return 'In Progress';
-      case 'work_done': return 'Work Done'; // Payment Pending
+      case 'journey_started': return isAgri ? 'Equipment En Route' : 'Agent En Route';
+      case 'visited': return isAgri ? 'Equipment Arrived' : 'Agent Arrived';
+      case 'in_progress': return isAgri ? 'Equipment Working' : 'In Progress';
+      case 'work_done': return 'Work Completed'; // Payment Pending
       case 'completed': return 'Completed';
       case 'cancelled': return 'Cancelled';
       case 'requested':
-      case 'searching': return 'Finding Expert';
+      case 'searching': return isAgri ? 'Finding Driver' : 'Finding Expert';
       default: return status?.replace('_', ' ') || 'Pending';
     }
   };
@@ -443,6 +452,16 @@ const BookingDetails = () => {
       return `${address.addressLine1 || ''}${address.addressLine2 ? `, ${address.addressLine2}` : ''}, ${address.city || ''}, ${address.state || ''} - ${address.pincode || ''}`;
     }
     return 'N/A';
+  };
+
+  const handleRaiseDispute = async (disputeData) => {
+    try {
+      const response = await disputeService.raiseDispute(disputeData);
+      return response;
+    } catch (err) {
+      toast.error(err?.message || 'Failed to raise dispute');
+      throw err;
+    }
   };
 
   if (loading) {
@@ -725,10 +744,10 @@ const BookingDetails = () => {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                     </span>
-                    <p className="text-xs font-bold text-green-600 tracking-wider">LIVE TRACKING ACTIVE</p>
+                    <p className="text-xs font-bold text-green-600 tracking-wider uppercase">TRACKING LIVE</p>
                   </div>
                 ) : (
-                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase">Your Professional</p>
+                  <p className="text-xs font-bold text-gray-400 tracking-wider uppercase">Your Partner</p>
                 )}
 
                 <button
@@ -796,34 +815,58 @@ const BookingDetails = () => {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15)_0%,transparent_50%)]"></div>
 
               <div className="relative z-10 p-6 flex flex-col items-center">
-                <div className="flex items-center gap-3 w-full mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-                    <FiMapPin className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white tracking-tight">Verification OTP</h3>
-                    <p className="text-xs text-blue-100 font-medium">Share when professional reaches</p>
-                  </div>
-                </div>
+                {(() => {
+                  const isAgri = ['agriculture', 'equipment', 'tractor'].includes(booking.serviceCategory?.toLowerCase()) ||
+                    ['agriculture', 'equipment', 'tractor'].includes(booking.categoryTitle?.toLowerCase());
 
-                {/* OTP Display */}
-                <div className="flex justify-center gap-3 mb-5">
-                  {String(booking.arrivalOTP || booking.visitOtp).split('').map((digit, idx) => (
-                    <div
-                      key={idx}
-                      className="w-14 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border-2 border-white/40 shadow-xl"
-                    >
-                      <span className="text-3xl font-black text-white drop-shadow-md">{digit}</span>
-                    </div>
-                  ))}
-                </div>
+                  return (
+                    <>
+                      <div className="flex items-center gap-3 w-full mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                          <FiMapPin className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white tracking-tight">
+                            {isAgri ? 'Start Trip OTP' : 'Verification OTP'}
+                          </h3>
+                          <p className="text-xs text-blue-100 font-medium">
+                            {isAgri ? 'Share when equipment arrives' : 'Share when professional reaches'}
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="w-full bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20">
-                  <div className="flex items-center justify-center gap-2 text-white text-sm">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></span>
-                    <p className="font-medium">Waiting for professional to reach your location</p>
-                  </div>
-                </div>
+                      {/* OTP Display */}
+                      <div className="flex justify-center gap-3 mb-5">
+                        {(() => {
+                          // Priority: driver_start_otp if agri, else arrivalOTP, else visitOtp
+                          const otpValue = (isAgri && booking.driver_start_otp)
+                            ? booking.driver_start_otp
+                            : (booking.arrivalOTP || booking.visitOtp);
+
+                          if (!otpValue) return null;
+
+                          return String(otpValue).split('').map((digit, idx) => (
+                            <div
+                              key={idx}
+                              className="w-14 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border-2 border-white/40 shadow-xl"
+                            >
+                              <span className="text-3xl font-black text-white drop-shadow-md">{digit}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+
+                      <div className="w-full bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/20">
+                        <div className="flex items-center justify-center gap-2 text-white text-sm">
+                          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></span>
+                          <p className="font-medium">
+                            {isAgri ? 'Waiting for equipment to reach your farm' : 'Waiting for professional to reach your location'}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -985,6 +1028,95 @@ const BookingDetails = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════ AGRICULTURE: TRIP FLOW DETAILS (KM Photos) ══════ */}
+          {(booking.start_kilometer_photo || booking.end_kilometer_photo) && (
+            <section className="bg-white rounded-3xl p-6 shadow-[0_8px_30_rgb(0,0,0,0.04)] border border-gray-100 space-y-4">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+                <FiCamera className="text-teal-600" />
+                Equipment Trip Evidence
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Arrival KM Photo */}
+                {booking.start_kilometer_photo && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Arrival KM Photo</p>
+                    <div className="aspect-square rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 group relative">
+                      <img
+                        src={toAssetUrl(booking.start_kilometer_photo)}
+                        alt="Arrival KM"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        onClick={() => window.open(toAssetUrl(booking.start_kilometer_photo), '_blank')}
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">View Full</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Completion KM Photo */}
+                {booking.end_kilometer_photo && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Completion KM Photo</p>
+                    <div className="aspect-square rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 group relative">
+                      <img
+                        src={toAssetUrl(booking.end_kilometer_photo)}
+                        alt="Completion KM"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        onClick={() => window.open(toAssetUrl(booking.end_kilometer_photo), '_blank')}
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">View Full</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Trip Summary if both photos exist */}
+              {booking.start_kilometer_photo && booking.end_kilometer_photo && (
+                <div className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
+                  <FiCheckSquare className="text-teal-600 w-5 h-5 shrink-0" />
+                  <p className="text-[11px] font-medium text-teal-800">
+                    The equipment's usage has been verified via KM photos. You can raise a dispute if you notice any discrepancy.
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Agriculture Completion OTP - Share only when work is done */}
+          {['work_done', 'completed'].includes(booking.status?.toLowerCase()) && booking.driver_end_otp && (
+            <div className="bg-gradient-to-br from-teal-600 to-emerald-700 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                    <FiKey className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold">Completion Verification</h3>
+                    <p className="text-teal-50 text-[10px] font-medium opacity-80 uppercase tracking-widest">Agriculture OTP</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-center mb-4">
+                  {String(booking.driver_end_otp).split('').map((digit, idx) => (
+                    <div key={idx} className="w-12 h-14 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30">
+                      <span className="text-2xl font-black text-white">{digit}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-center text-[10px] text-teal-100 font-medium bg-black/10 rounded-lg py-2 px-3 border border-white/5">
+                  Share this OTP with the driver ONLY after equipment has finished and you have verified the end KM.
+                </p>
               </div>
             </div>
           )}
@@ -1443,6 +1575,17 @@ const BookingDetails = () => {
               <span className="text-sm font-bold text-gray-700">Email Help</span>
             </button>
 
+            {/* Raise Dispute Button */}
+            {['completed', 'work_done', 'cancelled'].includes(booking.status?.toLowerCase()) && (
+              <button
+                onClick={() => setShowDisputeModal(true)}
+                className="col-span-2 py-4 rounded-2xl text-amber-600 font-bold text-sm bg-amber-50 border border-amber-100 hover:bg-amber-100 transition-colors active:scale-95 flex items-center justify-center gap-2"
+              >
+                <FiAlertTriangle className="w-4 h-4" />
+                Report Issue / Raise Dispute
+              </button>
+            )}
+
             {/* Cancel */}
             {!['cancelled', 'completed', 'work_done'].includes(booking.status?.toLowerCase()) && (
               <button
@@ -1473,6 +1616,14 @@ const BookingDetails = () => {
           onSubmit={handleRateSubmit}
           bookingName={booking.serviceName || booking.serviceCategory || 'Service'}
           workerName={booking.workerId?.name || (booking.assignedTo?.name === 'You (Self)' ? 'Service Provider' : (booking.assignedTo?.name || 'Worker'))}
+        />
+
+        {/* Dispute Modal */}
+        <DisputeModal
+          isOpen={showDisputeModal}
+          onClose={() => setShowDisputeModal(false)}
+          onSubmit={handleRaiseDispute}
+          bookingId={id}
         />
 
         {/* Payment Verification Modal */}

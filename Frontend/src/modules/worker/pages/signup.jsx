@@ -266,7 +266,7 @@ const WorkerSignup = () => {
       const response = await workerAuthService.register(registerData);
       if (response.success) {
         setIsLoading(false);
-        toast.success('Registration successful! Welcome to Homster.');
+        toast.success('Registration successful! Welcome to GrooAgri.');
         navigate('/worker');
       } else {
         setIsLoading(false);
@@ -317,7 +317,7 @@ const WorkerSignup = () => {
                     onChange={handleInputChange}
                     className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 outline-none transition-all duration-300 hover:border-gray-400"
                     style={{ '--tw-ring-color': brandColor }}
-                    placeholder="Enter your name"
+                    placeholder="e.g. Rajesh Kumar"
                   />
                 </div>
               </div>
@@ -336,7 +336,7 @@ const WorkerSignup = () => {
                     onChange={handleInputChange}
                     className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 outline-none transition-all duration-300 hover:border-gray-400"
                     style={{ '--tw-ring-color': brandColor }}
-                    placeholder="name@example.com"
+                    placeholder="farmer@agri.com"
                   />
                 </div>
               </div>

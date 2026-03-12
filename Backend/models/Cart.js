@@ -94,6 +94,16 @@ const cartItemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor',
     default: null
+  },
+  scheduledDate: {
+    type: Date,
+    default: null
+  },
+  timeSlot: {
+    id: String,
+    label: String,
+    start: String,
+    end: String
   }
 }, { _id: true });
 

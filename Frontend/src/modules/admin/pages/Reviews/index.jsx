@@ -152,7 +152,7 @@ const ReviewsPage = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-200">
-                <th className="px-4 py-3 text-[10px] font-bold text-gray-600 uppercase tracking-wider">Customer</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-600 uppercase tracking-wider">Farmer</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-600 uppercase tracking-wider">Feedback</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-600 uppercase tracking-wider">Entity</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-600 uppercase tracking-wider">Status</th>

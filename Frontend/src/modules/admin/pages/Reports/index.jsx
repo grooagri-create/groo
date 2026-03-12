@@ -26,6 +26,8 @@ import RevenueReport from './RevenueReport';
 import BookingReport from './BookingReport';
 import VendorReport from './VendorReport';
 import WorkerReport from './WorkerReport';
+import AgricultureInsights from './AgricultureInsights';
+
 
 const ReportsOverview = () => {
   const [loading, setLoading] = useState(true);
@@ -168,6 +170,23 @@ const ReportsOverview = () => {
             </div>
           </CardShell>
         </Link>
+
+        <Link to="/admin/reports/agri-insights" className="group">
+          <CardShell className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-none hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-emerald-100 font-bold uppercase tracking-wider text-[10px]">Agri Specialist</p>
+                <h3 className="text-lg font-black mt-0.5">Agriculture Insights</h3>
+              </div>
+              <div className="bg-white/20 p-2.5 rounded-xl">
+                <FiActivity size={20} />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold">
+              View Growth <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </CardShell>
+        </Link>
       </div>
 
       {/* Overview Filters */}
@@ -299,6 +318,7 @@ const Reports = () => {
     { name: 'Bookings', path: '/admin/reports/bookings', icon: FiShoppingBag },
     { name: 'Vendors', path: '/admin/reports/vendors', icon: FiUsers },
     { name: 'Workers', path: '/admin/reports/workers', icon: FiBriefcase },
+    { name: 'Agri Insights', path: '/admin/reports/agri-insights', icon: FiActivity },
   ];
 
   const isTabActive = (tab) => {
@@ -314,6 +334,7 @@ const Reports = () => {
         <Route path="bookings" element={<BookingReport />} />
         <Route path="vendors" element={<VendorReport />} />
         <Route path="workers" element={<WorkerReport />} />
+        <Route path="agri-insights" element={<AgricultureInsights />} />
       </Routes>
     </div>
   );

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { vendorTheme as themeColors } from '../../../../theme';
 import { toast } from 'react-hot-toast';
 
-const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConfirm, loading }) => {
+const OperatorPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConfirm, loading }) => {
   const [amount, setAmount] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [notes, setNotes] = useState('');
@@ -85,7 +85,7 @@ const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConf
             {/* Header */}
             <div className="px-8 pt-8 pb-4 flex justify-between items-start">
               <div>
-                <h3 className="text-2xl font-black text-gray-900 leading-tight">Worker Payout</h3>
+                <h3 className="text-2xl font-black text-gray-900 leading-tight">Operator Payout</h3>
                 <p className="text-xs text-green-600 font-bold uppercase tracking-wider mt-1">Record Payment</p>
               </div>
               <button
@@ -104,7 +104,7 @@ const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConf
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Paying To</p>
-                  <p className="text-base font-bold text-gray-800">{workerName || 'Assigned Worker'}</p>
+                  <p className="text-base font-bold text-gray-800">{workerName || 'Assigned Operator'}</p>
                 </div>
               </div>
 
@@ -132,8 +132,8 @@ const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConf
                     type="button"
                     onClick={() => setPaymentMethod('hand_to_hand')}
                     className={`py-3 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === 'hand_to_hand'
-                        ? 'bg-green-50 border-green-500 text-green-700'
-                        : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
+                      ? 'bg-green-50 border-green-500 text-green-700'
+                      : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                       }`}
                   >
                     Hand to Hand (Cash)
@@ -142,8 +142,8 @@ const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConf
                     type="button"
                     onClick={() => setPaymentMethod('online')}
                     className={`py-3 rounded-xl text-xs font-bold border-2 transition-all ${paymentMethod === 'online'
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
+                      ? 'bg-blue-50 border-blue-500 text-blue-700'
+                      : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                       }`}
                   >
                     Online / Transfer
@@ -236,4 +236,4 @@ const WorkerPaymentModal = ({ isOpen, onClose, workerName, amountDue = 0, onConf
   );
 };
 
-export default WorkerPaymentModal;
+export default OperatorPaymentModal;

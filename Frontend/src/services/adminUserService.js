@@ -69,5 +69,25 @@ export const adminUserService = {
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch wallet transactions' };
     }
+  },
+
+  // Get all users with KYC documents submitted (Equipment Owners)
+  getUsersWithKyc: async (params) => {
+    try {
+      const response = await api.get('/admin/users', { params: { ...params, hasKyc: true } });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to fetch KYC users' };
+    }
+  },
+
+  // Update KYC status - approve or reject
+  updateKycStatus: async (userId, status) => {
+    try {
+      const response = await api.put(`/admin/users/${userId}/kyc-status`, { kyc_status: status });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to update KYC status' };
+    }
   }
 };

@@ -213,7 +213,7 @@ const VendorLogin = () => {
           </div>
           <p className="text-sm font-medium text-gray-500">
             {step === 'phone'
-              ? 'Vendor Sign In'
+              ? 'Equipment Owner Sign In'
               : `Code sent to +91 ${phoneNumber}`
             }
           </p>
@@ -277,7 +277,7 @@ const VendorLogin = () => {
             </div>
 
             <div className="mt-8 text-center text-sm">
-              <span className="text-gray-400 font-medium">Don't have a vendor account? </span>
+              <span className="text-gray-400 font-medium">Don't have a partner account? </span>
               <Link to="/vendor/signup" className="text-[#426B4F] font-bold hover:underline">
                 Register Now
               </Link>

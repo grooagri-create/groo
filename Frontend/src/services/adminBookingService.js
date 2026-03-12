@@ -39,5 +39,17 @@ export const adminBookingService = {
     } catch (error) {
       throw error.response?.data || { message: 'Failed to cancel booking' };
     }
+  },
+
+  // Get bookings with KM photos for monitoring (fraud detection)
+  getBookingsWithKmPhotos: async (params) => {
+    try {
+      const response = await api.get('/admin/bookings', {
+        params: { ...params, hasKmPhotos: true }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to fetch KM photo bookings' };
+    }
   }
 };

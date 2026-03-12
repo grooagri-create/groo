@@ -19,7 +19,9 @@ const {
   collectSelfCash,
   payWorker,
   getVendorRatings,
-  getPendingBookings
+  getPendingBookings,
+  startTrip,
+  endTrip
 } = require('../../controllers/bookingControllers/vendorBookingController');
 
 // Validation rules
@@ -61,6 +63,10 @@ router.post('/:id/self/reached', authenticate, isVendor, vendorReachedLocation);
 router.post('/:id/self/visit/verify', authenticate, isVendor, verifySelfVisit);
 router.post('/:id/self/complete', authenticate, isVendor, completeSelfJob);
 router.post('/:id/self/payment/collect', authenticate, isVendor, collectSelfCash);
+
+// Equipment Trip Routes (Agriculture flow)
+router.post('/:id/trip/start', authenticate, isVendor, startTrip);
+router.post('/:id/trip/end', authenticate, isVendor, endTrip);
 
 // Payment Route
 router.post('/:id/pay-worker', authenticate, isVendor, payWorker);

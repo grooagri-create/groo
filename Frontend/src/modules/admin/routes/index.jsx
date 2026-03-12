@@ -18,6 +18,8 @@ const Workers = lazy(() => import('../pages/Workers'));
 const Bookings = lazy(() => import('../pages/Bookings'));
 const BookingTracking = lazy(() => import('../pages/Bookings/Tracking'));
 const BookingNotifications = lazy(() => import('../pages/Bookings/BookingNotifications'));
+const BookingKmPhotos = lazy(() => import('../pages/Bookings/BookingKmPhotos'));
+const KycVerification = lazy(() => import('../pages/Users/KycVerification'));
 const Payments = lazy(() => import('../pages/Payments'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Notifications = lazy(() => import('../pages/Notifications'));
@@ -26,6 +28,9 @@ const Plans = lazy(() => import('../pages/Plans/Plans'));
 const Scrap = lazy(() => import('../pages/Scrap'));
 const Settlements = lazy(() => import('../pages/Settlements'));
 const Reviews = lazy(() => import('../pages/Reviews'));
+const Products = lazy(() => import('../pages/Products'));
+const SoilTesting = lazy(() => import('../pages/SoilTesting'));
+const Disputes = lazy(() => import('../pages/Disputes'));
 
 
 
@@ -61,6 +66,8 @@ const AdminRoutes = () => {
           <Route path="bookings" element={<Bookings />} />
           <Route path="bookings/tracking" element={<BookingTracking />} />
           <Route path="bookings/notifications" element={<BookingNotifications />} />
+          <Route path="bookings/km-photos" element={<BookingKmPhotos />} />
+          <Route path="users/kyc" element={<KycVerification />} />
           <Route path="user-categories/*" element={<UserCategories />} />
           <Route path="payments/*" element={<Payments />} />
           <Route path="reports/*" element={<Reports />} />
@@ -68,6 +75,9 @@ const AdminRoutes = () => {
           <Route path="scrap" element={<Scrap />} />
           <Route path="plans" element={<Plans />} />
           <Route path="reviews" element={<Reviews />} />
+          <Route path="products" element={<Products />} />
+          <Route path="soil-tests" element={<SoilTesting />} />
+          <Route path="disputes" element={<Disputes />} />
           <Route path="settlements/*" element={<Settlements />} />
           <Route path="settings/*" element={<Settings />} />
         </Route>

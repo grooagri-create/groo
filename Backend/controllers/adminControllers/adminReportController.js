@@ -315,3 +315,78 @@ exports.getRevenueReport = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch revenue report' });
   }
 };
+
+/**
+ * Get Agriculture Dashboard Insights (Step 5)
+ */
+exports.getAgricultureInsights = async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    // 1. Category-wise Revenue (Agriculture Insights)
+    const categoryRevenue = await Booking.aggregate([
+      { $match: { status: BOOKING_STATUS.COMPLETED } },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: 'categoryId',
+          foreignField: '_id',
+          as: 'category'
+        }
+      },
+      { $unwind: '$category' },
+      {
+        $group: {
+          _id: '$category.name',
+          revenue: { $sum: '$finalAmount' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { revenue: -1 } }
+    ]);
+
+    // 2. Growth Monitoring (Current Month vs Prev Month)
+    const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const growthStats = await Booking.aggregate([
+      {
+        $match: {
+          status: BOOKING_STATUS.COMPLETED,
+          completedAt: { $gte: prevMonth }
+        }
+      },
+      {
+        $group: {
+          _id: { $month: '$completedAt' },
+          monthlyRevenue: { $sum: '$finalAmount' }
+        }
+      },
+      { $sort: { _id: -1 } }
+    ]);
+
+    // 3. Efficiency Rate (Fulfilment)
+    const efficiency = await Booking.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ['$status', BOOKING_STATUS.COMPLETED] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', BOOKING_STATUS.CANCELLED] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        categoryRevenue,
+        growthStats,
+        efficiency: efficiency[0] || { total: 0, completed: 0, cancelled: 0 }
+      }
+    });
+  } catch (error) {
+    console.error('Agriculture insights error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch agriculture insights' });
+  }
+};
+

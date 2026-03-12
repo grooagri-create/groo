@@ -183,7 +183,7 @@ const CashCollectionModal = ({
           <div>
             <h3 className="text-xl font-bold text-gray-900">{step === 'summary' ? 'Collect Cash' : 'Verify OTP'}</h3>
             <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">
-              {step === 'summary' ? 'Review Bill & Send OTP' : 'Enter Customer Code'}
+              {step === 'summary' ? 'Review Bill & Send OTP' : 'Enter Farmer Code'}
             </p>
           </div>
           <button

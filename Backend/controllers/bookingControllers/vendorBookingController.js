@@ -5,6 +5,11 @@ const { validationResult } = require('express-validator');
 const { BOOKING_STATUS, PAYMENT_STATUS } = require('../../utils/constants');
 const { createNotification } = require('../notificationControllers/notificationController');
 const { sendNotificationToUser, sendNotificationToVendor, sendNotificationToWorker } = require('../../services/firebaseAdmin');
+const VendorBill = require('../../models/VendorBill');
+const Settings = require('../../models/Settings');
+const Vendor = require('../../models/Vendor');
+const Service = require('../../models/UserService'); // Using UserService as ref by Booking.js
+const { BILL_STATUS } = require('../../utils/constants');
 
 /**
  * Get vendor bookings with filters
@@ -714,6 +719,10 @@ const startSelfJob = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
+    if (booking.rental_type || booking.serviceCategory === 'Agriculture') {
+      return res.status(400).json({ success: false, message: 'Use Equipment Trip flow for agricultural bookings.' });
+    }
+
     // Ensure no worker is assigned (or self-assigned flag?) implementation assumes workerId null means unassigned or self?
     // User says: "if vendor didn't assignes to worker and do himself"
     // Usually means workerId is null.
@@ -912,6 +921,10 @@ const completeSelfJob = async (req, res) => {
     const booking = await Booking.findOne({ _id: id, vendorId });
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
+    if (booking.rental_type || booking.serviceCategory === 'Agriculture') {
+      return res.status(400).json({ success: false, message: 'Use Equipment Trip flow for agricultural bookings.' });
+    }
+
     // Status guard
     if (booking.status !== BOOKING_STATUS.VISITED && booking.status !== BOOKING_STATUS.IN_PROGRESS) {
       return res.status(400).json({ success: false, message: 'Cannot complete from current status' });
@@ -927,10 +940,14 @@ const completeSelfJob = async (req, res) => {
     // ── Fetch Settings (frozen snapshot for this bill) ──
     const Settings = require('../../models/Settings');
     const settings = await Settings.findOne({ type: 'global' });
-    const serviceSplitPct = settings?.servicePayoutPercentage ?? 70;
-    const partsSplitPct = settings?.partsPayoutPercentage ?? 10;
-    const serviceGstPct = settings?.serviceGstPercentage ?? 18;
-    const partsGstPct = settings?.partsGstPercentage ?? 18;
+
+    // Agriculture: default GST 5%. Everything else 18%.
+    const isAgri = booking.serviceCategory === 'Agriculture' || booking.categoryId?.title === 'Agriculture' || booking.categoryId === 'Marketplace';
+
+    let serviceSplitPct = settings?.servicePayoutPercentage ?? 70;
+    let partsSplitPct = settings?.partsPayoutPercentage ?? 10;
+    let serviceGstPct = isAgri ? 5 : (settings?.serviceGstPercentage ?? 18);
+    let partsGstPct = isAgri ? 5 : (settings?.partsGstPercentage ?? 18);
 
     // ═══════════════════════════════════════════
     // STEP 1: BUILD LINE ITEMS
@@ -1485,6 +1502,219 @@ const getPendingBookings = async (req, res) => {
   }
 };
 
+/**
+ * Start Trip (Agriculture flow)
+ */
+const startTrip = async (req, res) => {
+  try {
+    const vendorId = req.user.id;
+    const { id } = req.params;
+    const { start_kilometer_photo, driver_start_otp } = req.body;
+
+    if (!start_kilometer_photo) {
+      return res.status(400).json({ success: false, message: 'Start kilometer photo is required to begin at farm.' });
+    }
+
+    const booking = await Booking.findOne({ _id: id, vendorId });
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    booking.start_kilometer_photo = start_kilometer_photo;
+    booking.driver_start_otp = driver_start_otp;
+    booking.status = BOOKING_STATUS.IN_PROGRESS;
+    booking.startedAt = new Date();
+
+    await booking.save();
+    res.status(200).json({ success: true, message: 'Trip started successfully', data: booking });
+  } catch (error) {
+    console.error('Start trip error:', error);
+    res.status(500).json({ success: false, message: 'Failed to start trip' });
+  }
+};
+
+/**
+ * End Trip (Agriculture flow) with Advance Billing & Settlement
+ */
+const endTrip = async (req, res) => {
+  try {
+    const vendorId = req.user.id;
+    const { id } = req.params;
+    const { end_kilometer_photo, driver_end_otp, workUnits } = req.body; // workUnits = acres or manual override
+
+    const booking = await Booking.findOne({ _id: id, vendorId }).populate('serviceId');
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    // 1. BILLING CALCULATION
+    const service = booking.serviceId;
+    let baseAmount = 0;
+    const now = new Date();
+    const durationMs = now - (booking.startedAt || now);
+    const durationHours = Math.ceil(durationMs / (1000 * 60 * 60)); // Round up to nearest hour
+
+    if (booking.rental_type === 'hourly') {
+      baseAmount = (service.hourly_price || 0) * durationHours;
+    } else if (booking.rental_type === 'land_based') {
+      baseAmount = (service.land_price || 0) * (workUnits || 1); // Use provided units
+    } else if (booking.rental_type === 'monthly') {
+      baseAmount = service.monthly_price || 0;
+    } else {
+      baseAmount = booking.basePrice || 0; // Legacy fallback
+    }
+
+    // 2. FETCH SPLIT CONFIG
+    const settings = await Settings.findOne({ type: 'global' });
+    const serviceSplitPct = settings?.servicePayoutPercentage ?? 90;
+    const gstPct = settings?.serviceGstPercentage ?? 18;
+
+    const gstAmount = parseFloat(((baseAmount * gstPct) / 100).toFixed(2));
+    const finalAmount = parseFloat((baseAmount + gstAmount).toFixed(2));
+    const vendorEarning = parseFloat(((baseAmount * serviceSplitPct) / 100).toFixed(2));
+
+    // 3. GENERATE VENDOR BILL (Single source of truth)
+    const vendorBill = await VendorBill.create({
+      bookingId: booking._id,
+      vendorId: vendorId,
+      services: [{
+        name: `${service.title} (${booking.rental_type})`,
+        price: baseAmount,
+        gstPercentage: gstPct,
+        quantity: 1,
+        gstAmount: gstAmount,
+        total: finalAmount,
+        isOriginal: true
+      }],
+      totalServiceBase: baseAmount,
+      totalGST: gstAmount,
+      grandTotal: finalAmount,
+      payoutConfig: {
+        serviceSplitPercentage: serviceSplitPct,
+        serviceGstPercentage: gstPct
+      },
+      vendorServiceEarning: vendorEarning,
+      vendorTotalEarning: vendorEarning,
+      companyRevenue: parseFloat((finalAmount - vendorEarning).toFixed(2)),
+      status: BILL_STATUS.GENERATED
+    });
+
+    // 4. AUTOMATIC WALLET SETTLEMENT
+    const Vendor = require('../../models/Vendor');
+    const Transaction = require('../../models/Transaction');
+    const vendorDoc = await Vendor.findById(vendorId);
+
+    if (vendorDoc) {
+      if (!vendorDoc.wallet) vendorDoc.wallet = {};
+
+      const isCashPayment = booking.paymentMethod === 'cash' || booking.paymentMethod === 'pay_at_home';
+
+      if (isCashPayment) {
+        // For cash payments, vendor takes money from customer
+        // dues += total, earnings += vendor share
+        const currentDues = (vendorDoc.wallet.dues || 0) + finalAmount;
+        const cashLimit = vendorDoc.wallet.cashLimit || 10000;
+        const netOwed = currentDues - ((vendorDoc.wallet.earnings || 0) + vendorEarning);
+        const shouldBlock = netOwed > cashLimit;
+
+        const updateQuery = {
+          $inc: {
+            'wallet.dues': finalAmount,
+            'wallet.earnings': vendorEarning,
+            'wallet.totalCashCollected': finalAmount
+          }
+        };
+
+        if (shouldBlock) {
+          updateQuery.$set = {
+            'wallet.isBlocked': true,
+            'wallet.blockedAt': new Date(),
+            'wallet.blockReason': `Cash limit exceeded in agriculture trip. Net owed: ₹${netOwed.toFixed(2)}, Limit: ₹${cashLimit}`
+          };
+        }
+
+        await Vendor.findByIdAndUpdate(vendorId, updateQuery);
+
+        // Transaction 1: Cash Collected
+        await Transaction.create({
+          vendorId,
+          bookingId: booking._id,
+          type: 'cash_collected',
+          amount: finalAmount,
+          status: 'completed',
+          paymentMethod: 'cash',
+          description: `Cash ₹${finalAmount} collected for trip #${booking.bookingNumber || booking._id}.`,
+          metadata: { type: 'agriculture_trip', billId: vendorBill._id.toString() }
+        });
+
+        // Transaction 2: Earnings Credit
+        await Transaction.create({
+          vendorId,
+          bookingId: booking._id,
+          type: 'earnings_credit',
+          amount: vendorEarning,
+          status: 'completed',
+          paymentMethod: 'wallet',
+          description: `Earnings ₹${vendorEarning} credited for trip #${booking.bookingNumber || booking._id}.`,
+          metadata: { type: 'agriculture_trip', billId: vendorBill._id.toString() }
+        });
+      } else {
+        // For online/prepaid, only credit earnings
+        vendorDoc.wallet.earnings = (vendorDoc.wallet.earnings || 0) + vendorEarning;
+        await vendorDoc.save();
+
+        await Transaction.create({
+          vendorId,
+          bookingId: booking._id,
+          type: 'earnings_credit',
+          amount: vendorEarning,
+          status: 'completed',
+          paymentMethod: 'wallet',
+          description: `Earnings ₹${vendorEarning} credited for trip #${booking.bookingNumber || booking._id}.`,
+          metadata: { type: 'agriculture_trip', billId: vendorBill._id.toString() }
+        });
+      }
+    }
+
+    // 5. UPDATE BOOKING
+    booking.end_kilometer_photo = end_kilometer_photo;
+    booking.driver_end_otp = driver_end_otp;
+    booking.status = BOOKING_STATUS.COMPLETED;
+    booking.paymentStatus = isCashPayment ? PAYMENT_STATUS.SUCCESS : booking.paymentStatus;
+    booking.cashCollected = isCashPayment;
+    booking.finalAmount = finalAmount;
+    booking.userPayableAmount = finalAmount;
+    booking.vendorBillId = vendorBill._id;
+    booking.completedAt = now;
+
+    await booking.save();
+
+    // 6. NOTIFY USER
+    await createNotification({
+      userId: booking.userId,
+      type: 'work_completed',
+      title: 'Work Completed & Bill Generated',
+      message: `Your equipment trip for ${service.title} has ended. Total Bill: ₹${finalAmount}.`,
+      relatedId: booking._id,
+      relatedType: 'booking',
+      pushData: {
+        type: 'work_done',
+        bookingId: booking._id.toString(),
+        link: `/user/booking/${booking._id}`
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Trip ended and settled successfully',
+      data: {
+        finalAmount,
+        vendorEarning,
+        billId: vendorBill._id
+      }
+    });
+  } catch (error) {
+    console.error('End trip billing error:', error);
+    res.status(500).json({ success: false, message: 'Failed to complete trip and billing' });
+  }
+};
+
 module.exports = {
   getVendorBookings,
   getBookingById,
@@ -1500,5 +1730,7 @@ module.exports = {
   collectSelfCash,
   payWorker,
   getVendorRatings,
-  getPendingBookings
+  getPendingBookings,
+  startTrip,
+  endTrip
 };

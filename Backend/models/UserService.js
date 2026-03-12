@@ -52,7 +52,30 @@ const userServiceSchema = new mongoose.Schema({
   description: {
     type: String,
     trim: true
-  }
+  },
+  // ==========================================
+  // EQUIPMENT RENTAL SPECIFIC FIELDS
+  // ==========================================
+  rental_type: {
+    type: String,
+    enum: ['hourly', 'land_based', 'monthly'],
+    default: 'hourly'
+  },
+  hourly_price: {
+    type: Number,
+    default: 0
+  },
+  land_price: {
+    type: Number,
+    default: 0
+  },
+  monthly_price: {
+    type: Number,
+    default: 0
+  },
+  equipment_features: [{
+    type: String
+  }]
 }, {
   timestamps: true
 });

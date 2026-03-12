@@ -244,6 +244,20 @@ const bookingSchema = new mongoose.Schema({
     date: { type: String }, // redundant but kept for frontend convenience format
     time: { type: String }  // redundant but kept for frontend convenience format
   },
+  rental_type: {
+    type: String,
+    enum: ['hourly', 'land_based', 'monthly'],
+    default: null
+  },
+  // Agriculture: Specific Fields
+  cropType: {
+    type: String,
+    default: null
+  },
+  landSize: {
+    type: String, // e.g. "5 Acres"
+    default: null
+  },
 
   // ==========================================
   // 7. STATUS & TRACKING
@@ -292,16 +306,29 @@ const bookingSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  driver_start_otp: {
+    type: String,
+    default: null
+  },
+  driver_end_otp: {
+    type: String,
+    default: null
+  },
 
-  // ==========================================
-  // 9. WORK COMPLETION
-  // ==========================================
   // ==========================================
   // 9. WORK COMPLETION
   // ==========================================
   workPhotos: [{
     type: String
   }],
+  start_kilometer_photo: {
+    type: String,
+    default: null
+  },
+  end_kilometer_photo: {
+    type: String,
+    default: null
+  },
   visitLocation: {
     lat: Number,
     lng: Number,
@@ -343,7 +370,19 @@ const bookingSchema = new mongoose.Schema({
   },
 
   // ==========================================
-  // 13. NOTES
+  // 13. LIVE TRACKING (New - Agriculture Feature)
+  // ==========================================
+  liveLocation: {
+    lat: { type: Number, default: null },
+    lng: { type: Number, default: null },
+    heading: { type: Number, default: 0 },
+    updatedAt: { type: Date, default: null }
+  },
+  estimatedArrivalTime: { type: Date, default: null },
+  distanceRemaining: { type: Number, default: null }, // in km
+
+  // ==========================================
+  // 14. NOTES
   // ==========================================
   vendorNotes: { type: String, default: null },
   workerNotes: { type: String, default: null }

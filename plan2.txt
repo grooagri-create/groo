@@ -1,0 +1,156 @@
+1️⃣ Farmer App Flow
+Farmer Open App (Logo & Trust Line)
+        │
+        ▼
+Register / Login (Mobile No + OTP)
+        │
+        ▼
+Select Location (Fetch Current Location)
+        │
+        ▼
+Homepage
+(Search Equipment & Services)
+        │
+        ▼
+Choose Equipment
+(Tractor / Harvestor / Drone / Heavy Machinery)
+        │
+        ▼
+Choose Rental Type
+(Hourly / Land Based / Monthly)
+        │
+        ▼
+Add More Equipment (Optional)
+        │
+        ▼
+Check Equipment Availability
+        │
+        ├──────────────► Available
+        │                     │
+        │                     ▼
+        │                 Book Now
+        │
+        └──────────────► Not Available
+                              │
+                              ▼
+                      Schedule Booking
+                    (Date & Time Slot)
+                              │
+                              ▼
+                    Show Estimated Price
+                 (Based on Hour / Land / Month)
+                              │
+                              ▼
+                    Confirm Booking
+                              │
+                              ▼
+                          Payment
+                              │
+                              ▼
+                  Equipment Arrives to Farm
+        (OTP + Track Map + KM / Speedometer Photo)
+                              │
+                              ▼
+                        Work Completed
+          (Driver Upload KM / Speedometer + OTP)
+                              │
+                              ▼
+                        Rating & Review
+             (Driver Rating + Equipment Feedback)
+2️⃣ Equipment Owner Flow
+Equipment Owner Register
+        │
+        ▼
+Complete KYC
+        │
+        ▼
+Add Equipment Details
+(Name / Model / Price / Image / Owner Details /
+Documents / Terms & Conditions)
+        │
+        ▼
+Admin Verification
+        │
+        ▼
+Equipment Goes Live
+        │
+        ▼
+Receive Booking Request
+        │
+        ▼
+Accept / Reject Booking
+        │
+        ▼
+Equipment Delivered to Farmer
+        │
+        ▼
+Receive Payment
+        │
+        ▼
+View Earnings Dashboard
+3️⃣ Admin Panel Flow
+Admin Login
+        │
+        ▼
+Manage Users
+(Farmers & Equipment Owners)
+        │
+        ▼
+Verify Equipment
+        │
+        ▼
+Monitor Bookings
+        │
+        ▼
+Dashboard Overview
+        │
+        ▼
+Handle Disputes
+        │
+        ▼
+Payment Settlement
+        │
+        ▼
+Reports & Analytics
+(AI Reports / Booking Data / Usage Stats)
+        │
+        ▼
+Trip Tracking
+        │
+        ▼
+Commission Management
+        │
+        ▼
+Fare Transparency
+        │
+        ▼
+Send Notifications
+(App / SMS / WhatsApp)
+        │
+        ▼
+Weather Forecast Alerts
+(SMS / WhatsApp to Farmers)
+4️⃣ Weather Forecast Flow (App Feature)
+
+Using OpenWeather
+
+Farmer App
+        │
+        ▼
+Get User Location
+        │
+        ▼
+Backend API
+        │
+        ▼
+OpenWeather API
+        │
+        ▼
+Weather Data Response
+        │
+        ▼
+Show Weather Forecast
+        │
+        ▼
+Farming Decision
+(Irrigation / Spray / Harvest Planning)

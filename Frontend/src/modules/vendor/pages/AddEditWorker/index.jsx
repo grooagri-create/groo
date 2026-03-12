@@ -18,9 +18,7 @@ const addWorkerSchema = z.object({
   skills: z.array(z.string()).min(1, "Select at least one skill"),
   aadhar: z.object({
     number: z.string().regex(/^\d{12}$/, "Aadhar must be 12 digits"),
-    // document: z.any() 
   }),
-  // address: z.any().optional() // Make address optional or strict as needed
 });
 
 const editWorkerSchema = z.object({
@@ -30,7 +28,7 @@ const editWorkerSchema = z.object({
   skills: z.array(z.string()).min(1, "Select at least one skill"),
 });
 
-const AddEditWorker = () => {
+const AddEditDriver = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
@@ -47,7 +45,7 @@ const AddEditWorker = () => {
     email: '',
     aadhar: {
       number: '',
-      document: '' // Base64 string ideally
+      document: ''
     },
     skills: [],
     serviceCategories: [],
@@ -58,7 +56,7 @@ const AddEditWorker = () => {
       pincode: ''
     },
     status: 'active',
-    profilePhoto: '', // URL
+    profilePhoto: '',
   });
 
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -93,7 +91,6 @@ const AddEditWorker = () => {
       try {
         const catRes = await publicCatalogService.getCategories();
         if (catRes.success) {
-          console.log('Loaded Categories:', catRes.categories || []);
           setCategories(catRes.categories || []);
         }
 
@@ -137,7 +134,6 @@ const AddEditWorker = () => {
     initData();
   }, [id, isEdit]);
 
-  // Upload file helper
   const uploadFile = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -203,8 +199,6 @@ const AddEditWorker = () => {
         ? prev.serviceCategories.filter(c => c !== val)
         : [...prev.serviceCategories, val];
 
-      // Keep only skills that belong to the remaining categories
-      // We'll need the categories data for this
       const remainingSkills = prev.skills.filter(skill => {
         return categories.some(cat =>
           serviceCategories.includes(cat.title) &&
@@ -259,12 +253,8 @@ const AddEditWorker = () => {
     });
   };
 
-
   const handleSubmit = async () => {
-    // Zod Validation depending on mode
     const schema = isEdit ? editWorkerSchema : addWorkerSchema;
-
-    // Construct validation object
     const validationData = {
       name: formData.name,
       phone: formData.phone,
@@ -274,13 +264,11 @@ const AddEditWorker = () => {
     };
 
     const validationResult = schema.safeParse(validationData);
-
     if (!validationResult.success) {
       toast.error(validationResult.error.errors[0].message);
       return;
     }
 
-    // Additional manual check for Aadhar doc on 'new'
     if (!isEdit && !formData.aadhar.document && !aadharFile) {
       toast.error("Aadhar document is required");
       return;
@@ -289,58 +277,27 @@ const AddEditWorker = () => {
     try {
       setLoading(true);
       setUploading(true);
-
       let photoUrl = formData.profilePhoto;
       let aadharUrl = formData.aadhar.document;
 
-      // Upload photo if selected
-      if (photoFile) {
-        try {
-          photoUrl = await uploadFile(photoFile);
-        } catch (err) {
-          console.error('Photo upload failed:', err);
-          toast.error('Failed to upload profile photo');
-          setLoading(false);
-          setUploading(false);
-          return;
-        }
-      }
+      if (photoFile) photoUrl = await uploadFile(photoFile);
+      if (aadharFile) aadharUrl = await uploadFile(aadharFile);
 
-      // Upload Aadhar if selected
-      if (aadharFile) {
-        try {
-          aadharUrl = await uploadFile(aadharFile);
-        } catch (err) {
-          console.error('Aadhar upload failed:', err);
-          toast.error('Failed to upload Aadhar document');
-          setLoading(false);
-          setUploading(false);
-          return;
-        }
-      }
-
-      // Clean payload
       const payload = {
         ...formData,
         profilePhoto: photoUrl,
         aadhar: {
           ...formData.aadhar,
-          document: aadharUrl || 'pending_upload' // Ensure strictly that we have something
+          document: aadharUrl || 'pending_upload'
         }
       };
 
-      if (!payload.aadhar.document && !isEdit) {
-        // Should have been caught by validation, but double check
-        // If still empty and no file, maybe error?
-        // For now let backend handle it or user re-try
-      }
-
       if (isEdit) {
         await updateWorker(id, payload);
-        toast.success('Worker updated');
+        toast.success('Driver updated');
       } else {
         await createWorker(payload);
-        toast.success('Worker added');
+        toast.success('Driver added');
       }
       window.dispatchEvent(new Event('vendorWorkersUpdated'));
       navigate('/vendor/workers');
@@ -361,23 +318,21 @@ const AddEditWorker = () => {
     try {
       setLoading(true);
       await linkWorker(linkPhone);
-      toast.success('Worker linked successfully!');
+      toast.success('Driver linked successfully!');
       window.dispatchEvent(new Event('vendorWorkersUpdated'));
       navigate('/vendor/workers');
     } catch (error) {
       console.error('Link error:', error);
-      toast.error(error.response?.data?.message || 'Failed to link worker');
+      toast.error(error.response?.data?.message || 'Failed to link driver');
     } finally {
       setLoading(false);
     }
   };
 
-  // Get selected category objects for skills
   const selectedCategoriesData = Array.isArray(categories)
     ? categories.filter(c => formData.serviceCategories.includes(c?.title))
     : [];
 
-  // Aggregate all sub-services from selected categories
   const allAvailableSkills = selectedCategoriesData.reduce((acc, cat) => {
     if (cat.subServices) {
       cat.subServices.forEach(s => {
@@ -390,35 +345,23 @@ const AddEditWorker = () => {
 
   return (
     <div className="min-h-screen pb-20" style={{ background: themeColors.backgroundGradient }}>
-      <Header title={isEdit ? 'Edit Worker' : 'Add Worker'} />
+      <Header title={isEdit ? 'Edit Operator/Driver' : 'Add Operator/Driver'} />
 
       <main className="px-4 py-6 max-w-lg mx-auto">
-
-        {/* Tabs for Add New vs Link */}
         {!isEdit && (
           <div className="flex bg-white rounded-xl p-1 mb-6 shadow-sm border border-gray-100">
             <button
               onClick={() => setActiveTab('new')}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'new'
-                ? 'text-white shadow-md'
-                : 'text-gray-500 hover:bg-gray-50'
-                }`}
-              style={{
-                background: activeTab === 'new' ? themeColors.button : 'transparent'
-              }}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'new' ? 'text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+              style={{ background: activeTab === 'new' ? themeColors.button : 'transparent' }}
             >
               <FiUserPlus className="w-4 h-4" />
               Create New
             </button>
             <button
               onClick={() => setActiveTab('link')}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'link'
-                ? 'text-white shadow-md'
-                : 'text-gray-500 hover:bg-gray-50'
-                }`}
-              style={{
-                background: activeTab === 'link' ? themeColors.button : 'transparent'
-              }}
+              className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'link' ? 'text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
+              style={{ background: activeTab === 'link' ? themeColors.button : 'transparent' }}
             >
               <FiLink className="w-4 h-4" />
               Link Existing
@@ -426,20 +369,13 @@ const AddEditWorker = () => {
           </div>
         )}
 
-        {/* Link Existing Mode */}
         {activeTab === 'link' && !isEdit && (
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 text-center space-y-4">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2"
-              style={{ background: `${themeColors.button}15` }}
-            >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-2" style={{ background: `${themeColors.button}15` }}>
               <FiSearch className="w-8 h-8" style={{ color: themeColors.button }} />
             </div>
-            <h3 className="text-lg font-bold text-gray-800">Add Existing Worker</h3>
-            <p className="text-sm text-gray-500">
-              Enter the phone number of a registered worker to add them to your team.
-            </p>
-
+            <h3 className="text-lg font-bold text-gray-800">Add Existing Driver</h3>
+            <p className="text-sm text-gray-500">Enter the phone number of a registered driver to add them to your team.</p>
             <div className="pt-2">
               <input
                 type="tel"
@@ -450,320 +386,160 @@ const AddEditWorker = () => {
                 maxLength={10}
               />
             </div>
-
             <button
               onClick={handleLinkWorker}
               disabled={loading}
               className="w-full py-4 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
-              style={{
-                background: themeColors.button,
-                boxShadow: `0 8px 24px ${themeColors.button}40`
-              }}
+              style={{ background: themeColors.button, boxShadow: `0 8px 24px ${themeColors.button}40` }}
             >
-              {loading ? 'Processing...' : 'Find & Add Worker'}
+              {loading ? 'Processing...' : 'Find & Add Driver'}
             </button>
           </div>
         )}
 
-        {/* Create / Edit Mode */}
         {(activeTab === 'new' || isEdit) && (
           <div className="space-y-6">
-
-            {/* Profile Photo Upload */}
             <div className="flex flex-col items-center justify-center mb-2">
               <div className="relative group">
-                <div
-                  className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100"
-                >
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100">
                   {photoPreview || formData.profilePhoto ? (
-                    <img
-                      src={photoPreview || formData.profilePhoto}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={photoPreview || formData.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
                       <FiUserPlus className="w-8 h-8" />
                     </div>
                   )}
                 </div>
-
-                <label
-                  htmlFor="worker-photo-upload"
-                  className="absolute bottom-0 right-0 p-2 rounded-full cursor-pointer shadow-md transition-transform active:scale-95 hover:scale-105"
-                  style={{ background: themeColors.button }}
-                >
+                <label htmlFor="worker-photo-upload" className="absolute bottom-0 right-0 p-2 rounded-full cursor-pointer shadow-md transition-transform active:scale-95 hover:scale-105" style={{ background: themeColors.button }}>
                   <FiCamera className="w-4 h-4 text-white" />
-                  <input
-                    id="worker-photo-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoChange}
-                  />
+                  <input id="worker-photo-upload" type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
                 </label>
               </div>
               <p className="text-gray-400 text-[10px] mt-2 font-medium">Add Profile Photo</p>
             </div>
 
-            {/* Basic Info */}
             <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Details</h4>
-
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Driver Details</h4>
               <div className="space-y-3">
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Full Name *"
-                  className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.name ? 'border-red-500' : 'border-gray-100'}`}
-                />
-
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="Mobile Number *"
-                  className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.phone ? 'border-red-500' : 'border-gray-100'}`}
-                  maxLength={10}
-                />
-
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="Email Address (Optional)"
-                  className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.email ? 'border-red-500' : 'border-gray-100'}`}
-                />
+                <input type="text" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} placeholder="Full Name *" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.name ? 'border-red-500' : 'border-gray-100'}`} />
+                <input type="tel" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} placeholder="Mobile Number *" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.phone ? 'border-red-500' : 'border-gray-100'}`} maxLength={10} />
+                <input type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} placeholder="Email Address (Optional)" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.email ? 'border-red-500' : 'border-gray-100'}`} />
               </div>
             </div>
-            {/* Address Info */}
+
             <div className="bg-white rounded-2xl p-5 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Address</h4>
-
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Current Address</h4>
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <p className="text-sm font-medium text-gray-700">
-                  {formData.address?.fullAddress ||
-                    (formData.address?.addressLine1 ? `${formData.address.addressLine1}, ${formData.address.city}` : 'No address set')
-                  }
-                </p>
+                <p className="text-sm font-medium text-gray-700">{formData.address?.fullAddress || (formData.address?.addressLine1 ? `${formData.address.addressLine1}, ${formData.address.city}` : 'No address set')}</p>
               </div>
-
-              <button
-                onClick={() => setIsAddressModalOpen(true)}
-                className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm border border-blue-100 hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
-              >
+              <button onClick={() => setIsAddressModalOpen(true)} className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm border border-blue-100 hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
                 <FiMapPin className="w-4 h-4" />
                 Select Address on Map
               </button>
             </div>
 
-            {/* Work Profile */}
             <div className="bg-white rounded-2xl p-5 shadow-sm space-y-2">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Work Profile</h4>
-
-              {/* Category Dropdown */}
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Operation Profile</h4>
               <div>
-                <label className="text-xs font-bold text-gray-500 mb-1.5 block uppercase tracking-wide">Category</label>
+                <label className="text-xs font-bold text-gray-500 mb-1.5 block uppercase tracking-wide">Equipment Category</label>
                 <div className="relative">
-                  <button
-                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                    className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-100"
-                  >
+                  <button onClick={() => setIsCategoryOpen(!isCategoryOpen)} className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-100">
                     <span className={`font-medium truncate ${formData.serviceCategories.length > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {formData.serviceCategories.length > 0
-                        ? `${formData.serviceCategories.length} Selected`
-                        : 'Select Categories'}
+                      {formData.serviceCategories.length > 0 ? `${formData.serviceCategories.length} Selected` : 'Select Equipment Types'}
                     </span>
                     <FiChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
                   </button>
-
                   {isCategoryOpen && (
                     <>
-                      <div
-                        className="fixed inset-0 z-10 bg-transparent"
-                        onClick={() => setIsCategoryOpen(false)}
-                      />
+                      <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsCategoryOpen(false)} />
                       <div className="absolute z-20 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
-                        {categories.length > 0 ? (
-                          categories.map(cat => (
-                            <button
-                              key={cat._id}
-                              onClick={() => {
-                                toggleCategory(cat.title);
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 font-medium text-gray-700 border-b border-gray-50 last:border-0 flex items-center justify-between"
-                            >
-                              {cat.title}
-                              {formData.serviceCategories.includes(cat.title) && (
-                                <div className="w-2 h-2 rounded-full bg-green-500" />
-                              )}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-4 py-3 text-gray-400 text-sm">No categories found</div>
-                        )}
+                        {categories.map(cat => (
+                          <button key={cat._id} onClick={() => toggleCategory(cat.title)} className="w-full text-left px-4 py-3 hover:bg-gray-50 font-medium text-gray-700 border-b border-gray-50 last:border-0 flex items-center justify-between">
+                            {cat.title}
+                            {formData.serviceCategories.includes(cat.title) && <div className="w-2 h-2 rounded-full bg-green-500" />}
+                          </button>
+                        ))}
                       </div>
                     </>
                   )}
                 </div>
-
-                {/* Selected Categories Tags */}
                 {formData.serviceCategories.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {formData.serviceCategories.map((cat, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100"
-                      >
+                      <span key={idx} className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-100">
                         {cat}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleCategory(cat); }}
-                          className="ml-2 text-blue-500 hover:text-red-500 focus:outline-none"
-                        >
-                          <FiX className="w-3 h-3" />
-                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); toggleCategory(cat); }} className="ml-2 text-blue-500 hover:text-red-500 focus:outline-none"><FiX className="w-3 h-3" /></button>
                       </span>
                     ))}
                   </div>
                 )}
-                {errors.serviceCategories && <p className="text-red-500 text-[10px] mt-1">Required</p>}
               </div>
 
-              {/* Services (Skills) Dropdown */}
               {formData.serviceCategories.length > 0 && (
-                <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1.5 block uppercase tracking-wide">Services (Skills)</label>
+                <div className="mt-4">
+                  <label className="text-xs font-bold text-gray-500 mb-1.5 block uppercase tracking-wide">Expertise / Skills</label>
                   <div className="relative">
-                    <button
-                      onClick={() => setIsServicesOpen(!isServicesOpen)}
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    >
+                    <button onClick={() => setIsServicesOpen(!isServicesOpen)} className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-blue-100">
                       <span className={`font-medium truncate ${formData.skills.length > 0 ? 'text-gray-900' : 'text-gray-400'}`}>
-                        {formData.skills.length > 0 ? `${formData.skills.length} Selected` : 'Select Services'}
+                        {formData.skills.length > 0 ? `${formData.skills.length} Selected` : 'Select Skills'}
                       </span>
                       <FiChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isServicesOpen ? 'rotate-180' : ''}`} />
                     </button>
-
                     {isServicesOpen && (
                       <>
-                        <div
-                          className="fixed inset-0 z-10 bg-transparent"
-                          onClick={() => setIsServicesOpen(false)}
-                        />
+                        <div className="fixed inset-0 z-10 bg-transparent" onClick={() => setIsServicesOpen(false)} />
                         <div className="absolute z-20 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto">
-                          {allAvailableSkills.length > 0 ? (
-                            allAvailableSkills.map((sName, idx) => {
-                              const isSelected = formData.skills.includes(sName);
-                              return (
-                                <button
-                                  key={idx}
-                                  onClick={() => toggleSkill(sName)}
-                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 font-medium text-gray-700 border-b border-gray-50 last:border-0 flex items-center justify-between"
-                                >
-                                  {sName}
-                                  {isSelected && (
-                                    <div className="w-2 h-2 rounded-full" style={{ background: themeColors.button }} />
-                                  )}
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <div className="px-4 py-3 text-gray-400 text-sm">No services available</div>
-                          )}
+                          {allAvailableSkills.map((sName, idx) => (
+                            <button key={idx} onClick={() => toggleSkill(sName)} className="w-full text-left px-4 py-3 hover:bg-gray-50 font-medium text-gray-700 border-b border-gray-50 last:border-0 flex items-center justify-between">
+                              {sName}
+                              {formData.skills.includes(sName) && <div className="w-2 h-2 rounded-full" style={{ background: themeColors.button }} />}
+                            </button>
+                          ))}
                         </div>
                       </>
                     )}
                   </div>
-
-                  {/* Selected Services Tags */}
                   {formData.skills.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {formData.skills.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700"
-                        >
+                        <span key={idx} className="inline-flex items-center px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
                           {skill}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleSkill(skill); }}
-                            className="ml-2 text-gray-500 hover:text-red-500 focus:outline-none"
-                          >
-                            <FiX className="w-3 h-3" />
-                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); toggleSkill(skill); }} className="ml-2 text-gray-500 hover:text-red-500 focus:outline-none"><FiX className="w-3 h-3" /></button>
                         </span>
                       ))}
                     </div>
                   )}
-
-                  {errors.skills && <p className="text-red-500 text-[10px] mt-1">Select at least one service</p>}
                 </div>
               )}
             </div>
 
-            {/* Documents (Simplified) */}
-            {
-              !isEdit && (
-                <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Identity Proof (Aadhar)</h4>
-                  <input
-                    type="text"
-                    value={formData.aadhar.number}
-                    onChange={(e) => handleInputChange('aadhar.number', e.target.value)}
-                    placeholder="Aadhar Number *"
-                    className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors['aadhar.number'] ? 'border-red-500' : 'border-gray-100'}`}
-                    maxLength={12}
-                  />
-
-                  {/* File Upload */}
-                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center transition-colors hover:border-blue-300 bg-gray-50">
-                    <input
-                      id="worker-aadhar-upload"
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={handleAadharChange}
-                    />
-                    <label htmlFor="worker-aadhar-upload" className="cursor-pointer flex flex-col items-center">
-                      {aadharFile ? (
-                        <div className="flex items-center gap-2 text-green-600 font-medium">
-                          <FiUpload className="w-5 h-5" />
-                          <span className="truncate max-w-[200px]">{aadharFile.name}</span>
-                        </div>
-                      ) : formData.aadhar.document && formData.aadhar.document !== 'data:image/png;base64,placeholder' ? (
-                        <div className="flex flex-col items-center gap-2">
-                          <p className="text-green-600 font-medium text-sm mb-2">Document Uploaded</p>
-                          <span className="text-xs text-blue-500 underline">Click to update</span>
-                        </div>
-                      ) : (
-                        <>
-                          <FiUpload className="w-8 h-8 text-gray-400 mb-2" />
-                          <span className="text-sm text-gray-500 font-medium">Click to upload Aadhar Card</span>
-                          <span className="text-xs text-gray-400 mt-1">First Page Only (Max 5MB)</span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                  {errors['aadhar.document'] && <p className="text-red-500 text-[10px] mt-1">Document is required</p>}
+            {!isEdit && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide">Identity Proof (Driver's Aadhar)</h4>
+                <input type="text" value={formData.aadhar.number} onChange={(e) => handleInputChange('aadhar.number', e.target.value)} placeholder="Aadhar Number *" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors['aadhar.number'] ? 'border-red-500' : 'border-gray-100'}`} maxLength={12} />
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center transition-colors hover:border-blue-300 bg-gray-50">
+                  <input id="worker-aadhar-upload" type="file" accept="image/*,.pdf" className="hidden" onChange={handleAadharChange} />
+                  <label htmlFor="worker-aadhar-upload" className="cursor-pointer flex flex-col items-center">
+                    {aadharFile ? (
+                      <div className="flex items-center gap-2 text-green-600 font-medium"><FiUpload className="w-5 h-5" /><span className="truncate max-w-[200px]">{aadharFile.name}</span></div>
+                    ) : (
+                      <>
+                        <FiUpload className="w-8 h-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-gray-500 font-medium">Click to upload Driver's Aadhar</span>
+                        <span className="text-xs text-gray-400 mt-1">First Page Only (Max 5MB)</span>
+                      </>
+                    )}
+                  </label>
                 </div>
-              )
-            }
+              </div>
+            )}
 
-            {/* Submit */}
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full py-4 text-white rounded-xl font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-              style={{
-                background: themeColors.button,
-                boxShadow: `0 8px 24px ${themeColors.button}40`
-              }}
-            >
-              {loading ? 'Saving...' : (isEdit ? 'Update Details' : 'Create Worker')}
+            <button onClick={handleSubmit} disabled={loading} className="w-full py-4 text-white rounded-xl font-bold uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2" style={{ background: themeColors.button, boxShadow: `0 8px 24px ${themeColors.button}40` }}>
+              {loading ? 'Saving...' : (isEdit ? 'Update Details' : 'Save Driver Details')}
             </button>
-          </div >
+          </div>
         )}
-      </main >
+      </main>
 
       <AddressSelectionModal
         isOpen={isAddressModalOpen}
@@ -773,10 +549,9 @@ const AddEditWorker = () => {
         onHouseNumberChange={(val) => handleInputChange('address.addressLine1', val)}
         onSave={handleAddressSave}
       />
-
       <BottomNav />
-    </div >
+    </div>
   );
 };
 
-export default AddEditWorker;
+export default AddEditDriver;

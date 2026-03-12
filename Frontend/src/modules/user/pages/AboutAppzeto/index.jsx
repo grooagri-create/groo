@@ -9,8 +9,8 @@ const AboutAppzeto = () => {
   const features = [
     {
       icon: <FiUsers className="w-6 h-6" style={{ color: themeColors.button }} />,
-      title: 'Expert Service Providers',
-      description: 'Verified and trained professionals for all your service needs'
+      title: 'Expert Equipment Owners',
+      description: 'Verified and trusted equipment owners for all your farming needs'
     },
     {
       icon: <FiShield className="w-6 h-6" style={{ color: themeColors.button }} />,
@@ -30,22 +30,22 @@ const AboutAppzeto = () => {
   ];
 
   const services = [
-    'Home Repairs & Maintenance',
-    'Electrical Services',
-    'Plumbing Solutions',
-    'Salon & Spa Services',
-    'Cleaning Services',
-    'AC & Appliance Repair',
-    'Massage Services',
+    'Tractor & Heavy Machinery Rental',
+    'Drone Spraying Services',
+    'Harvesting Solutions',
+    'Soil Testing & Analytics',
+    'Organic Fertilizers & Seeds',
+    'Agri-Marketplace Services',
+    'Weather-based Agri Advisory',
     'And many more...'
   ];
 
   const values = [
-    'Customer-first approach',
+    'Farmer-first approach',
     'Transparent pricing',
-    'Professional service',
-    '100% satisfaction guarantee',
-    '24/7 customer support'
+    'Professional equipment',
+    '100% quality guarantee',
+    '24/7 farmer support'
   ];
 
   return (
@@ -68,8 +68,8 @@ const AboutAppzeto = () => {
       <main className="px-4 py-6">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center" 
-            style={{ 
+          <div className="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center"
+            style={{
               background: `linear-gradient(135deg, ${themeColors.button} 0%, ${themeColors.icon} 100%)`,
               boxShadow: '0 4px 20px rgba(0, 166, 166, 0.3)'
             }}>
@@ -77,7 +77,7 @@ const AboutAppzeto = () => {
           </div>
           <h2 className="text-2xl font-bold text-black mb-2">Welcome to Appzeto</h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Your trusted partner for all home and personal care services
+            Your trusted partner for all agriculture equipment and farm services
           </p>
         </div>
 
@@ -86,9 +86,9 @@ const AboutAppzeto = () => {
           <h3 className="text-xl font-bold text-black mb-4">What We Provide</h3>
           <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
             <p className="text-sm text-gray-700 mb-4 leading-relaxed">
-              Appzeto is a comprehensive service platform that connects you with verified, 
-              professional service providers for all your home and personal care needs. 
-              We offer a wide range of services to make your life easier and more convenient.
+              Appzeto is a comprehensive agriculture service platform that connects you with verified,
+              professional equipment owners for all your farming and machinery needs.
+              We offer a wide range of services to make your farming easier and more profitable.
             </p>
             <div className="space-y-2">
               <p className="text-sm font-semibold text-black mb-2">Our Services Include:</p>
@@ -113,7 +113,7 @@ const AboutAppzeto = () => {
                 key={index}
                 className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
               >
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3" 
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-3"
                   style={{ backgroundColor: 'rgba(0, 166, 166, 0.1)' }}>
                   {feature.icon}
                 </div>
@@ -130,7 +130,7 @@ const AboutAppzeto = () => {
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-200 p-5">
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" 
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: themeColors.button }}>
                   <span className="text-white text-sm font-bold">1</span>
                 </div>
@@ -140,7 +140,7 @@ const AboutAppzeto = () => {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" 
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: themeColors.button }}>
                   <span className="text-white text-sm font-bold">2</span>
                 </div>
@@ -150,7 +150,7 @@ const AboutAppzeto = () => {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" 
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: themeColors.button }}>
                   <span className="text-white text-sm font-bold">3</span>
                 </div>
@@ -160,12 +160,12 @@ const AboutAppzeto = () => {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" 
+                <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   style={{ backgroundColor: themeColors.button }}>
                   <span className="text-white text-sm font-bold">4</span>
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-black mb-1">Customer Support</h4>
+                  <h4 className="text-sm font-bold text-black mb-1">Farmer Support</h4>
                   <p className="text-xs text-gray-700">Our dedicated support team is available 24/7 to assist you with any queries or concerns.</p>
                 </div>
               </div>

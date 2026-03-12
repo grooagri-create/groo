@@ -49,7 +49,7 @@ const WorkerAnalytics = () => {
         <CardShell className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none p-3.5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-[10px] font-medium uppercase tracking-wider">Total Active Workers</p>
+              <p className="text-blue-100 text-[10px] font-medium uppercase tracking-wider">Total Active Operators</p>
               <h3 className="text-xl font-bold mt-0.5">
                 {data?.availabilityDistribution?.reduce((acc, curr) => acc + curr.count, 0) || 0}
               </h3>
@@ -89,7 +89,7 @@ const WorkerAnalytics = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top Workers Chart */}
-        <CardShell className="bg-white p-3.5" title="Top Performing Workers" icon={FiActivity}>
+        <CardShell className="bg-white p-3.5" title="Top Performing Operators" icon={FiActivity}>
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data?.topWorkers} layout="vertical">
@@ -104,7 +104,7 @@ const WorkerAnalytics = () => {
         </CardShell>
 
         {/* Availability Pie Chart */}
-        <CardShell className="bg-white p-3.5" title="Worker Status Distribution" icon={FiUsers}>
+        <CardShell className="bg-white p-3.5" title="Operator Status Distribution" icon={FiUsers}>
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

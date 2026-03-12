@@ -6,7 +6,7 @@ const BrandPhilosophy = () => {
       <div className="max-w-2xl">
         {/* Main Headings */}
         <h2 className="text-3xl font-bold mb-4">Innovative.</h2>
-        <h2 className="text-3xl font-bold mb-4">Customer-first products.</h2>
+        <h2 className="text-3xl font-bold mb-4">Farmer-first equipment.</h2>
         <h2 className="text-3xl font-bold mb-8">Designed in India, for India.</h2>
 
         {/* Descriptive Text */}

@@ -103,7 +103,7 @@ const Bookings = () => {
   }, [page, debouncedSearch, statusFilter, startDate, endDate]);
 
   const handleExport = () => {
-    const headers = ['Order ID', 'Customer', 'Service', 'Total', 'Status', 'Date'];
+    const headers = ['Order ID', 'Farmer', 'Service', 'Total', 'Status', 'Date'];
     const rows = bookings.map(b => [
       b.bookingNumber,
       b.userId?.name || 'Unknown',
@@ -199,7 +199,7 @@ const Bookings = () => {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Order ID</th>
-                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Farmer</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Items</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Total (₹)</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>

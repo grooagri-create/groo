@@ -47,9 +47,11 @@ const createBooking = async (req, res) => {
       // Metadata from frontend
       serviceCategory: reqServiceCategory,
       categoryIcon: reqCategoryIcon,
-      brandName: reqBrandName,
       brandIcon: reqBrandIcon,
-      bookingType // Extract bookingType
+      bookingType, // Extract bookingType
+      rental_type,  // Agriculture: extract rental_type
+      cropType,     // Agriculture: extract cropType
+      landSize      // Agriculture: extract landSize
     } = req.body;
 
     let visitingCharges = reqVisitingCharges !== undefined ? reqVisitingCharges : (reqVisitationFee || 0);
@@ -185,30 +187,66 @@ const createBooking = async (req, res) => {
       const userPlan = await Plan.findOne({ name: user.plans.name });
 
       if (!userPlan) {
-        // Fallback if data missing (rare)
+        // Fallback if data missing
         usePlanBenefits = false;
         paymentMethod = 'pay_at_home';
       } else {
-        // Check Coverage
+        // --- IMPROVED PLAN LOGIC: FREE + DISCOUNTED ---
+
+        // A. Check for Full Coverage (Free)
         const isCategoryCovered = categoryId && userPlan.freeCategories &&
           userPlan.freeCategories.some(cat => String(cat) === String(categoryId));
         const isServiceCovered = serviceId && userPlan.freeServices &&
           userPlan.freeServices.some(svc => String(svc) === String(serviceId));
 
         if (isCategoryCovered || isServiceCovered) {
-          // >>> APPLY FREE PRICING <<<
+          // >>> APPLY FULL FREE PRICING <<<
           basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
-          discount = basePrice; // Full discount
+          discount = basePrice; // 100% off
           tax = 0;
           visitingCharges = 0;
-          finalAmount = pendingPenalty; // User only pays penalty
+          finalAmount = pendingPenalty;
 
           bookingStatus = BOOKING_STATUS.SEARCHING;
           bookingPaymentStatus = finalAmount > 0 ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.PLAN_COVERED;
         } else {
-          // Not covered -> Fallback
-          usePlanBenefits = false;
-          paymentMethod = 'pay_at_home';
+          // B. Check for Partial Discounts (Agri-Specific)
+
+          // 1. Equipment Rental Discount
+          const isRental = !!(rental_type || service.rental_type);
+          const rentalDiscount = isRental ? (userPlan.rentalDiscountPercentage || 0) : 0;
+
+          // 2. Marketplace Product Discount
+          // We calculate individual item discounts if any are products
+          let totalProductDiscount = 0;
+          if (bookedItems && bookedItems.length > 0 && userPlan.marketplaceDiscountPercentage > 0) {
+            bookedItems.forEach(item => {
+              // Check if item is a product (based on type or categoryTitle from frontend)
+              if (item.type === 'product' || item.category === 'Marketplace') {
+                const itemPrice = item.card?.price || item.price || 0;
+                const itemTotal = itemPrice * (item.quantity || 1);
+                totalProductDiscount += (itemTotal * (userPlan.marketplaceDiscountPercentage / 100));
+              }
+            });
+          }
+
+          // 3. Apply calculated discounts
+          basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
+
+          // Combine rental discount on base and product discounts
+          const rentalDiscountAmount = (basePrice * (rentalDiscount / 100));
+          discount = Math.round(rentalDiscountAmount + totalProductDiscount);
+
+          // Calculate rest normally
+          tax = Math.round((basePrice - discount) * 0.18);
+          visitingCharges = (reqVisitingCharges !== undefined) ? reqVisitingCharges : (visitingCharges || 49);
+          finalAmount = (basePrice - discount + tax + visitingCharges) + pendingPenalty;
+
+          bookingStatus = BOOKING_STATUS.SEARCHING;
+          bookingPaymentStatus = PAYMENT_STATUS.PENDING;
+
+          // If no discount was actually applied, we might want to flag it or just treat as normal
+          console.log(`[PlanBenefit] Applied ${rentalDiscount}% Rental Disc and ₹${totalProductDiscount} Product Disc`);
         }
       }
     }
@@ -308,6 +346,9 @@ const createBooking = async (req, res) => {
       brandName: reqBrandName || brandName,
       brandIcon: reqBrandIcon || brandIcon,
       bookingType: bookingType || 'scheduled',
+      rental_type: rental_type || null,
+      cropType: cropType || null,
+      landSize: landSize || null,
 
       description: service.description,
       serviceImages: service.images || [],
@@ -1152,6 +1193,100 @@ const getUserRatings = async (req, res) => {
   }
 };
 
+/**
+ * Check equipment availability and return next available slot if booked
+ */
+const checkEquipmentAvailability = async (req, res) => {
+  try {
+    const { equipmentId, requestedDate, requestedTime } = req.query;
+
+    if (!equipmentId || !requestedDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Equipment ID and requested date are required'
+      });
+    }
+
+    const { BOOKING_STATUS } = require('../../utils/constants');
+
+    // Set up date boundaries for the requested date
+    const reqDate = new Date(requestedDate);
+    const startOfDay = new Date(reqDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(reqDate.setHours(23, 59, 59, 999));
+
+    // 1. CHECK MAINTENANCE OVERLAP (New Agriculture Feature)
+    const Maintenance = require('../../models/Maintenance');
+    const maintenanceRecord = await Maintenance.findOne({
+      equipmentId,
+      status: 'active',
+      startDate: { $lte: endOfDay },
+      endDate: { $gte: startOfDay }
+    });
+
+    if (maintenanceRecord) {
+      return res.status(200).json({
+        success: true,
+        available: false,
+        message: `Equipment is currently under maintenance (${maintenanceRecord.reason}). It will be available after ${new Date(maintenanceRecord.endDate).toLocaleDateString()}.`
+      });
+    }
+
+    // 2. CHECK EXISTING BOOKINGS (Conflict Check)
+    const activeBookings = await Booking.find({
+      serviceId: equipmentId,
+      status: { $nin: ['CANCELLED', 'COMPLETED', 'REJECTED'] },
+      scheduledDate: { $gte: startOfDay }
+    }).sort({ scheduledDate: 1, 'timeSlot.start': 1 }); // Sort chronologically
+
+    let isAvailable = true;
+
+    // A simple check: if any active booking exists on the requested date with the exact same time slot
+    for (let booking of activeBookings) {
+      // Compare on same date 
+      const bDate = new Date(booking.scheduledDate);
+      if (
+        bDate.getFullYear() === reqDate.getFullYear() &&
+        bDate.getMonth() === reqDate.getMonth() &&
+        bDate.getDate() === reqDate.getDate()
+      ) {
+        if (!requestedTime || booking.scheduledTime === requestedTime || (booking.timeSlot && booking.timeSlot.start === requestedTime)) {
+          isAvailable = false;
+          break;
+        }
+      }
+    }
+
+    if (isAvailable) {
+      return res.status(200).json({
+        success: true,
+        available: true,
+        message: 'Equipment is available for this slot.'
+      });
+    } else {
+      // Find the next available day/time
+      // For a robust system, this involves scanning forward. Here is a simple fallback: Next day morning.
+      const nextDate = new Date(reqDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const nextAvailableSlotDate = nextDate.toISOString().split('T')[0];
+      const nextAvailableSlotTime = "09:00";
+
+      return res.status(200).json({
+        success: true,
+        available: false,
+        nextAvailableSlot: `${nextAvailableSlotDate} ${nextAvailableSlotTime}`,
+        message: 'Equipment is already booked for the requested time. Please check the next available slot.'
+      });
+    }
+  } catch (error) {
+    console.error('Check availability error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check equipment availability'
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getUserBookings,
@@ -1159,6 +1294,7 @@ module.exports = {
   cancelBooking,
   rescheduleBooking,
   addReview,
-  getUserRatings
+  getUserRatings,
+  checkEquipmentAvailability
 };
 

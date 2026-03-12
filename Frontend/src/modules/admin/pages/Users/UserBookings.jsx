@@ -116,7 +116,7 @@ const UserBookings = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <FiUser className="w-4 h-4 text-blue-500" />
-                            <span>Customer: <span className="font-medium text-gray-800">{booking.userId?.name}</span></span>
+                            <span>Farmer: <span className="font-medium text-gray-800">{booking.userId?.name}</span></span>
                           </div>
                           <div className="flex items-center gap-2">
                             <FiCalendar className="w-4 h-4" />
@@ -152,8 +152,8 @@ const UserBookings = () => {
                 key={i}
                 onClick={() => loadBookings(i + 1)}
                 className={`w-10 h-10 rounded-lg font-semibold transition-all ${pagination.page === i + 1
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {i + 1}

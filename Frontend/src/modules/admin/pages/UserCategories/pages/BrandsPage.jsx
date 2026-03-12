@@ -490,7 +490,7 @@ const BrandsPage = ({ catalog, setCatalog, selectedCity }) => {
             <input
               type="text"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              placeholder="e.g. Urban Company"
+              placeholder="e.g. Mahindra Tractors, IFFCO, John Deere"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
             />

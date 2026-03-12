@@ -49,6 +49,16 @@ const adminReportService = {
     } catch (error) {
       throw error.response?.data || { message: 'Failed to fetch revenue report' };
     }
+  },
+
+  // Get Agriculture Insights
+  getAgriInsights: async () => {
+    try {
+      const response = await api.get('/admin/reports/agriculture-insights');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to fetch agriculture insights' };
+    }
   }
 };
 

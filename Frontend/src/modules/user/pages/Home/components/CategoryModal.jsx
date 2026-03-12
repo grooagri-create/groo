@@ -7,6 +7,7 @@ import { themeColors } from '../../../../../theme';
 import { publicCatalogService } from '../../../../../services/catalogService';
 import { useCart } from '../../../../../context/CartContext';
 import { toast } from 'react-hot-toast';
+import SlotPicker from '../../../components/booking/SlotPicker';
 
 const toAssetUrl = (url) => {
   if (!url) return '';
@@ -99,7 +100,32 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
     setServices([]);
   };
 
-  const handleServiceClick = async (service) => {
+  const [selectedServiceForBooking, setSelectedServiceForBooking] = useState(null);
+
+  const isRentalCategory = (categoryTitle) => {
+    if (!categoryTitle) return false;
+    const rentals = ['tractor', 'harvester', 'drone', 'heavy', 'planting', 'irrigation', 'crop protection', 'land preparation', 'modern equipment'];
+    return rentals.some(r => categoryTitle.toLowerCase().includes(r));
+  };
+
+  const handleServiceClick = (service) => {
+    // Check if we need to pick a slot
+    if (isRentalCategory(category?.title)) {
+      setSelectedServiceForBooking(service);
+      setView('slots');
+    } else {
+      // Direct add for non-rentals (like Marketplace items if they were in categories, but here we handle usual services)
+      processAddToCart(service);
+    }
+  };
+
+  const handleSlotSelection = (slot, date) => {
+    if (slot && date && selectedServiceForBooking) {
+      processAddToCart(selectedServiceForBooking, slot, date);
+    }
+  };
+
+  const processAddToCart = async (service, slot = null, date = null) => {
     // Add to cart logic
     try {
       const cartItemData = {
@@ -122,6 +148,8 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
         rating: "4.8",
         reviews: "1k+",
         vendorId: service.vendorId || selectedBrand?.vendorId || null,
+        scheduledDate: date,
+        timeSlot: slot,
         card: {
           title: service.title,
           subtitle: service.description || '',
@@ -214,9 +242,12 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                 <div className="px-4 py-6">
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-6">
-                    {view === 'services' && (
+                    {(view === 'services' || view === 'slots') && (
                       <button
-                        onClick={handleBackToBrands}
+                        onClick={() => {
+                          if (view === 'slots') setView('services');
+                          else handleBackToBrands();
+                        }}
                         className="p-1 rounded-full hover:bg-gray-100"
                       >
                         <FiArrowLeft className="w-6 h-6 text-gray-800" />
@@ -224,9 +255,14 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                     )}
                     <div>
                       <h1 className="text-xl font-bold text-gray-900">
-                        {view === 'brands' ? (category?.title || 'Brands') : (selectedBrand?.title || 'Services')}
+                        {view === 'brands'
+                          ? (category?.title || 'Brands')
+                          : view === 'slots'
+                            ? 'Select Appointment'
+                            : (selectedBrand?.title || 'Services')}
                       </h1>
                       {view === 'services' && <p className="text-xs text-gray-500">Select a service to add</p>}
+                      {view === 'slots' && <p className="text-xs text-gray-500">Pick time for {selectedServiceForBooking?.title}</p>}
                     </div>
                     {loading && <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin ml-auto"></div>}
                   </div>
@@ -281,6 +317,11 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                             <p>No brands found in this category.</p>
                           </div>
                         )
+                      ) : view === 'slots' ? (
+                        <SlotPicker
+                          serviceId={selectedServiceForBooking?._id || selectedServiceForBooking?.id}
+                          onSlotSelect={handleSlotSelection}
+                        />
                       ) : (
                         // Services List
                         services.length > 0 ? (
@@ -289,11 +330,14 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                               <div key={svc.id || svc._id} className="flex justify-between items-center p-3 border border-gray-100 rounded-xl hover:shadow-md transition-shadow">
                                 <div className="flex-1">
                                   <h3 className="font-bold text-gray-900">{svc.title}</h3>
-                                  <p className="text-sm text-gray-500">₹{svc.basePrice}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-black text-emerald-600">₹{svc.basePrice}</p>
+                                    {svc.discountPrice && <p className="text-xs text-slate-400 line-through">₹{svc.discountPrice}</p>}
+                                  </div>
                                 </div>
                                 <button
                                   onClick={() => handleServiceClick(svc)}
-                                  className="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-green-100"
+                                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-emerald-700 shadow-sm"
                                 >
                                   <FiPlus /> Add
                                 </button>

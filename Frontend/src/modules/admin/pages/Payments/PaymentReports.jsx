@@ -347,7 +347,7 @@ const PaymentReports = () => {
           { key: 'date', header: 'Date', render: (val) => val ? new Date(val).toLocaleDateString('en-IN') : '-' },
           { key: 'bookingNumber', header: 'Booking ID' },
           { key: 'service', header: 'Service' },
-          { key: 'customer', header: 'Customer' },
+          { key: 'customer', header: 'Farmer' },
           { key: 'vendor', header: 'Vendor' },
           { key: 'amount', header: 'Amount', render: (val) => `₹${(val || 0).toLocaleString('en-IN')}` },
           { key: 'platformFee', header: 'Platform Fee', render: (val) => `₹${(val || 0).toLocaleString('en-IN')}` },
@@ -365,7 +365,7 @@ const PaymentReports = () => {
         return [
           { key: 'invoiceDate', header: 'Invoice Date' },
           { key: 'invoiceNumber', header: 'Invoice No.' },
-          { key: 'customerName', header: 'Customer' },
+          { key: 'customerName', header: 'Farmer' },
           { key: 'placeOfSupply', header: 'Place of Supply' },
           { key: 'hsnSac', header: 'HSN/SAC' },
           { key: 'taxableValue', header: 'Taxable Value', render: (val) => `₹${(val || 0).toLocaleString('en-IN')}` },

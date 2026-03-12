@@ -28,7 +28,7 @@ const WorkerJobs = () => {
       }
     } catch (error) {
       console.error('Error loading jobs:', error);
-      toast.error('Failed to load worker jobs');
+      toast.error('Failed to load operator jobs');
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ const WorkerJobs = () => {
             </div>
             <input
               type="text"
-              placeholder="Search by worker name or phone..."
+              placeholder="Search by operator name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -115,11 +115,11 @@ const WorkerJobs = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <FiUser className="w-4 h-4" />
-                            <span>Worker: <span className="font-medium text-gray-800">{job.workerId?.name || 'Unassigned'}</span></span>
+                            <span>Operator: <span className="font-medium text-gray-800">{job.workerId?.name || 'Unassigned'}</span></span>
                           </div>
                           <div className="flex items-center gap-2">
                             <FiUser className="w-4 h-4 text-blue-500" />
-                            <span>Customer: <span className="font-medium text-gray-800">{job.userId?.name}</span></span>
+                            <span>Farmer: <span className="font-medium text-gray-800">{job.userId?.name}</span></span>
                           </div>
                           <div className="flex items-center gap-2">
                             <FiCalendar className="w-4 h-4" />
@@ -151,8 +151,8 @@ const WorkerJobs = () => {
                 key={i}
                 onClick={() => loadJobs(i + 1)}
                 className={`w-10 h-10 rounded-lg font-semibold transition-all ${pagination.page === i + 1
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {i + 1}

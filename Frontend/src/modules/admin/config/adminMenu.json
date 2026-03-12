@@ -9,7 +9,7 @@
     "children": []
   },
   {
-    "title": "Users",
+    "title": "Farmers",
     "route": "/admin/users",
     "allowedRoles": [
       "super_admin",
@@ -22,7 +22,7 @@
     ]
   },
   {
-    "title": "Vendors",
+    "title": "Equipment Owners",
     "route": "/admin/vendors",
     "allowedRoles": [
       "super_admin",
@@ -35,16 +35,16 @@
     ]
   },
   {
-    "title": "Workers",
+    "title": "Operators",
     "route": "/admin/workers",
     "allowedRoles": [
       "super_admin",
       "admin"
     ],
     "children": [
-      "All Workers",
-      "Worker Jobs",
-      "Worker Analytics"
+      "All Operators",
+      "Operator Jobs",
+      "Operator Analytics"
     ]
   },
   {
@@ -78,7 +78,6 @@
     "children": [
       "Payment Overview",
       "User Payments",
-      "Worker Payments",
       "Vendor Payments",
       "Admin Revenue",
       "Payment Reports"
@@ -98,7 +97,7 @@
     ]
   },
   {
-    "title": "User Catalog",
+    "title": "Equipment Catalog",
     "route": "/admin/user-categories",
     "allowedRoles": [
       "super_admin",
@@ -138,7 +137,8 @@
     "children": [
       "Revenue Report",
       "Booking Report",
-      "Payment Report"
+      "Payment Report",
+      "Agriculture Insights"
     ]
   },
   {
@@ -154,6 +154,33 @@
     "route": "/admin/plans",
     "allowedRoles": [
       "super_admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Agri Marketplace",
+    "route": "/admin/products",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Soil Testing",
+    "route": "/admin/soil-tests",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Disputes",
+    "route": "/admin/disputes",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
     ],
     "children": []
   },

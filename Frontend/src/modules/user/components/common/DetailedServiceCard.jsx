@@ -25,7 +25,7 @@ const DetailedServiceCard = memo(({ image, title, rating, reviews, price, origin
         gsap.to(card, {
           y: -8,
           scale: 1.02,
-          boxShadow: '0 12px 24px rgba(59, 130, 246, 0.15), 0 6px 12px rgba(59, 130, 246, 0.1)',
+          boxShadow: '0 12px 24px rgba(46, 125, 50, 0.18), 0 6px 12px rgba(46, 125, 50, 0.12)',
           duration: 0.3,
           ease: 'power2.out',
         });

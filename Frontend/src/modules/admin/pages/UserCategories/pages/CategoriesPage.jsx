@@ -570,7 +570,7 @@ const CategoriesPage = ({ catalog, setCatalog, selectedCity }) => {
                 const title = e.target.value;
                 setForm((p) => ({ ...p, title, slug: slugify(title) }));
               }}
-              placeholder="e.g. Electricity, Salon for Women"
+              placeholder="e.g. Soil Testing, Organic Seeds, Tractor Services"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
@@ -587,7 +587,7 @@ const CategoriesPage = ({ catalog, setCatalog, selectedCity }) => {
                     setUploadingIcon(true);
                     try {
                       const categorySlug = form.slug || form.title?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                      const folder = `Homster/${categorySlug}/icons`;
+                      const folder = `GrooAgri/${categorySlug}/icons`;
                       const response = await serviceService.uploadImage(file, folder);
                       if (response.success && response.imageUrl) {
                         setForm((p) => ({ ...p, homeIconUrl: response.imageUrl }));

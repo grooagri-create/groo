@@ -31,6 +31,15 @@ const PlanSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'UserService'
   }],
+  // Agri-specific discounts
+  marketplaceDiscountPercentage: {
+    type: Number,
+    default: 0
+  },
+  rentalDiscountPercentage: {
+    type: Number,
+    default: 0
+  },
   isActive: {
     type: Boolean,
     default: true

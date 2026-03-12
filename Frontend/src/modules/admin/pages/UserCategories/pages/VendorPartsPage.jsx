@@ -242,7 +242,7 @@ const VendorPartsPage = () => {
               value={form.name}
               onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
               className="w-full px-4 py-2 border rounded-xl"
-              placeholder="e.g. Copper Pipe (1m)"
+              placeholder="e.g. Organic Urea (5kg)"
             />
           </div>
           <div>

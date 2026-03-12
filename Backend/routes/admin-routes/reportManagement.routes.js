@@ -7,7 +7,8 @@ const {
   getVendorReport,
   getWorkerReport,
   getRevenueReport,
-  getCustomerReport
+  getCustomerReport,
+  getAgricultureInsights
 } = require('../../controllers/adminControllers/adminReportController');
 
 // All routes require authentication and admin role
@@ -19,5 +20,6 @@ router.get('/reports/vendors', getVendorReport);
 router.get('/reports/workers', getWorkerReport);
 router.get('/reports/revenue', getRevenueReport);
 router.get('/reports/customers', getCustomerReport);
+router.get('/reports/agriculture-insights', getAgricultureInsights);
 
 module.exports = router;

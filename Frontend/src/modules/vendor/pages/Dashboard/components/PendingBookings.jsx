@@ -116,7 +116,7 @@ const PendingBookings = memo(({ bookings, setPendingBookings, setActiveAlertBook
                     <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wide">{booking.brandName}</span>
                   </div>
                 )}
-                <p className="text-xs text-gray-500 font-medium line-clamp-1">{booking.customerName || 'Customer'} • {booking.location?.address || 'Location'}</p>
+                <p className="text-xs text-gray-500 font-medium line-clamp-1">{booking.customerName || 'Farmer'} • {booking.location?.address || 'Location'}</p>
               </div>
               <div className="flex flex-col items-center shrink-0">
                 {booking.categoryIcon ? (

@@ -9,7 +9,17 @@ const Plans = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState(null);
-  const [formData, setFormData] = useState({ name: 'Silver', price: '', highlights: [], validityDays: 30, freeCategories: [], freeBrands: [], freeServices: [] });
+  const [formData, setFormData] = useState({
+    name: 'Silver',
+    price: '',
+    highlights: [],
+    validityDays: 30,
+    freeCategories: [],
+    freeBrands: [],
+    freeServices: [],
+    marketplaceDiscountPercentage: 0,
+    rentalDiscountPercentage: 0
+  });
   const [featureInput, setFeatureInput] = useState('');
 
   const PLAN_TYPES = ['Silver', 'Gold', 'Diamond', 'Platinum'];
@@ -191,7 +201,7 @@ const Plans = () => {
         freeCategories: formData.freeCategories.map(c => String(c?._id || c)),
         freeBrands: formData.freeBrands.map(b => String(b?._id || b)),
         freeServices: formData.freeServices.map(s => String(s?._id || s)),
-        highlights: formData.highlights 
+        highlights: formData.highlights
       };
 
       if (currentPlan) {
@@ -218,11 +228,13 @@ const Plans = () => {
       validityDays: plan.validityDays || 30,
       freeCategories: (plan.freeCategories || []).map(c => c._id || c),
       freeBrands: (plan.freeBrands || []).map(b => b._id || b),
-      freeServices: (plan.freeServices || []).map(s => s._id || s)
+      freeServices: (plan.freeServices || []).map(s => s._id || s),
+      marketplaceDiscountPercentage: plan.marketplaceDiscountPercentage || 0,
+      rentalDiscountPercentage: plan.rentalDiscountPercentage || 0
     });
     setFeatureInput('');
     setIsModalOpen(true);
-    
+
     // Auto-select first category/brand for easier editing
     if (plan.freeCategories?.length > 0) {
       const firstCatId = plan.freeCategories[0]?._id || plan.freeCategories[0];
@@ -259,7 +271,17 @@ const Plans = () => {
 
   const openCreateModal = () => {
     setCurrentPlan(null);
-    setFormData({ name: 'Silver', price: '', highlights: [], validityDays: 30, freeCategories: [], freeBrands: [], freeServices: [] });
+    setFormData({
+      name: 'Silver',
+      price: '',
+      highlights: [],
+      validityDays: 30,
+      freeCategories: [],
+      freeBrands: [],
+      freeServices: [],
+      marketplaceDiscountPercentage: 0,
+      rentalDiscountPercentage: 0
+    });
     setIsModalOpen(true);
     // Reset selections
     setSelectedCategory('');
@@ -343,7 +365,7 @@ const Plans = () => {
                           {plan.freeServices.map((svcRef, idx) => {
                             const svcId = String(svcRef?._id || svcRef);
                             const svc = servicesList.find(s => String(s.id || s._id) === svcId);
-                            
+
                             let displayTitle = 'Free Service';
                             if (svc) {
                               const brandTitle = svc.brandId?.title || '';
@@ -363,8 +385,22 @@ const Plans = () => {
                         </div>
                       )}
 
-                      {(!plan.freeCategories?.length && !plan.freeBrands?.length && !plan.freeServices?.length) && (
+                      {(!plan.freeCategories?.length && !plan.freeBrands?.length && !plan.freeServices?.length && !plan.marketplaceDiscountPercentage && !plan.rentalDiscountPercentage) && (
                         <span className={`text-xs italic ${style.subtext}`}>No benefits configured</span>
+                      )}
+
+                      {/* Agri Discounts Display */}
+                      {plan.marketplaceDiscountPercentage > 0 && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <FiCheck className={`w-3.5 h-3.5 ${style.check} rounded-full p-0.5`} />
+                          <span className="font-bold">{plan.marketplaceDiscountPercentage}% Marketplace Discount</span>
+                        </div>
+                      )}
+                      {plan.rentalDiscountPercentage > 0 && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <FiCheck className={`w-3.5 h-3.5 ${style.check} rounded-full p-0.5`} />
+                          <span className="font-bold">{plan.rentalDiscountPercentage}% Equipment Rental Discount</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -461,6 +497,34 @@ const Plans = () => {
                     required
                     placeholder="30"
                     min="1"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">Marketplace Disc (%)</label>
+                  <input
+                    type="number"
+                    name="marketplaceDiscountPercentage"
+                    value={formData.marketplaceDiscountPercentage}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-emerald-800"
+                    placeholder="0"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">Rental Disc (%)</label>
+                  <input
+                    type="number"
+                    name="rentalDiscountPercentage"
+                    value={formData.rentalDiscountPercentage}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-blue-800"
+                    placeholder="0"
+                    min="0"
+                    max="100"
                   />
                 </div>
               </div>
@@ -595,7 +659,7 @@ const Plans = () => {
                       disabled={!selectedCategory}
                       onClick={() => {
                         let addedAny = false;
-                        
+
                         // Most specific selection wins
                         if (selectedService) {
                           // Specific Service
@@ -616,7 +680,7 @@ const Plans = () => {
                             addedAny = true;
                           }
                         }
-                        
+
                         if (addedAny) {
                           toast.success('Benefit added to list');
                           setSelectedService('');
@@ -685,7 +749,7 @@ const Plans = () => {
                       {formData.freeServices.map((svcId, idx) => {
                         const targetId = String(svcId?._id || svcId);
                         const svc = servicesList.find(s => String(s.id || s._id) === targetId);
-                        
+
                         let displayTitle = 'Service';
                         if (svc) {
                           const brandTitle = svc.brandId?.title || '';

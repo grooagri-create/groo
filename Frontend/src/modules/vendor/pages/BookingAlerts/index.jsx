@@ -240,7 +240,7 @@ const BookingAlerts = () => {
                       {alert.serviceId?.title || 'Service Request'}
                     </h3>
                     <p className="text-sm text-gray-500 font-medium">
-                      {alert.userId?.name || 'Customer'}
+                      {alert.userId?.name || 'Farmer'}
                     </p>
                   </div>
                 </div>

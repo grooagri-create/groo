@@ -79,12 +79,12 @@ const CustomerGrowthAreaChart = ({ timelineData = [], bookings = [], period = 'm
     >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-0">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-800">Customer Growth</h3>
+          <h3 className="text-base sm:text-lg font-bold text-gray-800">Farmer Growth</h3>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">Unique customers over time</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-rose-500"></div>
-          <span className="text-xs text-gray-600">Customers</span>
+          <span className="text-xs text-gray-600">Farmers</span>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ const CustomerGrowthAreaChart = ({ timelineData = [], bookings = [], period = 'm
               strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorCustomersAdmin)"
-              name="Total Customers"
+              name="Total Farmers"
             />
           </AreaChart>
         </ResponsiveContainer>

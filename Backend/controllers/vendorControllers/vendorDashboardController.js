@@ -109,6 +109,23 @@ const getDashboardStats = async (req, res) => {
     const totalRevenue = earningsResult[0]?.totalRevenue || 0;
     const vendorEarnings = earningsResult[0]?.vendorEarnings || 0;
 
+    // Compliance Alerts (New Agriculture Feature)
+    const complianceAlerts = [];
+    if (vendor.complianceDocuments) {
+      const docs = vendor.complianceDocuments;
+      const today = new Date();
+      const checkDoc = (name, doc) => {
+        if (doc && doc.expiryDate) {
+          const diffDays = Math.ceil((new Date(doc.expiryDate) - today) / (1000 * 60 * 60 * 24));
+          if (diffDays < 0) complianceAlerts.push({ type: 'CRITICAL', message: `${name} Expired!`, doc: name });
+          else if (diffDays <= 30) complianceAlerts.push({ type: 'WARNING', message: `${name} expiring in ${diffDays} days`, doc: name });
+        }
+      };
+      checkDoc('License', docs.drivingLicense);
+      checkDoc('RC Book', docs.rcBook);
+      checkDoc('Insurance', docs.insurance);
+    }
+
     // Recent bookings (last 20)
     // Include both assigned and relevant unassigned alerts
     const recentBookings = await Booking.find({
@@ -139,7 +156,8 @@ const getDashboardStats = async (req, res) => {
           totalRevenue,
           vendorEarnings,
           workersOnline,
-          rating
+          rating,
+          complianceAlerts // Add this
         },
         recentBookings
       }
@@ -360,10 +378,67 @@ const getServicePerformance = async (req, res) => {
   }
 };
 
+/**
+ * Get equipment ROI analytics (Hourly vs Land-based vs Monthly)
+ */
+const getEquipmentROIAnalytics = async (req, res) => {
+  try {
+    const vendorId = req.user.id;
+    const mongoose = require('mongoose');
+
+    // Stats by Rental Type
+    const rentalTypeStats = await Booking.aggregate([
+      {
+        $match: {
+          vendorId: new mongoose.Types.ObjectId(vendorId),
+          status: BOOKING_STATUS.COMPLETED
+        }
+      },
+      {
+        $group: {
+          _id: '$rental_type',
+          totalEarnings: { $sum: '$finalAmount' }, // Fallback to finalAmount if vendorEarnings not available
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Stats by Equipment Name (Tractor vs Harvester etc)
+    const equipmentStats = await Booking.aggregate([
+      {
+        $match: {
+          vendorId: new mongoose.Types.ObjectId(vendorId),
+          status: BOOKING_STATUS.COMPLETED
+        }
+      },
+      {
+        $group: {
+          _id: '$serviceName',
+          totalEarnings: { $sum: '$finalAmount' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { totalEarnings: -1 } }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        rentalTypeStats,
+        equipmentStats
+      }
+    });
+  } catch (error) {
+    console.error('Get equipment ROI analytics error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch equipment analytics' });
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getRevenueAnalytics,
   getWorkerPerformance,
-  getServicePerformance
+  getServicePerformance,
+  getEquipmentROIAnalytics
 };
 

@@ -164,15 +164,15 @@ const Notifications = () => {
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { id: 'all', label: 'All' },
-            { id: 'jobs', label: 'Jobs' },
+            { id: 'jobs', label: 'Operations' },
             { id: 'payments', label: 'Payments' },
           ].map((filterOption) => (
             <button
               key={filterOption.id}
               onClick={() => setFilter(filterOption.id)}
               className={`px-4 py-2 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${filter === filterOption.id
-                  ? 'text-white'
-                  : 'bg-white text-gray-700'
+                ? 'text-white'
+                : 'bg-white text-gray-700'
                 }`}
               style={
                 filter === filterOption.id

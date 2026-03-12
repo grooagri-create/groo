@@ -62,7 +62,7 @@ const AboutHomster = () => {
   ];
 
   const stats = [
-    { number: '10K+', label: 'Happy Customers' },
+    { number: '10K+', label: 'Happy Farmers' },
     { number: '500+', label: 'Service Partners' },
     { number: '4.8', label: 'App Rating' },
   ];

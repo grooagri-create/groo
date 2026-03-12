@@ -4,7 +4,7 @@ import { FiArrowLeft, FiCheckCircle, FiUsers, FiShield, FiClock, FiAward, FiHear
 import { gsap } from 'gsap';
 import Logo from '../../../../components/common/Logo';
 
-const AboutHomster = () => {
+const AboutGrooAgri = () => {
   const navigate = useNavigate();
   const containerRef = useRef(null);
 
@@ -55,7 +55,7 @@ const AboutHomster = () => {
   ];
 
   const stats = [
-    { number: '10K+', label: 'Happy Customers' },
+    { number: '10K+', label: 'Happy Farmers' },
     { number: '500+', label: 'Service Partners' },
     { number: '4.8', label: 'App Rating' },
   ];
@@ -80,7 +80,7 @@ const AboutHomster = () => {
           >
             <FiArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <span className="text-xl font-bold" style={homsterTextGradient}>About Homster</span>
+          <span className="text-xl font-bold" style={homsterTextGradient}>About GrooAgri</span>
         </div>
       </header>
 
@@ -103,10 +103,10 @@ const AboutHomster = () => {
           </div>
 
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-            Welcome to <span style={homsterTextGradient}>Homster</span>
+            Welcome to <span style={homsterTextGradient}>GrooAgri</span>
           </h1>
           <p className="text-gray-500 max-w-xs mx-auto leading-relaxed">
-            Your trusted partner for premium home and personal care services.
+            Your trusted partner for premium agriculture and farm care services.
           </p>
         </div>
 
@@ -132,14 +132,14 @@ const AboutHomster = () => {
             </div>
             <h3 className="text-lg font-bold text-gray-800 mb-3">Our Mission</h3>
             <p className="text-sm text-gray-600 leading-relaxed relative z-10">
-              Homster is dedicated to revolutionizing how you experience home services. We connect you with top-tier professionals to deliver safe, reliable, and high-quality services right at your doorstep. We believe in making life simpler, one service at a time.
+              GrooAgri is dedicated to revolutionizing how you experience agriculture equipment and services. We connect you with top-tier equipment owners to deliver safe, reliable, and high-quality services right at your farm. We believe in making farming simpler, one service at a time.
             </p>
           </div>
         </div>
 
         {/* Why Choose Us Grid */}
         <div className="animate-item">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Why Choose Homster?</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Why Choose GrooAgri?</h3>
           <div className="grid grid-cols-2 gap-3">
             {features.map((feature, index) => (
               <div
@@ -183,8 +183,8 @@ const AboutHomster = () => {
         {/* Footer Info */}
         <div className="animate-item text-center pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-400 mb-1">Designed & Developed by</p>
-          <span className="text-sm font-bold tracking-wide" style={homsterTextGradient}>Homster Team</span>
-          <p className="text-[10px] text-gray-300 mt-4">v7.6.27 • Made with ❤️ in India</p>
+          <span className="text-sm font-bold tracking-wide" style={homsterTextGradient}>GrooAgri Team</span>
+          <p className="text-[10px] text-gray-300 mt-4">v1.2.1 • Made with ❤️ in India</p>
         </div>
       </main>
 
@@ -198,4 +198,4 @@ const AboutHomster = () => {
   );
 };
 
-export default AboutHomster;
+export default AboutGrooAgri;

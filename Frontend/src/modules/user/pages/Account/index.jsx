@@ -31,7 +31,7 @@ import NotificationBell from '../../components/common/NotificationBell';
 const Account = () => {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState({
-    name: 'Verified Customer',
+    name: 'Verified Farmer',
     phone: '',
     email: '',
     isPhoneVerified: false,
@@ -50,7 +50,7 @@ const Account = () => {
         if (storedUserData) {
           const userData = JSON.parse(storedUserData);
           setUserProfile({
-            name: userData.name || 'Verified Customer',
+            name: userData.name || 'Verified Farmer',
             phone: userData.phone || '',
             email: userData.email || '',
             isPhoneVerified: userData.isPhoneVerified || false,
@@ -64,7 +64,7 @@ const Account = () => {
         const response = await userAuthService.getProfile();
         if (response.success && response.user) {
           setUserProfile({
-            name: response.user.name || 'Verified Customer',
+            name: response.user.name || 'Verified Farmer',
             phone: response.user.phone || '',
             email: response.user.email || '',
             isPhoneVerified: response.user.isPhoneVerified || false,
@@ -80,7 +80,7 @@ const Account = () => {
         if (storedUserData) {
           const userData = JSON.parse(storedUserData);
           setUserProfile({
-            name: userData.name || 'Verified Customer',
+            name: userData.name || 'Verified Farmer',
             phone: userData.phone || '',
             email: userData.email || '',
             isPhoneVerified: userData.isPhoneVerified || false,
@@ -105,7 +105,7 @@ const Account = () => {
 
   // Get initials for avatar
   const getInitials = () => {
-    if (userProfile.name && userProfile.name !== 'Verified Customer') {
+    if (userProfile.name && userProfile.name !== 'Verified Farmer') {
       const names = userProfile.name.split(' ');
       if (names.length >= 2) {
         return (names[0][0] + names[1][0]).toUpperCase();
@@ -115,7 +115,7 @@ const Account = () => {
     if (userProfile.phone) {
       return userProfile.phone.slice(-2);
     }
-    return 'VC';
+    return 'VF';
   };
 
   const handleLogout = async () => {
@@ -370,11 +370,6 @@ const Account = () => {
           {/* Shopping */}
           <motion.div variants={itemVariants} className="mb-6">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 pl-2">Shopping</h3>
-            <MenuItem
-              icon={FiShoppingBag}
-              label="Scrap Deals"
-              onClick={() => navigate('/user/scrap')}
-            />
             <MenuItem
               icon={FiFileText}
               label="My Plans"

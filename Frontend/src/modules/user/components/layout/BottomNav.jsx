@@ -4,38 +4,44 @@ import { FiHome, FiGift, FiShoppingCart, FiUser, FiTrash2, FiCalendar } from 're
 import { HiHome, HiGift, HiShoppingCart, HiUser, HiTrash, HiCalendar } from 'react-icons/hi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../../../context/CartContext';
+import { themeColors } from '../../../../theme';
 
-// Colorful theme for each nav item
+// Agriculture-themed colors for each nav item (layout unchanged)
 const navItemColors = {
   home: {
-    primary: '#9E5A35', // Brown
-    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
-    bg: '#ebf2e3', // Light green
-    shadow: 'rgba(158, 90, 53, 0.4)'
+    defaultIcon: themeColors.brand.teal,     // #2E7D32
+    activeIcon: '#1B5E20',
+    gradient: themeColors.gradient,
+    bg: '#E3F2E1',
+    shadow: 'rgba(46, 125, 50, 0.45)'
   },
   bookings: {
-    primary: '#9E5A35',
-    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
-    bg: '#ebf2e3',
-    shadow: 'rgba(158, 90, 53, 0.4)'
+    defaultIcon: themeColors.brand.teal,
+    activeIcon: '#1B5E20',
+    gradient: themeColors.gradient,
+    bg: '#E3F2E1',
+    shadow: 'rgba(46, 125, 50, 0.45)'
   },
   scrap: {
-    primary: '#9E5A35',
-    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
-    bg: '#ebf2e3',
-    shadow: 'rgba(158, 90, 53, 0.4)'
+    defaultIcon: themeColors.brand.teal,
+    activeIcon: '#1B5E20',
+    gradient: themeColors.gradient,
+    bg: '#F1F8E9',
+    shadow: 'rgba(46, 125, 50, 0.35)'
   },
   cart: {
-    primary: '#9E5A35',
-    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
-    bg: '#ebf2e3',
-    shadow: 'rgba(158, 90, 53, 0.4)'
+    defaultIcon: themeColors.brand.teal,
+    activeIcon: '#1B5E20',
+    gradient: themeColors.gradient,
+    bg: '#E3F2E1',
+    shadow: 'rgba(46, 125, 50, 0.45)'
   },
   account: {
-    primary: '#9E5A35',
-    gradient: 'linear-gradient(135deg, #9E5A35 0%, #8B5A2B 100%)',
-    bg: '#ebf2e3',
-    shadow: 'rgba(158, 90, 53, 0.4)'
+    defaultIcon: themeColors.brand.teal,
+    activeIcon: '#1B5E20',
+    gradient: themeColors.gradient,
+    bg: '#E3F2E1',
+    shadow: 'rgba(46, 125, 50, 0.45)'
   }
 };
 
@@ -49,7 +55,6 @@ const BottomNav = React.memo(() => {
   const navItems = useMemo(() => [
     { id: 'home', label: 'Home', icon: FiHome, filledIcon: HiHome, path: '/user' },
     { id: 'bookings', label: 'Bookings', icon: FiCalendar, filledIcon: HiCalendar, path: '/user/my-bookings' },
-    { id: 'scrap', label: 'Scrap', icon: FiTrash2, filledIcon: HiTrash, path: '/user/scrap' },
     { id: 'cart', label: 'Cart', icon: FiShoppingCart, filledIcon: HiShoppingCart, path: '/user/cart', isCart: true },
     { id: 'account', label: 'Account', icon: FiUser, filledIcon: HiUser, path: '/user/account' },
   ], []);
@@ -57,7 +62,6 @@ const BottomNav = React.memo(() => {
   const getActiveTab = () => {
     if (location.pathname === '/user' || location.pathname === '/user/') return 'home';
     if (location.pathname === '/user/my-bookings') return 'bookings';
-    if (location.pathname === '/user/scrap') return 'scrap';
     if (location.pathname === '/user/cart') return 'cart';
     if (location.pathname === '/user/account') return 'account';
     return 'home';
@@ -167,7 +171,7 @@ const BottomNav = React.memo(() => {
                     <IconComponent
                       className="w-6 h-6 transition-colors duration-200"
                       style={{
-                        color: isActive ? itemColor.primary : '#9CA3AF',
+                        color: isActive ? itemColor.activeIcon : itemColor.defaultIcon,
                       }}
                     />
                     {item.isCart && cartCount > 0 && (

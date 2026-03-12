@@ -65,7 +65,7 @@ const BookingAlert = () => {
       localStorage.setItem('vendorPendingJobs', JSON.stringify(updatedPending));
 
       window.dispatchEvent(new Event('vendorJobsUpdated'));
-      toast.success('Booking accepted & assigned to you!');
+      toast.success('Booking accepted & assigned to yourself!');
       navigate('/vendor/dashboard', { replace: true });
     } catch (error) {
       console.error('Error accepting:', error);
@@ -100,7 +100,7 @@ const BookingAlert = () => {
       localStorage.setItem('vendorPendingJobs', JSON.stringify(updatedPending));
 
       window.dispatchEvent(new Event('vendorJobsUpdated'));
-      toast.success('Booking accepted! Redirecting to assign...');
+      toast.success('Booking accepted! Redirecting to assign operator...');
       navigate(`/vendor/booking/${id}/assign-worker`, { replace: true });
     } catch (error) {
       console.error('Error accepting:', error);

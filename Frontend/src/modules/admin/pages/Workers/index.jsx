@@ -13,14 +13,14 @@ const Workers = () => {
   const location = useLocation();
 
   const navTabs = [
-    { name: 'All Workers', path: '/admin/workers/all', icon: FiUsers },
-    { name: 'Worker Jobs', path: '/admin/workers/jobs', icon: FiClock },
-    { name: 'Worker Analytics', path: '/admin/workers/analytics', icon: FiActivity },
+    { name: 'All Operators', path: '/admin/workers/all', icon: FiUsers },
+    { name: 'Operator Jobs', path: '/admin/workers/jobs', icon: FiClock },
+    { name: 'Operator Analytics', path: '/admin/workers/analytics', icon: FiActivity },
   ];
 
   const getPageTitle = () => {
     const currentTab = navTabs.find(tab => location.pathname === tab.path);
-    return currentTab ? currentTab.name : 'Worker Management';
+    return currentTab ? currentTab.name : 'Operator Management';
   };
 
   return (
