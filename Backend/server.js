@@ -32,45 +32,16 @@ app.use(helmet({
 }));
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'https://www.homster.in',
-  'https://homster.in',
-  'https://api.homster.in'
-];
-
-if (process.env.FRONTEND_URL) {
-  // Support comma-separated URLs in .env
-  const envOrigins = process.env.FRONTEND_URL.split(',').map(url => url.trim());
-  envOrigins.forEach(origin => {
-    if (!allowedOrigins.includes(origin)) {
-      allowedOrigins.push(origin);
-    }
-  });
-}
-
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Allow allowedOrigins or any Vercel preview URL for this project
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('.vercel.app')) {
-      callback(null, true);
-    } else {
-      console.log('BLOCKED CORS ORIGIN:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://grooagri.com",
+    "https://www.grooagri.com",
+    "https://grooagri.vercel.app"
+  ],
+  credentials: true
 }));
-
-// CORS configuration finished above
-
-// CORS configuration finished above
 
 // Body parser middleware
 app.use(express.json({ limit: '50mb' }));
@@ -106,7 +77,7 @@ app.use('/api', rateLimiter);
 app.get('/health', (req, res) => {
   res.json({
     success: true,
-    message: 'Homster API is running',
+    message: 'GrooAgri API is running',
     timestamp: new Date().toISOString()
   });
 });
