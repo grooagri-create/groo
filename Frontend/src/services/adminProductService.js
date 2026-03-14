@@ -33,6 +33,26 @@ const adminProductService = {
     toggleFeatured: async (id) => {
         const response = await api.patch(`/admin/products/${id}/toggle-featured`);
         return response.data;
+    },
+
+    // ── Vendor Equipment Approval (plan2.txt Step 4) ──
+    // Get all vendor-submitted equipment
+    getVendorEquipment: async (approvalStatus = '') => {
+        const params = approvalStatus ? { approvalStatus } : {};
+        const response = await api.get('/admin/vendor-equipment', { params });
+        return response.data;
+    },
+
+    // Approve vendor equipment → goes live on farmer app
+    approveEquipment: async (id) => {
+        const response = await api.post(`/admin/vendor-equipment/${id}/approve`);
+        return response.data;
+    },
+
+    // Reject vendor equipment with reason
+    rejectEquipment: async (id, reason = '') => {
+        const response = await api.post(`/admin/vendor-equipment/${id}/reject`, { reason });
+        return response.data;
     }
 };
 

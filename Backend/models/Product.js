@@ -42,6 +42,9 @@ const productSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    images: [{
+        type: String
+    }],
     price: {
         type: Number,
         required: [true, 'Price is required'],
@@ -75,10 +78,36 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    // ==========================================
+    // EQUIPMENT APPROVAL WORKFLOW (plan2.txt Step 4)
+    // Vendor adds equipment → Admin approves → Live on User App
+    // ==========================================
+    approvalStatus: {
+        type: String,
+        enum: ['pending_approval', 'approved', 'rejected'],
+        default: function () {
+            // Admin-added products are auto-approved; vendor-added need admin review
+            return this.vendorId ? 'pending_approval' : 'approved';
+        }
+    },
+    rejectionReason: {
+        type: String,
+        default: null
+    },
     specifications: [{
         name: String,
         value: String
-    }]
+    }],
+    hasDriver: {
+        type: Boolean,
+        default: false
+    },
+    driverDetails: {
+        name: { type: String, default: '' },
+        phone: { type: String, default: '' },
+        photo: { type: String, default: '' },
+        licenseNumber: { type: String, default: '' }
+    }
 }, {
     timestamps: true
 });

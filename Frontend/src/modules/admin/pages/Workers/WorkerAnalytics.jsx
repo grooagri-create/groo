@@ -22,7 +22,7 @@ const WorkerAnalytics = () => {
       }
     } catch (error) {
       console.error('Worker analytics error:', error);
-      toast.error('Failed to load worker analytics');
+      toast.error('Failed to load operator analytics');
     } finally {
       setLoading(false);
     }

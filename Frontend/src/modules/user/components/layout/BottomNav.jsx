@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiHome, FiGift, FiShoppingCart, FiUser, FiTrash2, FiCalendar } from 'react-icons/fi';
-import { HiHome, HiGift, HiShoppingCart, HiUser, HiTrash, HiCalendar } from 'react-icons/hi';
+import { FiHome, FiGift, FiShoppingCart, FiUser, FiCalendar } from 'react-icons/fi';
+import { HiHome, HiGift, HiShoppingCart, HiUser, HiCalendar } from 'react-icons/hi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../../../context/CartContext';
 import { themeColors } from '../../../../theme';
@@ -22,13 +22,7 @@ const navItemColors = {
     bg: '#E3F2E1',
     shadow: 'rgba(46, 125, 50, 0.45)'
   },
-  scrap: {
-    defaultIcon: themeColors.brand.teal,
-    activeIcon: '#1B5E20',
-    gradient: themeColors.gradient,
-    bg: '#F1F8E9',
-    shadow: 'rgba(46, 125, 50, 0.35)'
-  },
+
   cart: {
     defaultIcon: themeColors.brand.teal,
     activeIcon: '#1B5E20',

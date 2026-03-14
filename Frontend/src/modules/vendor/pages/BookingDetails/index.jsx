@@ -549,12 +549,12 @@ export default function BookingDetails() {
     setIsTripModalOpen(true);
   };
 
-  const handleTripSubmit = async (photoUrl, otp, workUnits) => {
+  const handleTripSubmit = async (photoUrl, otp, workUnits, evidencePhoto) => {
     if (tripMode === 'start') {
       await startTrip(id, photoUrl, otp);
       toast.success('🚜 Trip Started! KM Photo & OTP verified.');
     } else {
-      await endTrip(id, photoUrl, otp, workUnits);
+      await endTrip(id, photoUrl, otp, workUnits, evidencePhoto);
       toast.success('🏁 Trip Ended! Bill Generated & Wallet Settled.');
     }
     window.location.reload();
@@ -1541,11 +1541,45 @@ export default function BookingDetails() {
 
         {/* Trip Completed Badge */}
         {booking.start_kilometer_photo && booking.end_kilometer_photo && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl mb-4 p-4 flex items-center gap-3">
-            <span className="text-xl">✅</span>
-            <div>
-              <p className="text-sm font-bold text-green-800">Trip Verified</p>
-              <p className="text-[10px] text-green-600">Both KM photos & OTPs submitted successfully.</p>
+          <div className="bg-white rounded-2xl mb-4 overflow-hidden shadow-lg border-t-4 border-green-500">
+            <div className="p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-600">
+                  <FiCheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900">Trip Completed & Verified</p>
+                  <p className="text-[10px] text-gray-500">Operation details and photos submitted.</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Start KM Photo</p>
+                  <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 border relative group">
+                    <img src={booking.start_kilometer_photo} alt="Start KM" className="w-full h-full object-cover" />
+                    <button onClick={() => window.open(booking.start_kilometer_photo, '_blank')} className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">View</button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">End KM Photo</p>
+                  <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 border relative group">
+                    <img src={booking.end_kilometer_photo} alt="End KM" className="w-full h-full object-cover" />
+                    <button onClick={() => window.open(booking.end_kilometer_photo, '_blank')} className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold">View</button>
+                  </div>
+                </div>
+                {booking.work_evidence_photo && (
+                  <div className="col-span-2 space-y-1 pt-2">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">🚜 Work Evidence (Field Photo)</p>
+                    <div className="w-full aspect-video rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-200 relative group">
+                      <img src={booking.work_evidence_photo} alt="Work Proof" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button onClick={() => window.open(booking.work_evidence_photo, '_blank')} className="bg-white text-gray-900 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg">View Full Evidence</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

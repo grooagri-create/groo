@@ -67,8 +67,8 @@ const BookingDetails = () => {
   });
 
   const [supportInfo, setSupportInfo] = useState({
-    email: 'support@homster.com',
-    phone: ''
+    email: 'grooagri@gmail.com',
+    phone: '+91 91177 04450'
   });
 
   const socket = useAppNotifications();
@@ -81,15 +81,15 @@ const BookingDetails = () => {
         if (response.data?.success && response.data?.settings) {
           const { supportEmail, supportPhone } = response.data.settings;
           setSupportInfo({
-            email: supportEmail || 'help@homster.in',
-            phone: supportPhone || '+919999999999'
+            email: supportEmail || 'grooagri@gmail.com',
+            phone: supportPhone || '+91 91177 04450'
           });
         }
       } catch (error) {
         console.error('Failed to fetch support settings:', error);
         setSupportInfo({
-          email: 'help@homster.in',
-          phone: '+919999999999'
+          email: 'grooagri@gmail.com',
+          phone: '+91 91177 04450'
         });
       }
     };

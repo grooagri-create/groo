@@ -61,15 +61,6 @@
     ]
   },
   {
-    "title": "Scrap Items",
-    "route": "/admin/scrap",
-    "allowedRoles": [
-      "super_admin",
-      "admin"
-    ],
-    "children": []
-  },
-  {
     "title": "Payments",
     "route": "/admin/payments",
     "allowedRoles": [
@@ -113,15 +104,6 @@
   {
     "title": "Vendor Services",
     "route": "/admin/user-categories/vendor-services",
-    "allowedRoles": [
-      "super_admin",
-      "admin"
-    ],
-    "children": []
-  },
-  {
-    "title": "Vendor Parts",
-    "route": "/admin/user-categories/vendor-parts",
     "allowedRoles": [
       "super_admin",
       "admin"

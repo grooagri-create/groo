@@ -8,7 +8,7 @@ const { sendNotificationToUser, sendNotificationToVendor, sendNotificationToWork
 const VendorBill = require('../../models/VendorBill');
 const Settings = require('../../models/Settings');
 const Vendor = require('../../models/Vendor');
-const Service = require('../../models/UserService'); // Using UserService as ref by Booking.js
+const Service = require('../../models/Service'); // Using Service as ref by Booking.js
 const { BILL_STATUS } = require('../../utils/constants');
 
 /**

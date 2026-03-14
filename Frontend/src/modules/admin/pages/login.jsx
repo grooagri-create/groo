@@ -8,7 +8,7 @@ import { adminAuthService } from '../../../services/authService';
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: 'admin@admin.com',
+    email: 'admin@appzeto.com',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -101,7 +101,7 @@ const AdminLogin = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="admin@admin.com"
+                  placeholder="admin@appzeto.com"
                   className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-gray-900"
                   style={{
                     focusRingColor: themeColors.button

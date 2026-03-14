@@ -14,9 +14,9 @@ const HelpSupport = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [supportInfo, setSupportInfo] = useState({
-    email: 'support@homster.com',
-    phone: '',
-    whatsapp: ''
+    email: 'grooagri@gmail.com',
+    phone: '+91 91177 04450',
+    whatsapp: '+91 91177 04450'
   });
 
   useEffect(() => {
@@ -26,9 +26,9 @@ const HelpSupport = () => {
         if (response.data?.success && response.data?.settings) {
           const { supportEmail, supportPhone, supportWhatsapp } = response.data.settings;
           setSupportInfo({
-            email: supportEmail || 'support@homster.com',
-            phone: supportPhone || '',
-            whatsapp: supportWhatsapp || ''
+            email: supportEmail || 'grooagri@gmail.com',
+            phone: supportPhone || '+91 91177 04450',
+            whatsapp: supportWhatsapp || '+91 91177 04450'
           });
         }
       } catch (error) {

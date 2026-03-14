@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Import module routes
+import LandingPage from '../modules/landing/LandingPage';
 import UserRoutes from '../modules/user/routes';
 import VendorRoutes from '../modules/vendor/routes';
 import WorkerRoutes from '../modules/worker/routes';
@@ -10,8 +11,8 @@ import AdminRoutes from '../modules/admin/routes';
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Default route - redirect to user */}
-      <Route path="/" element={<Navigate to="/user" replace />} />
+      {/* Landing Page */}
+      <Route path="/" element={<LandingPage />} />
 
       {/* User Routes */}
       <Route path="/user/*" element={<UserRoutes />} />

@@ -7,6 +7,8 @@ import Header from '../../components/layout/Header';
 import BottomNav from '../../components/layout/BottomNav';
 import { getBookingById, assignWorker as assignWorkerApi } from '../../services/bookingService';
 import { getWorkers } from '../../services/workerService';
+import maintenanceService from '../../services/maintenanceService';
+import { isWithinInterval, parseISO } from 'date-fns';
 
 const AssignWorker = () => {
   const { id } = useParams();
@@ -17,6 +19,7 @@ const AssignWorker = () => {
   const [assignToSelf, setAssignToSelf] = useState(false);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
+  const [maintenanceSchedules, setMaintenanceSchedules] = useState([]);
 
   useLayoutEffect(() => {
     const html = document.documentElement;
@@ -49,6 +52,11 @@ const AssignWorker = () => {
 
         // Load workers
         const workersRes = await getWorkers();
+        
+        // Load maintenance
+        const maintRes = await maintenanceService.getSchedules();
+        setMaintenanceSchedules(maintRes.data || []);
+
         // Handle potentially different response structures
         const workersList = Array.isArray(workersRes) ? workersRes : (workersRes.workers || workersRes.data || []);
 
@@ -135,6 +143,25 @@ const AssignWorker = () => {
           <p className="text-sm font-semibold mt-2" style={{ color: themeColors.button }}>
             ₹{booking.finalAmount || booking.price || 0}
           </p>
+
+          {/* Maintenance Warning */}
+          {maintenanceSchedules.some(m => 
+            String(m.equipmentId?._id || m.equipmentId) === String(booking.serviceId?._id || booking.serviceId) &&
+            isWithinInterval(new Date(), {
+              start: parseISO(m.startDate),
+              end: parseISO(m.endDate)
+            })
+          ) && (
+            <div className="mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
+                <span className="text-lg">⚠️</span>
+              </div>
+              <div>
+                <p className="text-xs font-black text-rose-700 uppercase tracking-tight">Machine is in Maintenance</p>
+                <p className="text-[10px] text-rose-600 font-medium">This machine is currently scheduled for downtime. Assigning now might lead to delays.</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Self Assignment Option */}

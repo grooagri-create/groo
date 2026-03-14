@@ -34,8 +34,7 @@ const vendorBillSchema = new mongoose.Schema({
   /** Services — original booking service + vendor-added extras */
   services: [{
     catalogId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'VendorServiceCatalog'
+      type: mongoose.Schema.Types.ObjectId
     },
     name: String,
     price: Number,            // Unit base price (excl GST)
@@ -49,8 +48,7 @@ const vendorBillSchema = new mongoose.Schema({
   /** Parts used during the job */
   parts: [{
     catalogId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'VendorPartsCatalog'
+      type: mongoose.Schema.Types.ObjectId
     },
     name: String,
     price: Number,            // Unit base price (excl GST)

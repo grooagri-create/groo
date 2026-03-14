@@ -9,6 +9,8 @@ import { acceptBooking, rejectBooking, assignWorker } from '../../services/booki
 import { BookingAlertModal } from '../../components/bookings';
 import { toast } from 'react-hot-toast';
 import { io } from 'socket.io-client';
+import maintenanceService from '../../services/maintenanceService';
+import { isWithinInterval, parseISO } from 'date-fns';
 
 import { registerFCMToken } from '../../../../services/pushNotificationService';
 import LogoLoader from '../../../../components/common/LogoLoader';
@@ -36,7 +38,8 @@ const Dashboard = memo(() => {
     totalEarnings: 0,
     completedJobs: 0,
     rating: 0,
-    complianceAlerts: []
+    complianceAlerts: [],
+    machinesInMaintenance: 0
   });
   const [vendorProfile, setVendorProfile] = useState({
     name: 'Vendor Name',
@@ -165,7 +168,8 @@ const Dashboard = memo(() => {
       totalEarnings: apiStats.vendorEarnings || 0,
       completedJobs: apiStats.completedBookings || 0,
       rating: apiStats.rating || 0,
-      complianceAlerts: apiStats.complianceAlerts || []
+      complianceAlerts: apiStats.complianceAlerts || [],
+      machinesInMaintenance: stats.machinesInMaintenance || 0 // Keep previous or wait for fetch
     });
 
     // Recent jobs (non-requested)
@@ -202,7 +206,21 @@ const Dashboard = memo(() => {
       setError(null);
 
       const response = await vendorDashboardService.getDashboardStats();
+      const maintRes = await maintenanceService.getSchedules();
+      
+      const activeMaintenanceCount = (maintRes.data || []).filter(m => 
+        isWithinInterval(new Date(), {
+          start: parseISO(m.startDate),
+          end: parseISO(m.endDate)
+        })
+      ).length;
+
       processApiResponse(response);
+      
+      setStats(prev => ({
+        ...prev,
+        machinesInMaintenance: activeMaintenanceCount
+      }));
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError(String(err.message || 'Failed to load dashboard data'));
@@ -276,12 +294,12 @@ const Dashboard = memo(() => {
   // Memoize quickActions to prevent recreation on every render
   const quickActions = useMemo(() => [
     {
-      title: 'Active Operations',
+      title: 'Field Operations',
       icon: FiBriefcase,
       color: '#00a6a6',
       path: '/vendor/jobs',
       count: stats.activeJobs,
-      subtitle: `${stats.activeJobs} running`,
+      subtitle: `${stats.activeJobs} on field`,
     },
 
     {
@@ -296,7 +314,7 @@ const Dashboard = memo(() => {
       icon: FiCalendar,
       color: '#10B981',
       path: '/vendor/maintenance',
-      subtitle: 'Equipment Care',
+      subtitle: stats.machinesInMaintenance > 0 ? `${stats.machinesInMaintenance} Machines in Care` : 'Equipment Care',
     },
     {
       title: 'Analytics',
@@ -327,17 +345,17 @@ const Dashboard = memo(() => {
   const getStatusLabel = (status) => {
     const s = String(status).toLowerCase();
     const labels = {
-      'requested': 'Requested',
-      'searching': 'Searching',
+      'requested': 'New Order',
+      'searching': 'Finding Hub',
       'accepted': 'Accepted',
-      'confirmed': 'Confirmed',
-      'assigned': 'Assigned',
-      'journey_started': 'On the way',
-      'visited': 'Visited',
-      'in_progress': 'In Progress',
-      'work_done': 'Work Done',
-      'completed': 'Completed',
-      'worker_paid': 'Staff Paid',
+      'confirmed': 'Order Confirmed',
+      'assigned': 'Driver Assigned',
+      'journey_started': 'Heading to Farm',
+      'visited': 'At Farm',
+      'in_progress': 'Operating',
+      'work_done': 'Work Completed',
+      'completed': 'Job Done',
+      'worker_paid': 'Driver Paid',
       'settlement_pending': 'Settlement',
       'cancelled': 'Cancelled',
       'rejected': 'Rejected'
@@ -473,9 +491,9 @@ const Dashboard = memo(() => {
                   <FiClock className="h-5 w-5 text-orange-500" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-bold text-orange-700">Profile Incomplete</p>
+                  <p className="text-sm font-bold text-orange-700">Inventory Incomplete</p>
                   <p className="text-sm text-orange-600">
-                    Add services to your profile to start receiving bookings.
+                    Add equipment or products to your profile to start receiving bookings.
                   </p>
                 </div>
                 <div className="ml-auto">
@@ -578,7 +596,7 @@ const Dashboard = memo(() => {
                     boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
                   }}
                 >
-                  <p className="text-base font-bold text-white text-center">Completed</p>
+                  <p className="text-base font-bold text-white text-center">Orders Done</p>
                 </div>
                 {/* Icon at top left - just below heading */}
                 <div
@@ -596,7 +614,7 @@ const Dashboard = memo(() => {
                   <p className="text-4xl font-bold mb-2 text-center" style={{ color: '#10B981' }}>
                     {stats.completedJobs}
                   </p>
-                  <p className="text-sm text-gray-600 font-semibold text-center">Total jobs</p>
+                  <p className="text-sm text-gray-600 font-semibold text-center">Total Bookings</p>
                 </div>
               </div>
 
@@ -651,7 +669,7 @@ const Dashboard = memo(() => {
           {/* Recent Jobs - List View */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-800">Active Operations</h2>
+              <h2 className="text-lg font-bold text-gray-800">Recent Bookings</h2>
               {recentJobs.length > 0 && (
                 <button
                   onClick={() => navigate('/vendor/jobs')}
@@ -711,7 +729,7 @@ const Dashboard = memo(() => {
                                   boxShadow: `0 2px 5px ${hexToRgba(accentColor, 0.3)}`,
                                 }}
                               >
-                                {job.serviceType || 'Service'}
+                                {job.serviceType || 'Equipment'}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -775,8 +793,8 @@ const Dashboard = memo(() => {
                 }}
               >
                 <FiBriefcase className="w-12 h-12 mx-auto mb-3" style={{ color: '#D1D5DB' }} />
-                <p className="text-sm text-gray-600 mb-1">No active operations</p>
-                <p className="text-xs text-gray-500">New bookings will appear here</p>
+                <p className="text-sm text-gray-600 mb-1">No field activities</p>
+                <p className="text-xs text-gray-500">Upcoming bookings will show here</p>
               </div>
             )}
           </div>

@@ -12,6 +12,11 @@ const serviceSchema = new mongoose.Schema({
     required: [true, 'Please provide a brand ID'],
     index: true
   },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    index: true
+  },
   title: {
     type: String,
     required: [true, 'Please provide a service title'],

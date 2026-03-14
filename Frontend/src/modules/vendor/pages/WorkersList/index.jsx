@@ -280,7 +280,7 @@ const WorkersList = () => {
                           </div>
                           <div className="h-3 w-[1px] bg-gray-200" />
                           <div className="text-[10px] font-bold text-gray-600">
-                            {worker.completedJobs || 0} Jobs
+                            {worker.completedJobs || 0} Orders
                           </div>
                         </div>
                       </div>

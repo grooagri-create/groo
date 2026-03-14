@@ -164,7 +164,7 @@ const Notifications = () => {
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { id: 'all', label: 'All' },
-            { id: 'jobs', label: 'Operations' },
+            { id: 'jobs', label: 'Rentals' },
             { id: 'payments', label: 'Payments' },
           ].map((filterOption) => (
             <button

@@ -1,4 +1,4 @@
-const Service = require('../../models/UserService');
+const Service = require('../../models/Service');
 const Brand = require('../../models/Brand');
 const { validationResult } = require('express-validator');
 const { SERVICE_STATUS } = require('../../utils/constants');
@@ -179,7 +179,7 @@ const updateService = async (req, res) => {
     // This implies slug is created once.
     // If user changes title, slug might remain old? 
     // If they want to regenerate usage, they should clear slug?
-    // UserService.js has: if (this.isModified('title') && !this.slug)
+    // Service.js has: if (this.isModified('title') && !this.slug)
     // So updating title WON'T update slug unless slug is cleared.
     // This is generally safer for URLs.
 

@@ -397,7 +397,7 @@ const Home = () => {
           title: service.title,
           description: service.subtitle || service.description || '',
           icon: service.image || '',
-          category: service.category || 'Service',
+          category: service.category || 'Equipment',
           price: parseInt(service.price?.toString().replace(/,/g, '') || 0),
           originalPrice: service.originalPrice ? parseInt(service.originalPrice.toString().replace(/,/g, '')) : null,
           unitPrice: parseInt(service.price?.toString().replace(/,/g, '') || 0),
@@ -421,10 +421,10 @@ const Home = () => {
           if (cat) {
             handleCategoryClick(cat);
           } else {
-            toast.error('Unable to add this service to cart.');
+            toast.error('Unable to add this item to cart.');
           }
         } else {
-          toast.error('Unable to add this service to cart.');
+          toast.error('Unable to add this item to cart.');
         }
       }
     } catch (error) {

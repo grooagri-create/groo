@@ -19,18 +19,6 @@ const PlanSchema = new mongoose.Schema({
     type: Number,
     default: 30 // Default to 30 days if not specified
   },
-  freeCategories: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category'
-  }],
-  freeBrands: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Brand'
-  }],
-  freeServices: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'UserService'
-  }],
   // Agri-specific discounts
   marketplaceDiscountPercentage: {
     type: Number,
@@ -39,6 +27,10 @@ const PlanSchema = new mongoose.Schema({
   rentalDiscountPercentage: {
     type: Number,
     default: 0
+  },
+  freeTransport: {
+    type: Boolean,
+    default: false
   },
   isActive: {
     type: Boolean,

@@ -3,7 +3,7 @@
  * For file uploads (can be implemented later)
  */
 
-export const uploadFile = async (file, options = {}) => {
+export const uploadToCloudinary = async (file, options = {}) => {
   // TODO: Implement Cloudinary upload
   // For now, return the file as base64 or URL
   if (typeof file === 'string') {

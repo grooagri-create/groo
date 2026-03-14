@@ -34,7 +34,7 @@ const PendingBookings = memo(({ bookings, setPendingBookings, setActiveAlertBook
 
         // Dispatch stats update event
         window.dispatchEvent(new Event('vendorStatsUpdated'));
-        toast.success('Booking accepted successfully!');
+        toast.success('Booking confirmed!');
       }
     } catch (error) {
       console.error('Error accepting:', error);
@@ -74,7 +74,7 @@ const PendingBookings = memo(({ bookings, setPendingBookings, setActiveAlertBook
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-base font-bold text-gray-800">Pending Alerts</h2>
+        <h2 className="text-base font-bold text-gray-800">Booking Requests</h2>
         <button
           onClick={() => navigate('/vendor/booking-alerts')}
           className="text-sm font-medium"
@@ -100,10 +100,10 @@ const PendingBookings = memo(({ bookings, setPendingBookings, setActiveAlertBook
             <div className="flex items-start justify-between mb-2 gap-2">
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-0.5">
-                  {booking.serviceCategory || 'Service Category'}
+                  {booking.serviceCategory || 'Agriculture Details'}
                 </p>
                 <div className="flex items-start gap-2 mb-1">
-                  <p className="font-bold text-gray-800 text-sm leading-tight line-clamp-2">{booking.serviceName || booking.serviceType || 'New Booking Request'}</p>
+                  <p className="font-bold text-gray-800 text-sm leading-tight line-clamp-2">{booking.serviceName || booking.serviceType || 'New Order Request'}</p>
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-yellow-100 text-yellow-600 uppercase tracking-widest shrink-0 mt-0.5">
                     REQ
                   </span>

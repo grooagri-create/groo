@@ -232,9 +232,23 @@ const MarketplacePage = () => {
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">
                                         {product.brandName || 'Quality Assured'}
                                     </p>
-                                    <h3 className="text-xs font-black text-slate-800 line-clamp-2 leading-tight mb-3 min-h-[2rem]">
+                                    <h3 className="text-xs font-black text-slate-800 line-clamp-2 leading-tight mb-2 min-h-[2rem]">
                                         {product.title}
                                     </h3>
+
+                                    {/* Tech Specs Tags */}
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                        {product.hasDriver && (
+                                            <span className="text-[7px] font-black uppercase tracking-widest bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-md border border-orange-200">
+                                                Driver Included
+                                            </span>
+                                        )}
+                                        {product.specifications && product.specifications.slice(0, 2).map((spec, i) => (
+                                            <span key={i} className="text-[7px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                                                {spec.name}: {spec.value}
+                                            </span>
+                                        ))}
+                                    </div>
 
                                     <div className="mt-auto flex items-end justify-between">
                                         <div>

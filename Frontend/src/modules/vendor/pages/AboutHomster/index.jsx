@@ -41,13 +41,13 @@ const AboutHomster = () => {
   const features = [
     {
       icon: FiUsers,
-      title: 'Expert Providers',
-      description: 'Verified professionals for all your needs'
+      title: 'Expert Operators',
+      description: 'Verified professionals for all your farming needs'
     },
     {
       icon: FiShield,
-      title: 'Safe & Secure',
-      description: 'Your safety is our top priority'
+      title: 'Field-Ready',
+      description: 'Pre-inspected machines for zero breakdowns'
     },
     {
       icon: FiClock,
@@ -56,8 +56,8 @@ const AboutHomster = () => {
     },
     {
       icon: FiAward,
-      title: 'Quality Assured',
-      description: 'Service with 100% satisfaction guarantee'
+      title: 'Agri-Expertise',
+      description: 'Service with 100% field satisfaction'
     }
   ];
 
@@ -92,7 +92,7 @@ const AboutHomster = () => {
           >
             <FiArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <span className="text-xl font-bold" style={homsterTextGradient}>About Homster</span>
+          <span className="text-xl font-bold" style={homsterTextGradient}>About GrooAgri</span>
         </div>
       </header>
 
@@ -115,10 +115,10 @@ const AboutHomster = () => {
           </div>
 
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-            Welcome to <span style={homsterTextGradient}>Homster</span>
+            Welcome to <span style={homsterTextGradient}>GrooAgri</span>
           </h1>
           <p className="text-gray-500 max-w-xs mx-auto leading-relaxed">
-            Your trusted partner for premium home and personal care services.
+            Your trusted partner for localized agri-machinery and professional farm services.
           </p>
         </motion.div>
 
@@ -144,14 +144,14 @@ const AboutHomster = () => {
             </div>
             <h3 className="text-lg font-bold text-gray-800 mb-3">Our Mission</h3>
             <p className="text-sm text-gray-600 leading-relaxed relative z-10">
-              Homster is dedicated to revolutionizing how you experience home services. We connect you with top-tier professionals to deliver safe, reliable, and high-quality services right at your doorstep. We believe in making life simpler, one service at a time.
+              GrooAgri is dedicated to revolutionizing how you access farm machinery. We connect farmers with top-tier operators to deliver safe, reliable, and high-quality agriculture services right at your field. We believe in making farming simpler and more profitable, one acre at a time.
             </p>
           </div>
         </motion.div>
 
         {/* Why Choose Us Grid */}
         <motion.div variants={itemVariants}>
-          <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Why Choose Homster?</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Why Choose GrooAgri?</h3>
           <div className="grid grid-cols-2 gap-3">
             {features.map((feature, index) => (
               <div
@@ -174,9 +174,9 @@ const AboutHomster = () => {
           <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">How We Work</h3>
           <div className="bg-white rounded-2xl p-1 shadow-sm border border-gray-100">
             {[
-              { title: 'Book Details', desc: 'Select service & schedule time', icon: FiSmartphone },
-              { title: 'Get Matched', desc: 'We assign a top-rated pro', icon: FiUsers },
-              { title: 'Relax', desc: 'Enjoy high-quality service', icon: FiSmile },
+              { title: 'Select Machine', desc: 'Choose machinery & schedule time', icon: FiSmartphone },
+              { title: 'Get Operator', desc: 'We match you with a skilled driver', icon: FiUsers },
+              { title: 'Farm Success', desc: 'Watch your field thrive with experts', icon: FiSmile },
             ].map((step, i) => (
               <div key={i} className="flex items-center p-4 border-b last:border-0 border-gray-50 relative">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 mr-4 shadow-sm text-white font-bold text-lg relative overflow-hidden">
@@ -195,7 +195,7 @@ const AboutHomster = () => {
         {/* Footer Info */}
         <motion.div variants={itemVariants} className="text-center pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-400 mb-1">Designed & Developed by</p>
-          <span className="text-sm font-bold tracking-wide" style={homsterTextGradient}>Homster Team</span>
+          <span className="text-sm font-bold tracking-wide" style={homsterTextGradient}>GrooAgri Team</span>
           <p className="text-[10px] text-gray-300 mt-4">v7.6.27 • Made with ❤️ in India</p>
         </motion.div>
       </main>

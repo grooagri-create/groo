@@ -186,7 +186,7 @@ const MyBookings = () => {
             >
               <FiArrowLeft className="w-5 h-5 text-gray-800" />
             </button>
-            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">My Bookings</h1>
+            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">My Farm Orders</h1>
           </div>
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-black/[0.02] relative">
             <NotificationBell />
@@ -197,7 +197,7 @@ const MyBookings = () => {
         <div className="bg-white border-b border-slate-100 sticky top-[61px] z-20 shadow-[0_4px_20px_-16px_rgba(0,0,0,0.1)]">
           <div className="flex overflow-x-auto px-4 py-3 gap-2.5 no-scrollbar scroll-smooth">
             {[
-              { id: 'all', label: 'All Bookings' },
+              { id: 'all', label: 'All Orders' },
               { id: 'confirmed', label: 'Confirmed' },
               { id: 'in-progress', label: 'In Progress' },
               { id: 'completed', label: 'Completed' },
@@ -262,11 +262,11 @@ const MyBookings = () => {
               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
                 <FiClock className="w-8 h-8 text-slate-300" />
               </div>
-              <h3 className="text-slate-900 text-lg font-bold mb-2">No Bookings Found</h3>
+              <h3 className="text-slate-900 text-lg font-bold mb-2">No Orders Found</h3>
               <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
                 {filter === 'all'
-                  ? "Looks like you haven't booked any services yet. Explore our services to get started!"
-                  : `You don't have any ${filter.replace('-', ' ')} bookings at the moment.`}
+                  ? "Looks like you haven't ordered any equipment or services yet. Explore the marketplace to get started!"
+                  : `You don't have any ${filter.replace('-', ' ')} orders at the moment.`}
               </p>
             </motion.div>
           ) : (
@@ -325,7 +325,7 @@ const MyBookings = () => {
 
                         {/* 3. Service Name */}
                         <h3 className="text-lg font-bold text-slate-800 leading-tight line-clamp-2 group-hover:text-blue-600 transition-colors">
-                          {booking.serviceName || 'Service Request'}
+                          {booking.serviceName || 'Order Request'}
                         </h3>
 
                         {/* Item Details (Preview) */}

@@ -8,7 +8,8 @@ import {
     FiPackage,
     FiFilter,
     FiMoreVertical,
-    FiUploadCloud
+    FiUploadCloud,
+    FiUser
 } from 'react-icons/fi';
 import adminProductService from '../../../../services/adminProductService';
 import { publicCatalogService } from '../../../../services/catalogService';
@@ -34,7 +35,10 @@ const ManageProducts = () => {
         unit: 'bag',
         stock: 0,
         imageUrl: '',
-        isFeatured: false
+        isFeatured: false,
+        specifications: [],
+        hasDriver: false,
+        driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
     });
 
     useEffect(() => {
@@ -49,7 +53,7 @@ const ManageProducts = () => {
                 publicCatalogService.getCategories()
             ]);
             if (prodRes.success) setProducts(prodRes.data);
-            if (catRes.success) setCategories(catRes.data);
+            if (catRes.success) setCategories(catRes.categories || catRes.data || []);
         } catch (err) {
             toast.error("Data load karne mein dikkat hui");
         } finally {
@@ -58,33 +62,72 @@ const ManageProducts = () => {
     };
 
     const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const uploadFormData = new FormData();
-        uploadFormData.append('image', file);
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
 
         try {
             setUploading(true);
             const token = sessionStorage.getItem('adminAccessToken') || localStorage.getItem('adminAccessToken');
             const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
+            const uploadedUrls = [];
+            for (const file of files) {
+                const uploadFormData = new FormData();
+                uploadFormData.append('file', file);
+                
+                const res = await fetch(`${baseUrl}/admin/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: uploadFormData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    uploadedUrls.push(data.imageUrl);
+                }
+            }
+
+            if (uploadedUrls.length > 0) {
+                setFormData(prev => ({ 
+                    ...prev, 
+                    imageUrl: prev.imageUrl || uploadedUrls[0],
+                    images: [...(prev.images || []), ...uploadedUrls]
+                }));
+                toast.success(`${uploadedUrls.length} images upload ho gayi!`);
+            }
+        } catch (err) {
+            toast.error("Image upload fail ho gayi");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDriverPhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            const token = sessionStorage.getItem('adminAccessToken') || localStorage.getItem('adminAccessToken');
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+
             const res = await fetch(`${baseUrl}/admin/upload`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: uploadFormData
             });
             const data = await res.json();
             if (data.success) {
-                setFormData(prev => ({ ...prev, imageUrl: data.imageUrl }));
-                toast.success("Image upload ho gayi!");
-            } else {
-                toast.error(data.message || "Upload fail ho gaya");
+                setFormData(prev => ({
+                    ...prev,
+                    driverDetails: { ...prev.driverDetails, photo: data.imageUrl }
+                }));
+                toast.success("Driver photo upload ho gayi!");
             }
         } catch (err) {
-            toast.error("Image upload fail ho gayi");
+            toast.error("Photo upload fail ho gayi");
         } finally {
             setUploading(false);
         }
@@ -119,6 +162,19 @@ const ManageProducts = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Basic Validations
+        if (!formData.title || !formData.price || !formData.categoryId || !formData.unit) {
+            return toast.error("Kripya Title, Price, Category aur Unit bharein");
+        }
+
+        // Driver Validations
+        if (formData.hasDriver) {
+            if (!formData.driverDetails.name) return toast.error("Driver ka naam zaroori hai");
+            if (!formData.driverDetails.phone) return toast.error("Driver ka phone number zaroori hai");
+            if (formData.driverDetails.phone.length !== 10) return toast.error("Phone number 10 digits ka hona chahiye");
+        }
+
         try {
             let res;
             if (editMode) {
@@ -149,7 +205,10 @@ const ManageProducts = () => {
             unit: 'bag',
             stock: 0,
             imageUrl: '',
-            isFeatured: false
+            isFeatured: false,
+            specifications: [],
+            hasDriver: false,
+            driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
         });
         setEditMode(false);
         setCurrentProduct(null);
@@ -167,7 +226,11 @@ const ManageProducts = () => {
             unit: product.unit,
             stock: product.stock,
             imageUrl: product.imageUrl || '',
-            isFeatured: product.isFeatured
+            images: product.images && product.images.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []),
+            isFeatured: product.isFeatured || false,
+            specifications: product.specifications || [],
+            hasDriver: product.hasDriver || false,
+            driverDetails: product.driverDetails || { name: '', phone: '', photo: '', licenseNumber: '' }
         });
         setEditMode(true);
         setShowModal(true);
@@ -254,7 +317,10 @@ const ManageProducts = () => {
                                             </div>
                                             <div>
                                                 <p className="font-black text-slate-800 text-sm leading-tight">{product.title}</p>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">{product.brandName || 'N/A'}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{product.brandName || 'N/A'}</p>
+                                                    {product.hasDriver && <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-black uppercase tracking-tighter">W/ Driver</span>}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
@@ -336,34 +402,51 @@ const ManageProducts = () => {
                                 <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors">✕</button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
+                            <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6 pb-12">
                                 {/* Image Upload & Basic Info Row */}
                                 <div className="flex flex-col md:flex-row gap-8 items-start">
-                                    <div className="w-full md:w-1/3 aspect-square bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center relative overflow-hidden group">
-                                        {formData.imageUrl ? (
-                                            <>
-                                                <img src={formData.imageUrl} alt="preview" className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <label className="cursor-pointer bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-black">Change Image</label>
+                                    <div className="w-full space-y-4">
+                                        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
+                                            {/* Existing Images */}
+                                            {formData.images && formData.images.map((url, idx) => (
+                                                <div key={idx} className="w-32 h-32 flex-shrink-0 rounded-[32px] bg-slate-50 relative overflow-hidden group snap-start border border-slate-100">
+                                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newImages = formData.images.filter((_, i) => i !== idx);
+                                                            setFormData({
+                                                                ...formData, 
+                                                                images: newImages,
+                                                                imageUrl: newImages.length > 0 ? newImages[0] : ''
+                                                            });
+                                                        }}
+                                                        className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-xl scale-0 group-hover:scale-100 transition-all shadow-lg"
+                                                    >
+                                                        <FiTrash2 className="w-3 h-3" />
+                                                    </button>
                                                 </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FiUploadCloud className="w-8 h-8 text-slate-300 mb-2" />
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center px-4">Click to upload product image</p>
-                                            </>
-                                        )}
-                                        <input
-                                            type="file"
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
-                                            onChange={handleImageUpload}
-                                            accept="image/*"
-                                        />
-                                        {uploading && (
-                                            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                                                <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                                            ))}
+
+                                            {/* Add Button */}
+                                            <div className="w-32 h-32 flex-shrink-0 rounded-[32px] bg-slate-50 border-2 border-dashed border-slate-200 relative overflow-hidden group snap-start flex flex-col items-center justify-center">
+                                                <FiUploadCloud className="w-6 h-6 text-slate-300 mb-1" />
+                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center px-4">Add Photos</p>
+                                                <input
+                                                    type="file"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    onChange={handleImageUpload}
+                                                    accept="image/*"
+                                                    multiple
+                                                />
+                                                {uploading && (
+                                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                                                        <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase ml-2 italic">Tip: Add multiple images for better product visibility</p>
                                     </div>
 
                                     <div className="flex-1 grid grid-cols-1 gap-4 w-full">
@@ -402,7 +485,7 @@ const ManageProducts = () => {
                                         >
                                             <option value="">Select Category</option>
                                             {categories.map(cat => (
-                                                <option key={cat._id} value={cat._id}>{cat.title}</option>
+                                                <option key={cat.id || cat._id} value={cat.id || cat._id}>{cat.title}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -466,6 +549,136 @@ const ManageProducts = () => {
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         placeholder="Add product details, benefits, etc."
                                     />
+                                </div>
+
+                                {/* Agri-Specifications (Dynamic) */}
+                                <div className="space-y-4 pt-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Technical Specs (HP, Composition, etc.)</label>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setFormData({...formData, specifications: [...(formData.specifications || []), {name: '', value: ''}]})}
+                                            className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100"
+                                        >
+                                            + Add Spec
+                                        </button>
+                                    </div>
+                                    
+                                    {formData.specifications && formData.specifications.length > 0 && (
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {formData.specifications.map((spec, idx) => (
+                                                <div key={idx} className="flex gap-3 items-center">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Spec Name" 
+                                                        className="flex-1 bg-slate-50 border-none rounded-xl py-2 px-4 text-xs font-bold outline-none"
+                                                        value={spec.name}
+                                                        onChange={e => {
+                                                            const newSpecs = [...formData.specifications];
+                                                            newSpecs[idx].name = e.target.value;
+                                                            setFormData({...formData, specifications: newSpecs});
+                                                        }}
+                                                    />
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Value" 
+                                                        className="flex-1 bg-slate-50 border-none rounded-xl py-2 px-4 text-xs font-bold outline-none"
+                                                        value={spec.value}
+                                                        onChange={e => {
+                                                            const newSpecs = [...formData.specifications];
+                                                            newSpecs[idx].value = e.target.value;
+                                                            setFormData({...formData, specifications: newSpecs});
+                                                        }}
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setFormData({...formData, specifications: formData.specifications.filter((_, i) => i !== idx)})}
+                                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
+                                                    >
+                                                        <FiTrash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Add Driver Logic */}
+                                <div className="pt-4 border-t border-slate-50">
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className={`w-10 h-6 rounded-full p-1 transition-all ${formData.hasDriver ? 'bg-orange-500' : 'bg-slate-200'}`}>
+                                            <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.hasDriver ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                        </div>
+                                        <input 
+                                            type="checkbox" 
+                                            className="hidden" 
+                                            checked={formData.hasDriver}
+                                            onChange={e => setFormData({...formData, hasDriver: e.target.checked})}
+                                        />
+                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Include Driver with this Service?</span>
+                                    </label>
+
+                                    {formData.hasDriver && (
+                                        <div className="mt-4 p-5 bg-orange-50/30 rounded-3xl border border-orange-100 space-y-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-dashed border-orange-200 flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0">
+                                                    {formData.driverDetails.photo ? (
+                                                        <img src={formData.driverDetails.photo} alt="driver" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <FiUser className="text-orange-300 w-6 h-6" />
+                                                    )}
+                                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleDriverPhotoUpload} accept="image/*" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">Driver Details</p>
+                                                    <p className="text-[10px] text-orange-600 font-bold leading-tight">Admin can verify driver info here</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Driver Name</label>
+                                                    <input 
+                                                        type="text" 
+                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
+                                                        value={formData.driverDetails.name}
+                                                        onChange={e => {
+                                                            const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                                                            setFormData({...formData, driverDetails: {...formData.driverDetails, name: val}});
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Phone Number</label>
+                                                    <input 
+                                                        type="tel" 
+                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
+                                                        value={formData.driverDetails.phone}
+                                                        maxLength={10}
+                                                        onChange={e => {
+                                                            const val = e.target.value.replace(/\D/g, '');
+                                                            if(val.length <= 10) {
+                                                                setFormData({...formData, driverDetails: {...formData.driverDetails, phone: val}});
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Driving License (DL)</label>
+                                                <input 
+                                                    type="text" 
+                                                    className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
+                                                    value={formData.driverDetails.licenseNumber}
+                                                    maxLength={16}
+                                                    onChange={e => {
+                                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                                                        setFormData({...formData, driverDetails: {...formData.driverDetails, licenseNumber: val}});
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2 pb-4">

@@ -1,6 +1,6 @@
 const Category = require('../../models/Category');
 const Brand = require('../../models/Brand');
-const Service = require('../../models/UserService');
+const Service = require('../../models/Service');
 const HomeContent = require('../../models/HomeContent');
 
 /**

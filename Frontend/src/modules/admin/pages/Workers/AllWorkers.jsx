@@ -6,8 +6,8 @@ import CardShell from '../UserCategories/components/CardShell';
 import Modal from '../UserCategories/components/Modal';
 import adminWorkerService from '../../../../services/adminWorkerService';
 
-const AllWorkers = () => {
-  const [workers, setWorkers] = useState([]);
+const AllOperators = () => {
+  const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,12 +29,13 @@ const AllWorkers = () => {
       const response = await adminWorkerService.getAllWorkers();
       if (response.success) {
         // Transform backend data to frontend format
-        const transformedWorkers = response.data.map(worker => ({
+        const transformedOperators = response.data.map(worker => ({
           id: worker._id,
           name: worker.name,
           email: worker.email,
           phone: worker.phone,
-          serviceCategory: worker.serviceCategory || worker.service || 'N/A',
+          machineProficiency: worker.machineProficiency?.join(', ') || 'N/A',
+          experience: worker.specializedExperience?.join(', ') || 'N/A',
           approvalStatus: worker.approvalStatus,
           aadhar: worker.aadhar?.number,
           pan: worker.pan?.number,
@@ -47,7 +48,7 @@ const AllWorkers = () => {
           createdAt: worker.createdAt,
           isActive: worker.isActive
         }));
-        setWorkers(transformedWorkers);
+        setOperators(transformedOperators);
       } else {
         toast.error(response.message || 'Failed to load workers');
       }
@@ -59,17 +60,17 @@ const AllWorkers = () => {
     }
   };
 
-  const filteredWorkers = useMemo(() => {
-    return workers.filter(worker => {
+  const filteredOperators = useMemo(() => {
+    return operators.filter(worker => {
       const matchesStatus = filterStatus === 'all' || worker.approvalStatus === filterStatus;
       const matchesSearch =
         worker.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         worker.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         worker.phone.includes(searchQuery) ||
-        worker.serviceCategory.toLowerCase().includes(searchQuery.toLowerCase());
+        worker.machineProficiency.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesStatus && matchesSearch;
     });
-  }, [workers, filterStatus, searchQuery]);
+  }, [operators, filterStatus, searchQuery]);
 
   const handleApprove = async (workerId) => {
     try {
@@ -195,9 +196,9 @@ const AllWorkers = () => {
     );
   };
 
-  const pendingCount = workers.filter(w => w.approvalStatus === 'pending').length;
-  const approvedCount = workers.filter(w => w.approvalStatus === 'approved').length;
-  const rejectedCount = workers.filter(w => w.approvalStatus === 'rejected').length;
+  const pendingCount = operators.filter(w => w.approvalStatus === 'pending').length;
+  const approvedCount = operators.filter(w => w.approvalStatus === 'approved').length;
+  const rejectedCount = operators.filter(w => w.approvalStatus === 'rejected').length;
 
   return (
     <div className="space-y-4">
@@ -228,7 +229,7 @@ const AllWorkers = () => {
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search workers..."
+              placeholder="Search operators..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-xs"
@@ -257,7 +258,7 @@ const AllWorkers = () => {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Operator Details</th>
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Proficiency</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -267,12 +268,12 @@ const AllWorkers = () => {
                   <tr>
                     <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">Loading operators...</td>
                   </tr>
-                ) : filteredWorkers.length === 0 ? (
+                ) : filteredOperators.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">No operators found</td>
                   </tr>
                 ) : (
-                  filteredWorkers.map((worker) => (
+                  filteredOperators.map((worker) => (
                     <tr key={worker.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <div>
@@ -283,7 +284,7 @@ const AllWorkers = () => {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-[11px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          {worker.serviceCategory}
+                          {worker.machineProficiency}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -381,8 +382,12 @@ const AllWorkers = () => {
                 <div className="text-gray-900">{selectedWorker.phone}</div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Service Category</label>
-                <div className="text-gray-900">{selectedWorker.serviceCategory}</div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Machine Proficiency</label>
+                <div className="text-gray-900">{selectedWorker.machineProficiency}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Specialized Experience</label>
+                <div className="text-gray-900">{selectedWorker.experience}</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Aadhar</label>
@@ -544,4 +549,4 @@ const AllWorkers = () => {
   );
 };
 
-export default AllWorkers;
+export default AllOperators;

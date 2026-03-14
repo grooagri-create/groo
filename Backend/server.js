@@ -174,9 +174,7 @@ app.use('/api/users/bookings', require('./routes/user-routes/booking.routes'));
 app.use('/api/users', require('./routes/user-routes/cart.routes'));
 app.use('/api/users/fcm-tokens', require('./routes/user-routes/fcmToken.routes'));
 
-// Scrap routes
-const scrapRoutes = require('./routes/scrap.routes');
-app.use('/api/scrap', scrapRoutes);
+
 
 // Vendor routes
 app.use('/api/vendors/auth', require('./routes/vendor-routes/auth.routes'));
@@ -189,7 +187,7 @@ app.use('/api/vendors/bookings', require('./routes/vendor-routes/booking.routes'
 app.use('/api/vendors/workers', require('./routes/vendor-routes/worker.routes'));
 app.use('/api/vendors/fcm-tokens', require('./routes/vendor-routes/fcmToken.routes'));
 app.use('/api/vendors', require('./routes/vendor-routes/vendorBill.routes'));
-app.use('/api/vendors/catalog', require('./routes/vendor-routes/catalog.routes'));
+
 app.use('/api/vendors/maintenance', require('./routes/vendor-routes/maintenance.routes'));
 app.use('/api/vendors/compliance', require('./routes/vendor-routes/compliance.routes'));
 
@@ -211,7 +209,7 @@ app.use('/api/admin', require('./routes/admin-routes/workerManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/categoryManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/brandManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/serviceManagement.routes'));
-app.use('/api/admin', require('./routes/admin-routes/vendorCatalogManagement.routes'));
+
 app.use('/api/admin', require('./routes/admin-routes/homePageManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/bookingManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/paymentManagement.routes'));

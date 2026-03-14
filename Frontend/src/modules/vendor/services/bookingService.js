@@ -157,11 +157,12 @@ export const startTrip = async (bookingId, kmPhotoUrl, otp) => {
  * @param {string} otp        - OTP provided by farmer
  * @param {number} workUnits  - Total units (acres/quantity) for billing
  */
-export const endTrip = async (bookingId, kmPhotoUrl, otp, workUnits) => {
+export const endTrip = async (bookingId, kmPhotoUrl, otp, workUnits, workEvidencePhoto) => {
   const response = await api.post(`/vendors/bookings/${bookingId}/trip/end`, {
     end_kilometer_photo: kmPhotoUrl,
     driver_end_otp: otp,
-    workUnits: workUnits
+    workUnits: workUnits,
+    work_evidence_photo: workEvidencePhoto
   });
   return response.data;
 };

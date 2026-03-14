@@ -6,7 +6,10 @@ const Product = require('../../models/Product');
 const getProducts = async (req, res) => {
     try {
         const { categoryId, isFeatured, query } = req.query;
-        let filter = { status: 'active' };
+        let filter = { 
+            status: 'active',
+            approvalStatus: 'approved' // Only show admin-approved or auto-approved products
+        };
 
         if (categoryId) filter.categoryId = categoryId;
         if (isFeatured === 'true') filter.isFeatured = true;

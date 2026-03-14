@@ -23,14 +23,14 @@ const StatsCards = memo(({ stats }) => {
       onClick: () => navigate('/vendor/booking-alerts')
     },
     {
-      title: 'Active Jobs',
+      title: 'Active Rentals',
       value: stats.activeJobs,
       icon: FiBriefcase,
       gradient: 'linear-gradient(135deg, #406788 0%, #304a63 100%)',
       onClick: () => navigate('/vendor/jobs')
     },
     {
-      title: 'Completed',
+      title: 'Orders Done',
       value: stats.completedJobs,
       icon: FiCheckCircle,
       gradient: 'linear-gradient(135deg, #001947 0%, #003b77 100%)',

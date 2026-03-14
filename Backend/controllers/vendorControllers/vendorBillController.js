@@ -1,8 +1,7 @@
 const VendorBill = require('../../models/VendorBill');
 const Booking = require('../../models/Booking');
 const { generateInvoicePDF } = require('../../utils/invoiceGenerator');
-const VendorServiceCatalog = require('../../models/VendorServiceCatalog');
-const VendorPartsCatalog = require('../../models/VendorPartsCatalog');
+
 const Settings = require('../../models/Settings');
 const { BILL_STATUS } = require('../../utils/constants');
 
@@ -59,14 +58,8 @@ const createOrUpdateBill = async (req, res) => {
 
     if (services && Array.isArray(services)) {
       for (const item of services) {
-        let catalogItem = null;
-        if (item.catalogId) {
-          catalogItem = await VendorServiceCatalog.findById(item.catalogId);
-        }
-
-        const name = catalogItem ? catalogItem.name : item.name;
-        // Catalog prices are BASE PRICES (excl GST)
-        const unitBasePrice = catalogItem ? catalogItem.price : (Number(item.price) || 0);
+        const name = item.name;
+        const unitBasePrice = Number(item.price) || 0;
         const quantity = Number(item.quantity) || 1;
 
         const base = unitBasePrice * quantity;
@@ -98,15 +91,10 @@ const createOrUpdateBill = async (req, res) => {
 
     if (parts && Array.isArray(parts)) {
       for (const item of parts) {
-        let catalogItem = null;
-        if (item.catalogId) {
-          catalogItem = await VendorPartsCatalog.findById(item.catalogId);
-        }
-
-        const name = catalogItem ? catalogItem.name : item.name;
-        const unitBasePrice = catalogItem ? catalogItem.price : (Number(item.price) || 0);
+        const name = item.name;
+        const unitBasePrice = Number(item.price) || 0;
         const quantity = Number(item.quantity) || 1;
-        const pGstPct = catalogItem ? (catalogItem.gstPercentage || partsGstPct) : (Number(item.gstPercentage) || partsGstPct);
+        const pGstPct = Number(item.gstPercentage) || partsGstPct;
 
         const base = unitBasePrice * quantity;
         const gst = parseFloat(((base * pGstPct) / 100).toFixed(2));
@@ -271,7 +259,7 @@ const createOrUpdateBill = async (req, res) => {
 const getBillByBookingId = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const bill = await VendorBill.findOne({ bookingId }).populate('services.catalogId parts.catalogId');
+    const bill = await VendorBill.findOne({ bookingId });
 
     if (!bill) {
       // Return 200 instead of 404 to gracefully tell the frontend that a bill is not yet created

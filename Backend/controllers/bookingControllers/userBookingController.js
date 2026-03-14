@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Booking = require('../../models/Booking');
-const Service = require('../../models/UserService');
+const Service = require('../../models/Service');
 const Category = require('../../models/Category');
 const Cart = require('../../models/Cart');
 const User = require('../../models/User');
@@ -191,63 +191,43 @@ const createBooking = async (req, res) => {
         usePlanBenefits = false;
         paymentMethod = 'pay_at_home';
       } else {
-        // --- IMPROVED PLAN LOGIC: FREE + DISCOUNTED ---
+        // --- IMPROVED PLAN LOGIC: PERCENTAGE DISCOUNTS & FREE DELIVERY ---
+        
+        // 1. Equipment Rental Discount
+        const isRental = !!(rental_type || service.rental_type);
+        const rentalDiscount = isRental ? (userPlan.rentalDiscountPercentage || 0) : 0;
 
-        // A. Check for Full Coverage (Free)
-        const isCategoryCovered = categoryId && userPlan.freeCategories &&
-          userPlan.freeCategories.some(cat => String(cat) === String(categoryId));
-        const isServiceCovered = serviceId && userPlan.freeServices &&
-          userPlan.freeServices.some(svc => String(svc) === String(serviceId));
-
-        if (isCategoryCovered || isServiceCovered) {
-          // >>> APPLY FULL FREE PRICING <<<
-          basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
-          discount = basePrice; // 100% off
-          tax = 0;
-          visitingCharges = 0;
-          finalAmount = pendingPenalty;
-
-          bookingStatus = BOOKING_STATUS.SEARCHING;
-          bookingPaymentStatus = finalAmount > 0 ? PAYMENT_STATUS.PENDING : PAYMENT_STATUS.PLAN_COVERED;
-        } else {
-          // B. Check for Partial Discounts (Agri-Specific)
-
-          // 1. Equipment Rental Discount
-          const isRental = !!(rental_type || service.rental_type);
-          const rentalDiscount = isRental ? (userPlan.rentalDiscountPercentage || 0) : 0;
-
-          // 2. Marketplace Product Discount
-          // We calculate individual item discounts if any are products
-          let totalProductDiscount = 0;
-          if (bookedItems && bookedItems.length > 0 && userPlan.marketplaceDiscountPercentage > 0) {
-            bookedItems.forEach(item => {
-              // Check if item is a product (based on type or categoryTitle from frontend)
-              if (item.type === 'product' || item.category === 'Marketplace') {
-                const itemPrice = item.card?.price || item.price || 0;
-                const itemTotal = itemPrice * (item.quantity || 1);
-                totalProductDiscount += (itemTotal * (userPlan.marketplaceDiscountPercentage / 100));
-              }
-            });
-          }
-
-          // 3. Apply calculated discounts
-          basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
-
-          // Combine rental discount on base and product discounts
-          const rentalDiscountAmount = (basePrice * (rentalDiscount / 100));
-          discount = Math.round(rentalDiscountAmount + totalProductDiscount);
-
-          // Calculate rest normally
-          tax = Math.round((basePrice - discount) * 0.18);
-          visitingCharges = (reqVisitingCharges !== undefined) ? reqVisitingCharges : (visitingCharges || 49);
-          finalAmount = (basePrice - discount + tax + visitingCharges) + pendingPenalty;
-
-          bookingStatus = BOOKING_STATUS.SEARCHING;
-          bookingPaymentStatus = PAYMENT_STATUS.PENDING;
-
-          // If no discount was actually applied, we might want to flag it or just treat as normal
-          console.log(`[PlanBenefit] Applied ${rentalDiscount}% Rental Disc and ₹${totalProductDiscount} Product Disc`);
+        // 2. Marketplace Product Discount
+        let totalProductDiscount = 0;
+        if (bookedItems && bookedItems.length > 0 && userPlan.marketplaceDiscountPercentage > 0) {
+          bookedItems.forEach(item => {
+            if (item.type === 'product' || item.category === 'Marketplace') {
+              const itemPrice = item.card?.price || item.price || 0;
+              const itemTotal = itemPrice * (item.quantity || 1);
+              totalProductDiscount += (itemTotal * (userPlan.marketplaceDiscountPercentage / 100));
+            }
+          });
         }
+
+        // 3. Apply calculated discounts
+        basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
+
+        const rentalDiscountAmount = (basePrice * (rentalDiscount / 100));
+        discount = Math.round(rentalDiscountAmount + totalProductDiscount);
+
+        // 4. Free Transport/Delivery Check
+        visitingCharges = (reqVisitingCharges !== undefined) ? reqVisitingCharges : (visitingCharges || 49);
+        if (userPlan.freeTransport) {
+            visitingCharges = 0; // Waive transport fee
+        }
+
+        tax = Math.round((basePrice - discount) * 0.18);
+        finalAmount = (basePrice - discount + tax + visitingCharges) + pendingPenalty;
+
+        bookingStatus = BOOKING_STATUS.SEARCHING;
+        bookingPaymentStatus = PAYMENT_STATUS.PENDING;
+
+        console.log(`[PlanBenefit] Applied ${rentalDiscount}% Rental Disc and ₹${totalProductDiscount} Product Disc, Free Transport: ${userPlan.freeTransport}`);
       }
     }
 

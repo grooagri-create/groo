@@ -21,6 +21,8 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
     const [step, setStep] = useState(1); // 1 = Photo, 2 = OTP
     const [photoPreview, setPhotoPreview] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
+    const [evidencePreview, setEvidencePreview] = useState(null);
+    const [evidenceFile, setEvidenceFile] = useState(null);
     const [otp, setOtp] = useState(['', '', '', '']);
     const [workUnits, setWorkUnits] = useState(''); // Acres covered
     const [uploading, setUploading] = useState(false);
@@ -38,6 +40,8 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
         setStep(1);
         setPhotoPreview(null);
         setPhotoFile(null);
+        setEvidencePreview(null);
+        setEvidenceFile(null);
         setOtp(['', '', '', '']);
         setWorkUnits('');
         setUploading(false);
@@ -46,13 +50,21 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
     };
 
     // Handle photo selection (camera or gallery)
-    const handlePhotoCapture = (e) => {
+    const handlePhotoCapture = (e, target = 'km') => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setPhotoFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => setPhotoPreview(reader.result);
-        reader.readAsDataURL(file);
+        
+        if (target === 'km') {
+            setPhotoFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setPhotoPreview(reader.result);
+            reader.readAsDataURL(file);
+        } else {
+            setEvidenceFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setEvidencePreview(reader.result);
+            reader.readAsDataURL(file);
+        }
     };
 
     // OTP input logic
@@ -70,17 +82,31 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
     };
 
     // Go to Step 2: Upload photo to Cloudinary
-    const handleProceedToOtp = async () => {
-        if (!photoFile) return toast.error('Please take a KM photo first');
-        try {
-            setUploading(true);
-            const url = await uploadToCloudinary(photoFile);
-            setPhotoFile(url); // store URL instead of file after upload
-            setStep(2);
-        } catch (err) {
-            toast.error('Photo upload failed. Try again.');
-        } finally {
-            setUploading(false);
+    const handleProceed = async () => {
+        if (step === 1) {
+            if (!photoFile) return toast.error('Please take a KM photo first');
+            try {
+                setUploading(true);
+                const url = await uploadToCloudinary(photoFile);
+                setPhotoFile(url); // store URL
+                setStep(isStart ? 3 : 2); // Start trip skips step 2 (evidence)
+            } catch (err) {
+                toast.error('Photo upload failed. Try again.');
+            } finally {
+                setUploading(false);
+            }
+        } else if (step === 2) {
+            if (!evidenceFile) return toast.error('Please take a Work Evidence photo');
+            try {
+                setUploading(true);
+                const url = await uploadToCloudinary(evidenceFile);
+                setEvidenceFile(url); // store URL
+                setStep(3);
+            } catch (err) {
+                toast.error('Evidence upload failed. Try again.');
+            } finally {
+                setUploading(false);
+            }
         }
     };
 
@@ -89,11 +115,12 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
         const otpStr = otp.join('');
         if (otpStr.length !== 4) return toast.error('Enter 4-digit OTP from farmer');
         if (!photoFile) return toast.error('KM Photo not uploaded');
+        if (!isStart && !evidenceFile) return toast.error('Work Evidence photo not uploaded');
         if (!isStart && rentalType === 'land_based' && !workUnits) return toast.error('Please enter total acres covered');
 
         try {
             setSubmitting(true);
-            await onSubmit(photoFile, otpStr, workUnits ? parseFloat(workUnits) : undefined);
+            await onSubmit(photoFile, otpStr, workUnits ? parseFloat(workUnits) : undefined, evidenceFile);
             handleClose();
         } catch (err) {
             toast.error(err?.message || 'Failed to submit. Try again.');
@@ -127,7 +154,7 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                             <div>
                                 <h2 className="text-lg font-extrabold text-gray-900">{title}</h2>
                                 <p className="text-xs text-gray-500 mt-0.5">
-                                    Step {step} of 2: {step === 1 ? 'Take KM Photo' : 'Enter Farmer OTP'}
+                                    Step {step} of 3: {step === 1 ? 'Take KM Photo' : step === 2 ? 'Evidence of Work' : 'Enter Farmer OTP'}
                                 </p>
                             </div>
                             <button onClick={handleClose}
@@ -138,7 +165,7 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
 
                         {/* Step Indicator */}
                         <div className="flex gap-1.5 px-5 pt-3">
-                            {[1, 2].map(s => (
+                            {[1, 2, 3].map(s => (
                                 <div key={s} className="flex-1 h-1 rounded-full transition-all"
                                     style={{ background: step >= s ? themeColor : '#e5e7eb' }} />
                             ))}
@@ -183,7 +210,7 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                                     />
 
                                     <button
-                                        onClick={handleProceedToOtp}
+                                        onClick={handleProceed}
                                         disabled={!photoPreview || uploading}
                                         className="w-full py-4 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
                                         style={{ background: themeColor }}>
@@ -194,13 +221,67 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                                 </motion.div>
                             )}
 
-                            {/* === STEP 2: OTP === */}
-                            {step === 2 && (
+                            {/* === STEP 2: EVIDENCE PHOTO (Only for End Trip) === */}
+                            {step === 2 && !isStart && (
+                                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                                    <p className="text-sm font-semibold text-gray-700">Finished Work Evidence</p>
+
+                                    {evidencePreview ? (
+                                        <div className="relative">
+                                            <img src={evidencePreview} alt="Work Proof" className="w-full h-52 object-cover rounded-2xl border-2 border-gray-200" />
+                                            <button
+                                                onClick={() => { setEvidencePreview(null); setEvidenceFile(null); }}
+                                                className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full shadow-md">
+                                                <FiRefreshCw className="w-4 h-4 text-gray-700" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-full h-52 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all active:scale-95"
+                                            style={{ borderColor: themeColor, background: `${themeColor}08` }}>
+                                            <FiCamera className="w-10 h-10" style={{ color: themeColor }} />
+                                            <p className="text-sm font-bold" style={{ color: themeColor }}>Take Proof of Work</p>
+                                            <p className="text-[10px] text-gray-400">Take a photo of the completed task side-by-side with the machine</p>
+                                        </button>
+                                    )}
+
+                                    {/* Capture for Evidence */}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        onChange={(e) => handlePhotoCapture(e, 'evidence')}
+                                    />
+
+                                    <div className="flex gap-3 pt-2">
+                                        <button onClick={() => setStep(1)}
+                                            className="flex-1 py-3.5 rounded-2xl border-2 font-bold text-sm text-gray-600 border-gray-300 transition-all active:scale-95">
+                                            ← Back
+                                        </button>
+                                        <button
+                                            onClick={handleProceed}
+                                            disabled={!evidencePreview || uploading}
+                                            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                            style={{ background: themeColor }}>
+                                            {uploading
+                                                ? <><FiLoader className="w-4 h-4 animate-spin" /> Uploading Proof...</>
+                                                : <><FiUpload className="w-4 h-4" /> Verify Evidence & Continue</>}
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* === STEP 3: OTP === */}
+                            {step === 3 && (
                                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
-                                    {/* Uploaded photo thumbnail */}
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                        <FiCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                        <p className="text-xs font-semibold text-gray-700">KM Photo uploaded successfully ✅</p>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                            <FiCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                            <p className="text-xs font-semibold text-gray-700">Photos uploaded successfully ✅</p>
+                                        </div>
                                     </div>
 
                                     {/* Additional Input for Land Based (Step 2) */}
@@ -247,7 +328,7 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                                     </div>
 
                                     <div className="flex gap-3 pt-2">
-                                        <button onClick={() => setStep(1)}
+                                        <button onClick={() => setStep(isStart ? 1 : 2)}
                                             className="flex-1 py-3.5 rounded-2xl border-2 font-bold text-sm text-gray-600 border-gray-300 transition-all active:scale-95">
                                             ← Back
                                         </button>

@@ -70,16 +70,16 @@ const MaintenanceIndex = () => {
 
     return (
         <div className="min-h-screen pb-20" style={{ background: themeColors.backgroundGradient }}>
-            <Header title="Equipment Maintenance" />
+            <Header title="Machine Care & Maintenance" />
 
             <main className="px-4 py-6">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-bold text-gray-800">Schedules</h2>
+                    <h2 className="text-lg font-bold text-gray-800">Maintenance Logic & Schedules</h2>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-xl shadow-lg active:scale-95 transition-all text-sm font-bold"
                     >
-                        <FiPlus /> Block Dates
+                        <FiPlus /> Schedule Downtime / Service
                     </button>
                 </div>
 
@@ -89,7 +89,7 @@ const MaintenanceIndex = () => {
                     <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-gray-100">
                         <FiCalendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                         <p className="text-gray-500 font-medium">No maintenance scheduled yet.</p>
-                        <p className="text-xs text-gray-400 mt-1">Block dates to keep your equipment in top shape.</p>
+                        <p className="text-xs text-gray-400 mt-1">Keep your machines in top shape for the field.</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -138,7 +138,7 @@ const MaintenanceIndex = () => {
                                     value={formData.equipmentId}
                                     onChange={e => setFormData({ ...formData, equipmentId: e.target.value })}
                                 >
-                                    <option value="">Select Equipment...</option>
+                                    <option value="">Select Machine...</option>
                                     {equipments.map(e => <option key={e._id} value={e._id}>{e.title}</option>)}
                                 </select>
                             </div>
@@ -182,7 +182,7 @@ const MaintenanceIndex = () => {
                                 type="submit"
                                 className="w-full py-4 bg-teal-600 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-all mt-4 hover:brightness-110"
                             >
-                                Confirm & Block Dates
+                                Confirm & Block Machine
                             </button>
                         </form>
                     </div>

@@ -59,7 +59,7 @@ const bookingSchema = new mongoose.Schema({
   // ==========================================
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'UserService',
+    ref: 'Service',
     required: [true, 'Service is required'],
     index: true
   },

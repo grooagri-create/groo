@@ -49,7 +49,7 @@ const ActiveJobs = memo(() => {
       // Map API response to Component State structure
       const mappedJobs = jobsData.map(job => ({
         id: job._id || job.id,
-        serviceType: job.serviceId?.title || job.serviceType || 'Service',
+        serviceType: job.serviceId?.title || job.serviceType || 'Equipment',
         user: {
           name: job.userId?.name || job.customerName || 'Farmer'
         },
@@ -152,7 +152,7 @@ const ActiveJobs = memo(() => {
 
   return (
     <div className="min-h-screen pb-20" style={{ background: themeColors.backgroundGradient }}>
-      <Header title="Active Operations" showSearch={true} />
+      <Header title="Field Operations" showSearch={true} />
 
       <main className="px-4 py-6">
         {/* Search Bar */}
@@ -161,7 +161,7 @@ const ActiveJobs = memo(() => {
             <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search operations..."
+              placeholder="Search bookings..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-0"
@@ -174,8 +174,8 @@ const ActiveJobs = memo(() => {
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { id: 'all', label: 'All' },
-            { id: 'assigned', label: 'Assigned' },
-            { id: 'in_progress', label: 'In Progress' },
+            { id: 'assigned', label: 'Driver Assigned' },
+            { id: 'in_progress', label: 'On Field' },
             { id: 'completed', label: 'Completed' },
           ].map((filterOption) => (
             <button
@@ -238,9 +238,9 @@ const ActiveJobs = memo(() => {
             }}
           >
             <FiBriefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-600 font-semibold mb-2">No jobs found</p>
+            <p className="text-gray-600 font-semibold mb-2">No bookings found</p>
             <p className="text-sm text-gray-500">
-              No active jobs at the moment
+              No active field operations at the moment
             </p>
           </div>
         ) : (
@@ -358,7 +358,7 @@ const ActiveJobs = memo(() => {
                           }}
                         >
                           <FiUser className="w-3.5 h-3.5" />
-                          Do it Myself
+                          Self Driven
                         </button>
                         <button
                           onClick={(e) => {

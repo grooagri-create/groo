@@ -1,7 +1,6 @@
 const Plan = require('../models/Plan');
 const Category = require('../models/Category');
 const Brand = require('../models/Brand');
-const UserService = require('../models/UserService');
 const Service = require('../models/Service');
 
 // Create Plan

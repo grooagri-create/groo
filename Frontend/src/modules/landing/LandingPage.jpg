@@ -1,0 +1,35 @@
+import React, { useEffect } from 'react';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
+import ProblemSolution from './components/ProblemSolution';
+import ServicesSection from './components/ServicesSection';
+import WorkflowSection from './components/WorkflowSection';
+import TechSection from './components/TechSection';
+import FeatureSection from './components/FeatureSection';
+import CTA from './components/CTA';
+import Footer from './components/Footer';
+
+const LandingPage = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.title = "Groo | Professional Agriculture Equipment Booking";
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar />
+      <main>
+        <Hero />
+        <ProblemSolution />
+        <ServicesSection />
+        <WorkflowSection />
+        <FeatureSection />
+        <TechSection />
+        <CTA />
+      </main>
+      <Footer />
+    </div>
+  );
+};
+
+export default LandingPage;

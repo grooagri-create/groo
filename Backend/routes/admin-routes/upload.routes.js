@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImage } = require('../../middleware/uploadMiddleware');
+const { uploadImage, handleMulterError } = require('../../middleware/uploadMiddleware');
 const { getSignature } = require('../../controllers/cloudinaryController');
 
 // Get signature for direct signed upload
 router.get('/upload/sign-signature', getSignature);
 
 // Upload single file to Cloudinary
-router.post('/upload', uploadImage, async (req, res) => {
+router.post('/upload', uploadImage, handleMulterError, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
