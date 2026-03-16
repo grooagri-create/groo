@@ -158,7 +158,7 @@ const ServicesSection = () => {
                     >
                       <span className="mr-3">View Details</span>
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="9 5l7 7-7 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
                   </div>
@@ -173,7 +173,7 @@ const ServicesSection = () => {
                     className="pointer-auto pointer-events-auto w-10 h-10 md:w-11 md:h-11 bg-white/30 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center text-gray-800 hover:bg-white hover:text-green-700 transition-all shadow-lg group/nav"
                 >
                     <svg className="w-5 h-5 transform group-hover/nav:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="15 19l-7-7 7-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
                     </svg>
                 </button>
                 <button 
@@ -181,7 +181,7 @@ const ServicesSection = () => {
                     className="pointer-auto pointer-events-auto w-10 h-10 md:w-11 md:h-11 bg-white/30 backdrop-blur-md border border-white/40 rounded-full flex items-center justify-center text-gray-800 hover:bg-white hover:text-green-700 transition-all shadow-lg group/nav"
                 >
                     <svg className="w-5 h-5 transform group-hover/nav:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="9 5l7 7-7 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                     </svg>
                 </button>
             </div>
