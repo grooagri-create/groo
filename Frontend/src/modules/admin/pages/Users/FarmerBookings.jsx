@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSearch, FiFilter, FiLoader, FiCalendar, FiClock, FiUser, FiMapPin } from 'react-icons/fi';
+import { FiSearch, FiLoader, FiCalendar, FiClock, FiUser, FiShoppingBag } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import CardShell from '../UserCategories/components/CardShell';
-import adminWorkerService from '../../../../services/adminWorkerService';
+import { adminUserService } from '../../../../services/adminUserService';
 
-const WorkerJobs = () => {
-  const [jobs, setJobs] = useState([]);
+const FarmerBookings = () => {
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
 
-  const loadJobs = async (page = 1) => {
+  const loadBookings = async (page = 1) => {
     try {
       setLoading(true);
       const params = {
@@ -21,21 +21,22 @@ const WorkerJobs = () => {
         status: filterStatus === 'all' ? undefined : filterStatus,
         search: searchQuery || undefined
       };
-      const response = await adminWorkerService.getAllJobs(params);
+      // Note: We'll need to implement getAllUserBookings in adminUserService
+      const response = await adminUserService.getAllUserBookings(params);
       if (response.success) {
-        setJobs(response.data);
+        setBookings(response.data);
         setPagination(response.pagination);
       }
     } catch (error) {
-      console.error('Error loading jobs:', error);
-      toast.error('Failed to load operator jobs');
+      console.error('Error loading farmer bookings:', error);
+      toast.error('Failed to load farmer bookings');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadJobs();
+    loadBookings();
   }, [filterStatus, searchQuery]);
 
   const getStatusStyle = (status) => {
@@ -52,7 +53,7 @@ const WorkerJobs = () => {
   return (
     <div className="space-y-6">
       <CardShell
-        icon={FiClock}
+        icon={FiShoppingBag}
       >
         {/* Search and Filter */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -62,7 +63,7 @@ const WorkerJobs = () => {
             </div>
             <input
               type="text"
-              placeholder="Search by operator name or phone..."
+            placeholder="Search by farmer name, phone or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -82,59 +83,56 @@ const WorkerJobs = () => {
           </select>
         </div>
 
-        {/* Jobs List */}
+        {/* Bookings List */}
         <div className="space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <FiLoader className="w-8 h-8 text-gray-400 animate-spin mr-3" />
-              <span className="text-gray-600">Loading jobs...</span>
+              <span className="text-gray-600">Loading bookings...</span>
             </div>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">No jobs found matching your criteria</div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">No bookings found</div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {jobs.map((job) => (
+              {bookings.map((booking) => (
                 <motion.div
-                  key={job._id}
+                  key={booking._id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow bg-white"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
-                      <div className="bg-primary-50 p-3 rounded-lg">
-                        <FiCalendar className="text-primary-600 w-6 h-6" />
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <FiShoppingBag className="text-blue-600 w-6 h-6" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-gray-900">{job.serviceId?.title || 'General Service'}</h4>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(job.status)}`}>
-                            {job.status.toUpperCase()}
+                          <h4 className="font-bold text-gray-900">{booking.serviceId?.title || 'General Equipment'}</h4>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(booking.status)}`}>
+                            {booking.status.toUpperCase()}
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
-                            <FiUser className="w-4 h-4" />
-                            <span>Operator: <span className="font-medium text-gray-800">{job.workerId?.name || 'Unassigned'}</span></span>
-                          </div>
-                          <div className="flex items-center gap-2">
                             <FiUser className="w-4 h-4 text-blue-500" />
-                            <span>Farmer: <span className="font-medium text-gray-800">{job.userId?.name}</span></span>
+                            <span>Farmer: <span className="font-medium text-gray-800">{booking.userId?.name}</span></span>
                           </div>
                           <div className="flex items-center gap-2">
                             <FiCalendar className="w-4 h-4" />
-                            <span>Date: {new Date(job.bookingDate).toLocaleDateString()}</span>
+                            <span>Date: {new Date(booking.bookingDate).toLocaleDateString()}</span>
                           </div>
+                            <span>Operator: <span className="font-medium text-gray-800">{booking.workerId?.name || 'Manual Assignment'}</span></span>
                           <div className="flex items-center gap-2">
                             <FiClock className="w-4 h-4" />
-                            <span>Time: {job.bookingTime}</span>
+                            <span>Slot: {booking.bookingSlot}</span>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <div className="text-lg font-bold text-gray-900">₹{job.finalAmount}</div>
-                      <button className="text-sm text-primary-600 font-semibold hover:underline">View Full Details</button>
+                      <div className="text-lg font-bold text-gray-900">₹{booking.finalAmount}</div>
+                      <button className="text-sm text-blue-600 font-semibold hover:underline">View Details</button>
                     </div>
                   </div>
                 </motion.div>
@@ -149,9 +147,9 @@ const WorkerJobs = () => {
             {[...Array(pagination.pages)].map((_, i) => (
               <button
                 key={i}
-                onClick={() => loadJobs(i + 1)}
+                onClick={() => loadBookings(i + 1)}
                 className={`w-10 h-10 rounded-lg font-semibold transition-all ${pagination.page === i + 1
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
@@ -165,4 +163,4 @@ const WorkerJobs = () => {
   );
 };
 
-export default WorkerJobs;
+export default FarmerBookings;

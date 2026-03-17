@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const ManageProducts = () => {
     const [products, setProducts] = useState([]);
+    const [pendingProducts, setPendingProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
@@ -25,6 +26,7 @@ const ManageProducts = () => {
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
+    const [activeTab, setActiveTab] = useState('marketplace'); // 'marketplace' or 'pending'
     const [formData, setFormData] = useState({
         title: '',
         categoryId: '',
@@ -48,11 +50,13 @@ const ManageProducts = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [prodRes, catRes] = await Promise.all([
+            const [prodRes, pendingRes, catRes] = await Promise.all([
                 adminProductService.getAll(),
+                adminProductService.getVendorEquipment('pending_approval'),
                 publicCatalogService.getCategories()
             ]);
             if (prodRes.success) setProducts(prodRes.data);
+            if (pendingRes.success) setPendingProducts(pendingRes.data);
             if (catRes.success) setCategories(catRes.categories || catRes.data || []);
         } catch (err) {
             toast.error("Data load karne mein dikkat hui");
@@ -147,6 +151,33 @@ const ManageProducts = () => {
         }
     };
 
+    const handleApprove = async (id) => {
+        if (!window.confirm("Approve this product and make it live on the farmer app?")) return;
+        try {
+            const res = await adminProductService.approveEquipment(id);
+            if (res.success) {
+                toast.success("Product approved beautifully!");
+                fetchData(); // Refresh both lists
+            }
+        } catch (err) {
+            toast.error("Approval failed");
+        }
+    };
+
+    const handleReject = async (id) => {
+        const reason = window.prompt("Enter reason for rejection:");
+        if (reason === null) return; // Cancelled
+        try {
+            const res = await adminProductService.rejectEquipment(id, reason);
+            if (res.success) {
+                toast.success("Product rejected");
+                fetchData(); // Refresh both lists
+            }
+        } catch (err) {
+            toast.error("Rejection failed");
+        }
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm("Kya aap waqai is product ko delete karna chahte hain?")) return;
         try {
@@ -236,8 +267,9 @@ const ManageProducts = () => {
         setShowModal(true);
     };
 
-    const filteredProducts = products.filter(p =>
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const currentList = activeTab === 'marketplace' ? products : pendingProducts;
+    const filteredProducts = currentList.filter(p =>
+        p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.brandName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -277,6 +309,37 @@ const ManageProducts = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-4 mb-6 border-b border-slate-200">
+                <button
+                    onClick={() => setActiveTab('marketplace')}
+                    className={`pb-4 px-2 font-black text-sm uppercase tracking-wider transition-all relative ${
+                        activeTab === 'marketplace' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                >
+                    Marketplace ({products.length})
+                    {activeTab === 'marketplace' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800 rounded-t-full" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('pending')}
+                    className={`pb-4 px-2 font-black text-sm uppercase tracking-wider transition-all relative flex items-center gap-2 ${
+                        activeTab === 'pending' ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                >
+                    Pending Approvals 
+                    {pendingProducts.length > 0 && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'pending' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
+                            {pendingProducts.length}
+                        </span>
+                    )}
+                    {activeTab === 'pending' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500 rounded-t-full" />
+                    )}
+                </button>
             </div>
 
             {/* Products Table */}
@@ -325,9 +388,11 @@ const ManageProducts = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tight">
-                                            {product.categoryId?.title || 'Uncategorized'}
-                                        </span>
+                                        <div className="flex items-center">
+                                            <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tight whitespace-nowrap">
+                                                {product.categoryId?.title || 'Uncategorized'}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div>
@@ -338,9 +403,9 @@ const ManageProducts = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-black text-slate-700 text-sm">{product.stock}</p>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase">{product.unit}</p>
+                                        <div className="flex flex-col gap-0.5 max-w-[150px]">
+                                            <p className="font-black text-slate-700 text-sm">Qty: {product.stock}</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight break-words">{product.unit}</p>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
@@ -350,24 +415,50 @@ const ManageProducts = () => {
                                                     ? 'bg-amber-100 text-amber-600 shadow-sm shadow-amber-50'
                                                     : 'bg-slate-100 text-slate-300 hover:text-slate-400'
                                                 }`}
+                                            disabled={activeTab === 'pending'}
                                         >
                                             <FiStar className={product.isFeatured ? 'fill-current' : ''} />
                                         </button>
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => openEdit(product)}
-                                                className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
-                                            >
-                                                <FiEdit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(product._id)}
-                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                            >
-                                                <FiTrash2 className="w-4 h-4" />
-                                            </button>
+                                            {activeTab === 'pending' ? (
+                                                <>
+                                                    <button
+                                                        onClick={() => openEdit(product)}
+                                                        className="px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-xs rounded-xl transition-all uppercase tracking-wider"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleApprove(product._id)}
+                                                        className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold text-xs rounded-xl transition-all uppercase tracking-wider"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(product._id)}
+                                                        className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs rounded-xl transition-all uppercase tracking-wider"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button
+                                                        onClick={() => openEdit(product)}
+                                                        className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
+                                                    >
+                                                        <FiEdit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(product._id)}
+                                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                    >
+                                                        <FiTrash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -392,20 +483,22 @@ const ManageProducts = () => {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                            className="relative bg-white w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+                            style={{ maxHeight: 'calc(100vh - 40px)' }}
                         >
-                            <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                            <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-800">{editMode ? 'Edit Product' : 'Add New Product'}</h2>
+                                    <h2 className="text-xl font-black text-slate-800">{activeTab === 'pending' ? 'Review & Approve Vendor Product' : (editMode ? 'Edit Product' : 'Add New Product')}</h2>
                                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Product Specifications</p>
                                 </div>
                                 <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors">✕</button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6 pb-12">
-                                {/* Image Upload & Basic Info Row */}
-                                <div className="flex flex-col md:flex-row gap-8 items-start">
-                                    <div className="w-full space-y-4">
+                            <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+                                <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
+                                    {/* Image Upload & Basic Info Row */}
+                                    <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+                                        <div className="w-full md:w-1/2 space-y-4">
                                         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
                                             {/* Existing Images */}
                                             {formData.images && formData.images.map((url, idx) => (
@@ -449,7 +542,7 @@ const ManageProducts = () => {
                                         <p className="text-[10px] font-bold text-slate-400 uppercase ml-2 italic">Tip: Add multiple images for better product visibility</p>
                                     </div>
 
-                                    <div className="flex-1 grid grid-cols-1 gap-4 w-full">
+                                    <div className="w-full md:w-1/2 space-y-4">
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Title</label>
                                             <input
@@ -692,21 +785,37 @@ const ManageProducts = () => {
                                     <label htmlFor="featured_check_modal" className="text-sm font-black text-slate-800">Feature this product on Home Page</label>
                                 </div>
 
-                                <div className="flex gap-4 sticky bottom-0 bg-white pb-2 pt-4 border-t border-slate-50">
+                                </div>
+
+                                <div className="flex gap-4 p-6 border-t border-slate-100 bg-white flex-shrink-0 z-10 transition-all">
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="flex-1 px-8 py-4 bg-slate-50 text-slate-500 font-black rounded-2xl transition-all active:scale-95"
+                                        className="flex-1 px-8 py-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-black rounded-2xl transition-all active:scale-95 text-sm uppercase tracking-wider"
                                     >
                                         Cancel
                                     </button>
-                                    <button
-                                        type="submit"
-                                        disabled={uploading}
-                                        className="flex-1 px-8 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 transition-all active:scale-95 disabled:opacity-50"
-                                    >
-                                        {editMode ? 'Update Product' : 'Save Product'}
-                                    </button>
+                                    
+                                    {activeTab === 'pending' ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowModal(false);
+                                                if(formData._id) handleApprove(formData._id);
+                                            }}
+                                            className="flex-1 px-8 py-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-black rounded-2xl transition-all active:scale-95 text-sm uppercase tracking-wider"
+                                        >
+                                            Approve Product
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="submit"
+                                            disabled={uploading}
+                                            className="flex-1 px-8 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 text-sm uppercase tracking-wider"
+                                        >
+                                            {editMode ? 'Update Product' : 'Save Product'}
+                                        </button>
+                                    )}
                                 </div>
                             </form>
                         </motion.div>

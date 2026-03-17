@@ -11,22 +11,22 @@ import {
 
 // Import sub-components
 // Import sub-components
-import AllVendors from './AllVendors';
-import VendorBookings from './VendorBookings';
-import VendorAnalytics from './VendorAnalytics';
+import AllOwners from './AllOwners';
+import OwnerBookings from './OwnerBookings';
+import OwnerAnalytics from './OwnerAnalytics';
 
 const Vendors = () => {
   const location = useLocation();
 
   const navTabs = [
-    { name: 'All Vendors', path: '/admin/vendors/all', icon: FiUsers },
-    { name: 'Vendor Bookings', path: '/admin/vendors/bookings', icon: FiBriefcase },
-    { name: 'Vendor Analytics', path: '/admin/vendors/analytics', icon: FiActivity },
+    { name: 'All Owners', path: '/admin/vendors/all', icon: FiUsers },
+    { name: 'Owner Bookings', path: '/admin/vendors/bookings', icon: FiBriefcase },
+    { name: 'Owner Analytics', path: '/admin/vendors/analytics', icon: FiActivity },
   ];
 
   const getPageTitle = () => {
     const currentTab = navTabs.find(tab => location.pathname === tab.path);
-    return currentTab ? currentTab.name : 'Vendor Management';
+    return currentTab ? currentTab.name : 'Equipment Owner Management';
   };
 
   return (
@@ -40,9 +40,9 @@ const Vendors = () => {
       >
         <Routes>
           <Route path="/" element={<Navigate to="all" replace />} />
-          <Route path="all" element={<AllVendors />} />
-          <Route path="bookings" element={<VendorBookings />} />
-          <Route path="analytics" element={<VendorAnalytics />} />
+          <Route path="all" element={<AllOwners />} />
+          <Route path="bookings" element={<OwnerBookings />} />
+          <Route path="analytics" element={<OwnerAnalytics />} />
         </Routes>
       </motion.div>
     </div>

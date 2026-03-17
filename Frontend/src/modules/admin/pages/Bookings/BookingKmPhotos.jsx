@@ -103,7 +103,7 @@ const BookingKmPhotos = () => {
                 <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                         <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input type="text" placeholder="Search by booking ID or customer..."
+                        <input type="text" placeholder="Search by booking ID or farmer..."
                             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-xs"
                         />
@@ -133,7 +133,7 @@ const BookingKmPhotos = () => {
                                 <tr className="border-b border-gray-100 bg-gray-50/50">
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Booking</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Farmer</th>
-                                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Service</th>
+                                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Equipment</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Start KM Photo</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">End KM Photo</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Action</th>
@@ -218,7 +218,7 @@ const BookingKmPhotos = () => {
                                     <span className="ml-2 font-bold text-gray-900">#{selectedBooking.bookingNumber}</span>
                                 </div>
                                 <div>
-                                    <span className="text-gray-500 font-semibold">Service:</span>
+                                    <span className="text-gray-500 font-semibold">Equipment:</span>
                                     <span className="ml-2 font-bold text-gray-900">{selectedBooking.serviceName}</span>
                                 </div>
                                 <div>

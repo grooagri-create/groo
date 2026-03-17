@@ -56,7 +56,7 @@ const KycVerification = () => {
                 setUsers(kycUsers);
             }
         } catch (err) {
-            toast.error('Failed to load KYC users');
+            toast.error('Failed to load KYC records');
         } finally {
             setLoading(false);
         }
@@ -83,7 +83,7 @@ const KycVerification = () => {
                 toast.error(res.message || 'Action failed');
             }
         } catch (err) {
-            toast.error('Failed to update KYC status');
+            toast.error('Failed to update details');
         } finally {
             setActionLoading(false);
         }
@@ -141,7 +141,7 @@ const KycVerification = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">User</th>
+                                    <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Name</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Docs Submitted</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">KYC Status</th>
                                     <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -223,12 +223,12 @@ const KycVerification = () => {
                                 <button disabled={actionLoading}
                                     onClick={async () => { await handleAction(selectedUser._id, 'verified'); setModalOpen(false); }}
                                     className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-                                    <FiCheck className="w-4 h-4" /> Approve KYC
+                                    <FiCheck className="w-4 h-4" /> Approve Documents
                                 </button>
                                 <button disabled={actionLoading}
                                     onClick={async () => { await handleAction(selectedUser._id, 'rejected'); setModalOpen(false); }}
                                     className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
-                                    <FiX className="w-4 h-4" /> Reject KYC
+                                    <FiX className="w-4 h-4" /> Reject Documents
                                 </button>
                             </div>
                         )}

@@ -36,7 +36,7 @@ const MyStore = () => {
         description: '',
         price: '',
         discountPrice: '',
-        unit: 'per day',
+        unit: 'Per Day',
         stock: 1,
         imageUrl: '',
         images: [],
@@ -171,7 +171,9 @@ const MyStore = () => {
                 fetchData();
             }
         } catch (err) {
-            toast.error("Action fail ho gaya");
+            console.error("Store action error:", err);
+            const errMsg = err.response?.data?.message || "Action fail ho gaya";
+            toast.error(errMsg);
         }
     };
 
@@ -238,7 +240,7 @@ const MyStore = () => {
                     onClick={() => {
                         setEditMode(false);
                         setFormData({ 
-                            title: '', categoryId: '', brandName: '', description: '', price: '', discountPrice: '', unit: 'per day', stock: 1, 
+                            title: '', categoryId: '', brandName: '', description: '', price: '', discountPrice: '', unit: 'Per Day', stock: 1, 
                             imageUrl: '', images: [], specifications: [],
                             hasDriver: false,
                             driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
@@ -436,12 +438,12 @@ const MyStore = () => {
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit</label>
                                             <select required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })}>
-                                                <option value="per kg">Per KG (Fertilizers/Seeds)</option>
-                                                <option value="per packet">Per Packet</option>
-                                                <option value="per hour">Per Hour (Machinery)</option>
-                                                <option value="per day">Per Day</option>
-                                                <option value="per acre">Per Acre</option>
-                                                <option value="per order">Per Order</option>
+                                                <option value="Per KG (Fertilizers/Seeds)">Per KG (Fertilizers/Seeds)</option>
+                                                <option value="Per Packet">Per Packet</option>
+                                                <option value="Per Hour (Machinery)">Per Hour (Machinery)</option>
+                                                <option value="Per Day">Per Day</option>
+                                                <option value="Per Acre">Per Acre</option>
+                                                <option value="Per Order">Per Order</option>
                                             </select>
                                         </div>
                                     </div>

@@ -244,7 +244,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
           brandId: activeBrandId
         });
         if (response.success) {
-          toast.success("Service updated");
+          toast.success("Equipment updated");
           // Refresh list locally
           setBrandServices(prev => prev.map(s => (s.id === editingId || s._id === editingId ? { ...s, ...result.data, categoryId: result.data.categoryId } : s)));
           resetForm();
@@ -258,7 +258,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
           brandId: activeBrandId
         });
         if (response.success) {
-          toast.success("Service created");
+          toast.success("Equipment created");
           setBrandServices(prev => [...prev, response.service || response.data]);
           resetForm();
           // Reload to be safe
@@ -275,10 +275,10 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this service?")) return;
+    if (!window.confirm("Are you sure you want to delete this equipment?")) return;
     try {
       await serviceService.delete(id);
-      toast.success("Service deleted");
+      toast.success("Equipment deleted");
       setBrandServices(prev => prev.filter(s => (s.id !== id && s._id !== id)));
     } catch (error) {
       console.error("Delete service error:", error);
@@ -401,7 +401,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
                     {activeBrand.iconUrl && <img src={toAssetUrl(activeBrand.iconUrl)} className="w-6 h-6 object-contain" />}
                     {activeBrand.title}
                   </h3>
-                  <p className="text-sm text-gray-500">Manage individual services for this brand</p>
+                  <p className="text-sm text-gray-500">Manage individual equipment types for this brand</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -409,7 +409,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Search services..."
+                      placeholder="Search equipment..."
                       value={searchTerm}
                       onChange={e => setSearchTerm(e.target.value)}
                       className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-48"
@@ -423,7 +423,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
                     className="px-4 py-2 bg-primary-600 text-white rounded-lg font-semibold shadow-md hover:bg-primary-700 transition-all flex items-center gap-2"
                   >
                     <FiPlus className="w-4 h-4" />
-                    Add Service
+                    Add Equipment Type
                   </button>
                 </div>
               </div>
@@ -435,9 +435,9 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
               ) : displayedServices.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                   <FiPackage className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-bold">No services found for {activeBrand.title}</p>
+                  <p className="text-gray-500 font-bold">No equipment found for {activeBrand.title}</p>
                   <button onClick={() => setIsModalOpen(true)} className="mt-2 text-primary-600 hover:underline text-sm font-semibold">
-                    Add the first service
+                    Add the first equipment type
                   </button>
                 </div>
               ) : (
@@ -490,7 +490,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
             </CardShell>
           ) : (
             <div className="h-full flex flex-col items-center justify-center p-12 bg-gray-50 rounded-xl border border-gray-200 text-center text-gray-500">
-              <p>Select a brand from the left to manage its services.</p>
+              <p>Select a brand from the left to manage its equipment types.</p>
             </div>
           )}
         </div>
@@ -499,7 +499,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
       <Modal
         isOpen={isModalOpen}
         onClose={resetForm}
-        title={editingId ? "Edit Service" : "Add Service"}
+        title={editingId ? "Edit Equipment" : "Add Equipment"}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -533,11 +533,11 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Service Title</label>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Equipment Title</label>
             <input
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Seed Delivery or Soil Testing"
+              placeholder="e.g. Tractor 50HP or Harvesting Machine"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               required
             />
@@ -594,7 +594,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
               disabled={saving}
               className="px-6 py-2 bg-primary-600 text-white font-bold rounded-lg hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save Service"}
+              {saving ? "Saving..." : "Save Equipment"}
             </button>
           </div>
         </form>

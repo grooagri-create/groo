@@ -48,14 +48,14 @@ const RevenueReport = () => {
     ]);
   };
 
-  // Export revenue by service as CSV
+  // Export revenue by equipment as CSV
   const handleExportByService = () => {
     if (!data?.revenueByService || data.revenueByService.length === 0) {
-      toast.error('No service data to export');
+      toast.error('No equipment data to export');
       return;
     }
-    exportToCSV(data.revenueByService, `revenue_by_service_${period}`, [
-      { key: '_id', label: 'Service' },
+    exportToCSV(data.revenueByService, `revenue_by_equipment_${period}`, [
+      { key: '_id', label: 'Equipment' },
       { key: 'revenue', label: 'Revenue (₹)', type: 'currency' },
       { key: 'count', label: 'Bookings', type: 'number' }
     ]);
@@ -126,7 +126,7 @@ const RevenueReport = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-base font-bold flex items-center gap-2">
               <FiPieChart className="text-amber-600" />
-              Revenue by Service
+              Revenue by Equipment
             </h3>
             <button onClick={handleExportByService} className="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1">
               <FiDownload className="w-3 h-3" /> Export

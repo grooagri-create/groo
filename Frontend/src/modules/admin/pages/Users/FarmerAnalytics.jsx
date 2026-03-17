@@ -28,7 +28,7 @@ import { toast } from 'react-hot-toast';
 import CardShell from '../UserCategories/components/CardShell';
 import adminReportService from '../../../../services/adminReportService';
 
-const UserAnalytics = () => {
+const FarmerAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
@@ -46,8 +46,8 @@ const UserAnalytics = () => {
         setData(res.data);
       }
     } catch (error) {
-      console.error('User analytics error:', error);
-      toast.error('Failed to load user analytics');
+      console.error('Farmer analytics error:', error);
+      toast.error('Failed to load farmer analytics');
     } finally {
       setLoading(false);
     }
@@ -75,7 +75,7 @@ const UserAnalytics = () => {
               <FiUsers className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Users</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Farmers</p>
               <h3 className="text-lg font-bold text-gray-900">{data.totalUsers}</h3>
             </div>
           </div>
@@ -117,7 +117,7 @@ const UserAnalytics = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Verification Status Distribution */}
-        <CardShell icon={FiPieChart} title="User Verification" className="p-3">
+        <CardShell icon={FiPieChart} title="Farmer Verification" className="p-3">
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -142,7 +142,7 @@ const UserAnalytics = () => {
         </CardShell>
 
         {/* Top Users by Spending */}
-        <CardShell icon={FiTrendingUp} title="Top Users" className="p-3">
+        <CardShell icon={FiTrendingUp} title="Top Farmers" className="p-3">
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.topUsers} layout="vertical">
@@ -158,7 +158,7 @@ const UserAnalytics = () => {
       </div>
 
       {/* Monthly User Registration Trend */}
-      <CardShell icon={FiTrendingUp} title="User Registration Trend" className="p-3">
+      <CardShell icon={FiTrendingUp} title="Farmer Registration Trend" className="p-3">
         <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.monthlyTrend}>
@@ -188,4 +188,4 @@ const UserAnalytics = () => {
   );
 };
 
-export default UserAnalytics;
+export default FarmerAnalytics;

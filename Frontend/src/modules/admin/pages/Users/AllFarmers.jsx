@@ -4,7 +4,7 @@ import { FiSearch, FiUser, FiPhone, FiMail, FiCheckCircle, FiSlash, FiCheck, FiT
 import { toast } from 'react-hot-toast';
 import { adminUserService } from '../../../../services/adminUserService';
 
-const AllUsers = () => {
+const AllFarmers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -40,8 +40,8 @@ const AllUsers = () => {
         setTotalUsers(response.pagination.total);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      console.error('Error fetching farmers:', error);
+      toast.error('Failed to load farmers');
     } finally {
       setLoading(false);
     }
@@ -65,12 +65,12 @@ const AllUsers = () => {
         ));
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to update user status');
+      toast.error(error.message || 'Failed to update farmer status');
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete this farmer? This action cannot be undone.')) {
       return;
     }
 
@@ -81,7 +81,7 @@ const AllUsers = () => {
         fetchUsers();
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to delete user');
+      toast.error(error.message || 'Failed to delete farmer');
     }
   };
 
@@ -92,7 +92,7 @@ const AllUsers = () => {
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search farmers..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-xs"
@@ -111,7 +111,7 @@ const AllUsers = () => {
           </select>
 
           <div className="px-3 py-2 bg-green-50 rounded-lg border border-green-100">
-            <span className="text-xs font-bold text-green-700">{totalUsers} Users</span>
+            <span className="text-xs font-bold text-green-700">{totalUsers} Farmers</span>
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@ const AllUsers = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">User</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Farmer</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Joined Date</th>
@@ -131,11 +131,11 @@ const AllUsers = () => {
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center text-xs text-gray-500">Loading users...</td>
+                  <td colSpan="5" className="px-4 py-8 text-center text-xs text-gray-500">Loading farmers...</td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-4 py-8 text-center text-xs text-gray-500">No users found</td>
+                  <td colSpan="5" className="px-4 py-8 text-center text-xs text-gray-500">No farmers found</td>
                 </tr>
               ) : (
                 users.map((user) => (
@@ -186,14 +186,14 @@ const AllUsers = () => {
                             ? 'text-red-500 hover:bg-red-50'
                             : 'text-green-500 hover:bg-green-50'
                             }`}
-                          title={user.isActive ? 'Block User' : 'Activate User'}
+                          title={user.isActive ? 'Block Farmer' : 'Activate Farmer'}
                         >
                           {user.isActive ? <FiSlash className="w-3.5 h-3.5" /> : <FiCheck className="w-3.5 h-3.5" />}
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user._id)}
                           className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete User"
+                          title="Delete Farmer"
                         >
                           <FiTrash2 className="w-3.5 h-3.5" />
                         </button>
@@ -210,7 +210,7 @@ const AllUsers = () => {
         {!loading && users.length > 0 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/30">
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">
-              Showing {users.length} of {totalUsers} users
+              Showing {users.length} of {totalUsers} farmers
             </p>
             <div className="flex gap-1.5">
               <button
@@ -235,4 +235,4 @@ const AllUsers = () => {
   );
 };
 
-export default AllUsers;
+export default AllFarmers;

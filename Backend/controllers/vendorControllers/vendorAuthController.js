@@ -181,7 +181,7 @@ const register = async (req, res) => {
     }
 
     // verificationToken handling
-    const { name, email, verificationToken, aadhar, pan } = req.body;
+    const { name, email, verificationToken, aadhar, pan, businessName, service } = req.body;
     let phone = req.body.phone;
 
     if (verificationToken) {
@@ -234,7 +234,8 @@ const register = async (req, res) => {
 
     const vendor = await Vendor.create({
       name, email, phone,
-      service: [], // Default empty as requested
+      businessName,
+      service: Array.isArray(service) ? service : (service ? [service] : []),
       aadhar: {
         number: aadhar,
         document: aadharUrl,

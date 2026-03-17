@@ -26,17 +26,13 @@ import dashboardService from "../../services/dashboardService";
 // Icon mapping for menu items
 const iconMap = {
   Dashboard: FiHome,
-  Users: FiUsers,
-  Vendors: FiBriefcase,
-  Workers: FiUser,
+  Farmers: FiUsers,
+  "Equipment Owners": FiBriefcase,
   Bookings: FiShoppingBag,
   "User Catalog": FiGrid,
-  "Vendor Services": FiGrid,
-  "Vendor Parts": FiPackage,
   Payments: FiDollarSign,
   Reports: FiFileText,
   Notifications: FiBell,
-
   Reviews: FiStar,
   Settlements: FiDollarSign,
   Settings: FiSettings,
@@ -44,9 +40,6 @@ const iconMap = {
   "Agri Marketplace": FiShoppingBag,
   "Soil Testing": FiActivity,
   Disputes: FiAlertTriangle,
-  Operators: FiUser,
-  Farmers: FiUsers,
-  "Equipment Owners": FiBriefcase,
   "Equipment Catalog": FiGrid,
 };
 
@@ -54,39 +47,30 @@ const iconMap = {
 const getChildRoute = (parentRoute, childName) => {
   const routeMap = {
     "/admin/users": {
-      "All Users": "/admin/users/all",
-      "User Bookings": "/admin/users/bookings",
-      "Transactions": "/admin/users/transactions",
-      "User Analytics": "/admin/users/analytics",
+      "All Farmers": "/admin/users/all",
+      "Farmer Bookings": "/admin/users/bookings",
+      "Farmer Analytics": "/admin/users/analytics",
     },
     "/admin/vendors": {
-      "All Vendors": "/admin/vendors/all",
-      "Vendor Bookings": "/admin/vendors/bookings",
-      "Vendor Analytics": "/admin/vendors/analytics",
-      "Vendor Payments": "/admin/vendors/payments",
-    },
-    "/admin/workers": {
-      "All Operators": "/admin/workers/all",
-      "Operator Jobs": "/admin/workers/jobs",
-      "Operator Analytics": "/admin/workers/analytics",
-      "Operator Payments": "/admin/workers/payments",
+      "All Owners": "/admin/vendors/all",
+      "Owner Bookings": "/admin/vendors/bookings",
+      "Owner Analytics": "/admin/vendors/analytics",
     },
     "/admin/bookings": {
       "All Bookings": "/admin/bookings",
       "Booking Tracking": "/admin/bookings/tracking",
       "Booking Notifications": "/admin/bookings/notifications",
     },
-    "/admin/user-categories": {
-      "Home": "/admin/user-categories/home",
-      "Manage Categories": "/admin/user-categories/categories",
-      "Manage Brands": "/admin/user-categories/brands",
-      "Manage Services": "/admin/user-categories/sections",
+    "/admin/equipment-catalog": {
+      "Home": "/admin/equipment-catalog/home",
+      "Manage Categories": "/admin/equipment-catalog/categories",
+      "Manage Brands": "/admin/equipment-catalog/brands",
+      "Manage Equipment Types": "/admin/equipment-catalog/sections",
     },
     "/admin/payments": {
       "Payment Overview": "/admin/payments/overview",
-      "User Payments": "/admin/payments/users",
-      "Operator Payments": "/admin/payments/workers",
-      "Vendor Payments": "/admin/payments/vendors",
+      "Farmer Payments": "/admin/payments/users",
+      "Owner Payments": "/admin/payments/vendors",
       "Admin Revenue": "/admin/payments/revenue",
       "Payment Reports": "/admin/payments/reports",
     },
@@ -103,14 +87,13 @@ const getChildRoute = (parentRoute, childName) => {
     },
     "/admin/settings": {
       "General Settings": "/admin/settings/general",
-      "Operator Assignment": "/admin/settings/worker-assignment",
-      "Service Configuration": "/admin/settings/service-config",
+      "Equipment Configuration": "/admin/settings/service-config",
       "System Settings": "/admin/settings/system",
     },
     "/admin/settlements": {
       "Pending": "/admin/settlements/pending",
       "Withdrawals": "/admin/settlements/withdrawals",
-      "Vendors with Due": "/admin/settlements/vendors",
+      "Owners with Due": "/admin/settlements/vendors",
       "History": "/admin/settlements/history",
     },
   };
@@ -126,7 +109,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
   const [adminUser, setAdminUser] = useState({ name: 'Admin', email: '', role: 'admin' });
   const [counts, setCounts] = useState({
     bookings: 0,
-    vendors: 0,
+    owners: 0,
     withdrawals: 0,
     pendingSettlements: 0
   });
@@ -163,7 +146,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
           const stats = response.data.stats;
           setCounts({
             bookings: stats.pendingBookings || 0,
-            vendors: stats.pendingVendors || 0,
+            owners: stats.pendingVendors || 0,
             withdrawals: stats.pendingWithdrawals || 0,
             pendingSettlements: stats.pendingSettlements || 0
           });
@@ -228,9 +211,9 @@ const AdminSidebar = ({ isOpen, onClose }) => {
       return location.pathname === "/admin/dashboard";
     }
 
-    // Special case for User Catalog to avoid overlap with Vendor Services/Parts
-    if (route === "/admin/user-categories") {
-      if (location.pathname.startsWith("/admin/user-categories/vendor-")) {
+    // Special case for Equipment Catalog to prevent false active state on sub-routes
+    if (route === "/admin/equipment-catalog") {
+      if (location.pathname.startsWith("/admin/equipment-catalog/vendor-")) {
         return false;
       }
     }
@@ -307,9 +290,9 @@ const AdminSidebar = ({ isOpen, onClose }) => {
               {counts.bookings > 99 ? '99+' : counts.bookings}
             </span>
           )}
-          {item.title === "Vendors" && counts.vendors > 0 && (
+          {item.title === "Equipment Owners" && counts.owners > 0 && (
             <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse mr-2">
-              {counts.vendors > 99 ? '99+' : counts.vendors}
+              {counts.owners > 99 ? '99+' : counts.owners}
             </span>
           )}
           {item.title === "Settlements" && (counts.withdrawals + counts.pendingSettlements) > 0 && (

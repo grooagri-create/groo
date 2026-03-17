@@ -24,8 +24,8 @@ import CardShell from '../UserCategories/components/CardShell';
 // Import sub-report components
 import RevenueReport from './RevenueReport';
 import BookingReport from './BookingReport';
-import VendorReport from './VendorReport';
-import WorkerReport from './WorkerReport';
+import OwnerReport from './OwnerReport';
+// import WorkerReport from './WorkerReport'; // Legacy
 import AgricultureInsights from './AgricultureInsights';
 
 
@@ -55,8 +55,8 @@ const ReportsOverview = () => {
           const vg = growthRes.data.vendorGrowth.find(v => v._id === ug._id);
           return {
             date: ug._id,
-            users: ug.count,
-            vendors: vg ? vg.count : 0
+            farmers: ug.count,
+            owners: vg ? vg.count : 0
           };
         });
         setGrowthData(merged);
@@ -99,12 +99,12 @@ const ReportsOverview = () => {
       link: '/admin/reports/bookings'
     },
     {
-      title: 'Active Users',
+      title: 'Active Farmers',
       value: stats?.totalUsers || 0,
       icon: FiUsers,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50',
-      link: '/admin/reports/workers' // Just as an example link
+      link: '/admin/reports/revenue' // Redirect to revenue as fallback
     }
   ];
 
@@ -141,8 +141,8 @@ const ReportsOverview = () => {
           <CardShell className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-none hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-amber-100 font-bold uppercase tracking-wider text-[10px]">Partner Insights</p>
-                <h3 className="text-lg font-black mt-0.5">Vendor Reports</h3>
+                <p className="text-amber-100 font-bold uppercase tracking-wider text-[10px]">Owner Insights</p>
+                <h3 className="text-lg font-black mt-0.5">Owner Reports</h3>
               </div>
               <div className="bg-white/20 p-2.5 rounded-xl">
                 <FiBriefcase size={20} />
@@ -154,22 +154,7 @@ const ReportsOverview = () => {
           </CardShell>
         </Link>
 
-        <Link to="/admin/reports/workers" className="group">
-          <CardShell className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white border-none hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-indigo-100 font-bold uppercase tracking-wider text-[10px]">Force Analytics</p>
-                <h3 className="text-lg font-black mt-0.5">Worker Reports</h3>
-              </div>
-              <div className="bg-white/20 p-2.5 rounded-xl">
-                <FiUsers size={20} />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-xs font-bold">
-              View Details <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
-            </div>
-          </CardShell>
-        </Link>
+        {/* Worker Reports Card Removed */}
 
         <Link to="/admin/reports/agri-insights" className="group">
           <CardShell className="bg-gradient-to-br from-emerald-600 to-emerald-700 text-white border-none hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-4">
@@ -287,8 +272,8 @@ const ReportsOverview = () => {
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }} />
                 <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
-                <Area type="monotone" dataKey="users" name="New Users" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.1} strokeWidth={3} />
-                <Area type="monotone" dataKey="vendors" name="New Vendors" stroke="#EC4899" fill="#EC4899" fillOpacity={0.1} strokeWidth={3} />
+                <Area type="monotone" dataKey="farmers" name="New Farmers" stroke="#4F46E5" fill="#4F46E5" fillOpacity={0.1} strokeWidth={3} />
+                <Area type="monotone" dataKey="owners" name="New Owners" stroke="#EC4899" fill="#EC4899" fillOpacity={0.1} strokeWidth={3} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -306,8 +291,8 @@ const Reports = () => {
     switch (currentPath) {
       case 'revenue': return 'Revenue Report';
       case 'bookings': return 'Booking Report';
-      case 'vendors': return 'Vendor Report';
-      case 'workers': return 'Worker Report';
+      case 'vendors': return 'Owner Report';
+      // case 'workers': return 'Worker Report'; // Legacy
       default: return 'Analytics & Reports';
     }
   };
@@ -316,8 +301,8 @@ const Reports = () => {
     { name: 'Overview', path: '/admin/reports', icon: FiActivity, exact: true },
     { name: 'Revenue', path: '/admin/reports/revenue', icon: FiDollarSign },
     { name: 'Bookings', path: '/admin/reports/bookings', icon: FiShoppingBag },
-    { name: 'Vendors', path: '/admin/reports/vendors', icon: FiUsers },
-    { name: 'Workers', path: '/admin/reports/workers', icon: FiBriefcase },
+    { name: 'Owners', path: '/admin/reports/vendors', icon: FiUsers },
+    // { name: 'Workers', path: '/admin/reports/workers', icon: FiBriefcase }, // Legacy
     { name: 'Agri Insights', path: '/admin/reports/agri-insights', icon: FiActivity },
   ];
 
@@ -332,8 +317,8 @@ const Reports = () => {
         <Route index element={<ReportsOverview />} />
         <Route path="revenue" element={<RevenueReport />} />
         <Route path="bookings" element={<BookingReport />} />
-        <Route path="vendors" element={<VendorReport />} />
-        <Route path="workers" element={<WorkerReport />} />
+        <Route path="vendors" element={<OwnerReport />} />
+        {/* <Route path="workers" element={<WorkerReport />} /> // Legacy */}
         <Route path="agri-insights" element={<AgricultureInsights />} />
       </Routes>
     </div>

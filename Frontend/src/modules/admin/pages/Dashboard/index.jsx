@@ -10,7 +10,7 @@ import RevenueVsBookingsChart from '../../components/dashboard/RevenueVsBookings
 import TimePeriodFilter from '../../components/dashboard/TimePeriodFilter';
 import { formatCurrency } from '../../utils/adminHelpers';
 import CustomerGrowthAreaChart from '../../components/dashboard/CustomerGrowthAreaChart';
-import TopServices from '../../components/dashboard/TopServices';
+import TopEquipment from '../../components/dashboard/TopEquipment';
 import RecentBookings from '../../components/dashboard/RecentBookings';
 import { getDashboardStats, getRevenueAnalytics } from '../../../../services/adminDashboardService';
 
@@ -22,7 +22,6 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalVendors: 0,
-    totalWorkers: 0,
     activeBookings: 0,
     completedBookings: 0,
     totalRevenue: 0,
@@ -39,7 +38,6 @@ const AdminDashboard = () => {
           setStats({
             totalUsers: s.totalUsers,
             totalVendors: s.totalVendors,
-            totalWorkers: s.totalWorkers,
             activeBookings: s.pendingBookings,
             completedBookings: s.completedBookings,
             totalRevenue: s.totalRevenue,
@@ -179,17 +177,6 @@ const AdminDashboard = () => {
       iconBg: 'bg-white/20',
       link: '/admin/vendors/analytics'
     },
-    {
-      title: 'Total Operators',
-      value: (stats.totalWorkers || 0).toLocaleString(),
-      change: 0,
-      icon: FiUsers,
-      color: 'text-white',
-      bgColor: 'bg-gradient-to-br from-rose-500 to-pink-600',
-      cardBg: 'bg-gradient-to-br from-rose-50 to-pink-50',
-      iconBg: 'bg-white/20',
-      link: '/admin/workers/analytics'
-    },
   ];
 
   return (
@@ -267,9 +254,9 @@ const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TopServices
+        <TopEquipment
           bookings={recentBookingsList}
-          periodLabel="Top Booked Services (Recent)"
+          periodLabel="Top Booked Equipment (Recent)"
         />
         <RecentBookings bookings={recentBookingsList} onViewBooking={onViewBooking} />
       </div>

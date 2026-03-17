@@ -151,7 +151,7 @@ const PaymentOverview = () => {
     }
     exportToCSV(transactions, 'payment_transactions', [
       { key: '_id', label: 'Transaction ID' },
-      { key: 'userId.name', label: 'User Name' },
+      { key: 'userId.name', label: 'Farmer Name' },
       { key: 'userId.phone', label: 'Phone' },
       { key: 'userId.email', label: 'Email' },
       { key: 'type', label: 'Type' },
@@ -259,7 +259,7 @@ const PaymentOverview = () => {
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User / Entity</th>
+                <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Farmer / Entity</th>
                 <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -295,9 +295,9 @@ const PaymentOverview = () => {
                           <span className="text-sm font-medium text-gray-800">
                             {tx.userId?.name || tx.vendorId?.businessName || tx.vendorId?.name || tx.workerId?.name || 'Unknown'}
                           </span>
-                          {tx.userId && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium">User</span>}
-                          {tx.vendorId && <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-medium">Vendor</span>}
-                          {tx.workerId && <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded font-medium">Worker</span>}
+                          {tx.userId && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium">Farmer</span>}
+                          {tx.vendorId && <span className="text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-medium">Owner</span>}
+                          {tx.workerId && <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded font-medium">Operator</span>}
                         </div>
                         <span className="text-xs text-gray-400">
                           {tx.userId?.email || tx.vendorId?.email || tx.workerId?.email || ''}

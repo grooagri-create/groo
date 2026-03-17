@@ -20,9 +20,14 @@ const getMyProducts = async (req, res) => {
  */
 const addProduct = async (req, res) => {
     try {
+        const productData = { ...req.body };
+        if (productData.discountPrice === '') {
+            productData.discountPrice = null;
+        }
+        
         const product = new Product({
-            ...req.body,
-            vendorId: req.user.id,
+            ...productData,
+            vendorId: req.user._id,
             isFeatured: false // Vendors cannot feature their own products on Home Page without Admin approval
         });
         await product.save();
@@ -32,6 +37,7 @@ const addProduct = async (req, res) => {
             message: 'Product added to your store'
         });
     } catch (error) {
+        console.error('Add product error:', error);
         res.status(500).json({ success: false, message: error.message || 'Failed to add product' });
     }
 };

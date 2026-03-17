@@ -115,12 +115,14 @@ const productSchema = new mongoose.Schema({
 // Generate slug
 productSchema.pre('validate', async function (next) {
     if (this.isModified('title') && !this.slug) {
-        this.slug = this.title
+        const baseSlug = this.title
             .toLowerCase()
             .replace(/[^a-z0-9\s-]/g, '')
             .replace(/\s+/g, '-')
             .replace(/-+/g, '-')
             .replace(/(^-|-$)/g, '');
+        // Append a short random string to guarantee uniqueness across multiple vendors with same product names
+        this.slug = `${baseSlug}-${Math.random().toString(36).substring(2, 8)}`;
     }
     next();
 });

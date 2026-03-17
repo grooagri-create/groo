@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { FiUser, FiMail, FiPhone, FiFileText, FiUpload, FiX, FiArrowRight, FiChevronLeft, FiCheckCircle, FiCamera } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiFileText, FiUpload, FiX, FiArrowRight, FiChevronLeft, FiCheckCircle, FiCamera, FiBriefcase, FiChevronDown } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { themeColors } from '../../../theme';
 import { register, sendOTP as sendVendorOTP } from '../services/authService';
@@ -9,12 +9,15 @@ import Logo from '../../../components/common/Logo';
 import { compressImage } from '../../../utils/imageCompression';
 
 import { z } from "zod";
+import { publicCatalogService } from '../../../services/catalogService';
 
 // Zod schema for Vendor Signup
 const vendorSignupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").regex(/^[a-zA-Z\s]+$/, "Name can only contain letters"),
   email: z.string().email("Please enter a valid email address"),
   phoneNumber: z.string().regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian phone number"),
+  businessName: z.string().min(3, "Business Name must be at least 3 characters"),
+  service: z.array(z.string()).min(1, "Please select at least one equipment category"),
   aadhar: z.string().regex(/^\d{12}$/, "Aadhar number must be exactly 12 digits"),
   pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format (e.g. ABCDE1234F)")
 });
@@ -27,11 +30,13 @@ const VendorSignup = () => {
     name: '',
     email: '',
     phoneNumber: '',
+    businessName: '',
+    service: [],
     aadhar: '',
     pan: '',
-    service: '',
     documents: []
   });
+  const [categories, setCategories] = useState([]);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpToken, setOtpToken] = useState('');
   const [verificationToken, setVerificationToken] = useState('');
@@ -50,6 +55,21 @@ const VendorSignup = () => {
     }
     return () => clearInterval(interval);
   }, [resendTimer]);
+
+  // Load dynamic categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await publicCatalogService.getCategories();
+        if (response.success) {
+          setCategories(response.categories || []);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   // Refs for auto-focus
   const nameInputRef = useRef(null);
@@ -85,6 +105,17 @@ const VendorSignup = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const toggleServiceSelection = (title) => {
+    setFormData(prev => {
+      const currentServices = Array.isArray(prev.service) ? prev.service : [];
+      if (currentServices.includes(title)) {
+        return { ...prev, service: currentServices.filter(s => s !== title) };
+      } else {
+        return { ...prev, service: [...currentServices, title] };
+      }
+    });
   };
 
   const handleDocumentUpload = async (e, type) => {
@@ -177,6 +208,8 @@ const VendorSignup = () => {
       name: formData.name,
       email: formData.email,
       phoneNumber: formData.phoneNumber,
+      businessName: formData.businessName,
+      service: formData.service,
       aadhar: formData.aadhar,
       pan: formData.pan
     });
@@ -207,9 +240,10 @@ const VendorSignup = () => {
           name: formData.name,
           email: formData.email,
           phone: formData.phoneNumber,
+          businessName: formData.businessName,
           aadhar: formData.aadhar,
           pan: formData.pan,
-          service: [],
+          service: formData.service, // It's already an array now
           aadharDocument: aadharDoc,
           aadharBackDocument: aadharBackDoc,
           panDocument: panDoc,
@@ -304,9 +338,10 @@ const VendorSignup = () => {
         name: formData.name,
         email: formData.email,
         phone: formData.phoneNumber,
+        businessName: formData.businessName,
         aadhar: formData.aadhar,
         pan: formData.pan,
-        service: formData.service,
+        service: formData.service, 
         aadharDocument: aadharDoc,
         aadharBackDocument: aadharBackDoc,
         panDocument: panDoc,
@@ -377,8 +412,53 @@ const VendorSignup = () => {
                         onChange={handleInputChange}
                         className="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none hover:border-gray-400"
                         style={{ '--tw-ring-color': brandColor }}
-                        placeholder="Organization or Full Name"
+                        placeholder="Your Full Name"
                       />
+                    </div>
+                  </div>
+
+                  <div className="animate-fade-in" style={{ animationDelay: '0.15s' }}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Business / Farm Name</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none group-focus-within:text-[#347989] transition-colors">
+                        <FiBriefcase className="text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        name="businessName"
+                        required
+                        value={formData.businessName}
+                        onChange={handleInputChange}
+                        className="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none hover:border-gray-400"
+                        style={{ '--tw-ring-color': brandColor }}
+                        placeholder="e.g. Krishna Agri Services"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Equipment Category (Select All That Apply)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((cat) => {
+                        const isSelected = formData.service.includes(cat.title);
+                        return (
+                          <button
+                            key={cat._id}
+                            type="button"
+                            onClick={() => toggleServiceSelection(cat.title)}
+                            className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-300 ${
+                              isSelected
+                                ? 'bg-[#347989] text-white border-[#347989] shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-[#347989]'
+                            }`}
+                          >
+                            {cat.title}
+                          </button>
+                        );
+                      })}
+                      {categories.length === 0 && (
+                        <p className="text-xs text-gray-400 italic">No categories available</p>
+                      )}
                     </div>
                   </div>
 

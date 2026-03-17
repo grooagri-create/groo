@@ -28,7 +28,7 @@ import { toast } from 'react-hot-toast';
 import CardShell from '../UserCategories/components/CardShell';
 import adminReportService from '../../../../services/adminReportService';
 
-const VendorAnalytics = () => {
+const OwnerAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
@@ -44,8 +44,8 @@ const VendorAnalytics = () => {
         setData(res.data);
       }
     } catch (error) {
-      console.error('Vendor analytics error:', error);
-      toast.error('Failed to load vendor analytics');
+      console.error('Owner analytics error:', error);
+      toast.error('Failed to load owner analytics');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ const VendorAnalytics = () => {
               <FiUsers className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Vendors</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Equipment Owners</p>
               <h3 className="text-lg font-bold text-gray-900">{data.totalVendors}</h3>
             </div>
           </div>
@@ -139,7 +139,7 @@ const VendorAnalytics = () => {
           </div>
         </CardShell>
 
-        {/* Top Vendors */}
+        {/* Top Owners */}
         <CardShell icon={FiTrendingUp} title="Top Performers" className="p-3">
           <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -186,4 +186,4 @@ const VendorAnalytics = () => {
   );
 };
 
-export default VendorAnalytics;
+export default OwnerAnalytics;

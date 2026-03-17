@@ -359,14 +359,14 @@ const Plans = () => {
                         </div>
                       )}
 
-                      {/* Display Free Services */}
+                      {/* Display Free Equipment Types */}
                       {plan.freeServices && plan.freeServices.length > 0 && (
                         <div className={`flex flex-col gap-1 text-xs ${style.text}`}>
                           {plan.freeServices.map((svcRef, idx) => {
                             const svcId = String(svcRef?._id || svcRef);
                             const svc = servicesList.find(s => String(s.id || s._id) === svcId);
 
-                            let displayTitle = 'Free Service';
+                            let displayTitle = 'Free Equipment';
                             if (svc) {
                               const brandTitle = svc.brandId?.title || '';
                               const catTitle = svc.categoryId?.title || '';
@@ -537,7 +537,7 @@ const Plans = () => {
                   </span>
                   <div>
                     <h3 className="font-bold text-gray-800">Plan Highlights</h3>
-                    <p className="text-xs text-gray-500">Marketing features shown to customers</p>
+                    <p className="text-xs text-gray-500">Marketing features shown to farmers</p>
                   </div>
                 </div>
                 <div className="p-6 bg-white space-y-4">
@@ -598,7 +598,7 @@ const Plans = () => {
                     </span>
                     <div>
                       <h3 className="font-bold text-gray-800">Plan Benefits</h3>
-                      <p className="text-xs text-gray-500">Configure free services included in this plan</p>
+                      <p className="text-xs text-gray-500">Configure free equipment included in this plan</p>
                     </div>
                   </div>
                 </div>
@@ -640,7 +640,7 @@ const Plans = () => {
                     </div>
 
                     <div className="flex-1 w-full space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-500 uppercase">Service</label>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Equipment Type</label>
                       <select
                         value={selectedService}
                         onChange={(e) => setSelectedService(e.target.value)}
@@ -745,12 +745,12 @@ const Plans = () => {
                         );
                       })}
 
-                      {/* Services */}
+                      {/* Equipment Types */}
                       {formData.freeServices.map((svcId, idx) => {
                         const targetId = String(svcId?._id || svcId);
                         const svc = servicesList.find(s => String(s.id || s._id) === targetId);
 
-                        let displayTitle = 'Service';
+                        let displayTitle = 'Equipment';
                         if (svc) {
                           const brandTitle = svc.brandId?.title || '';
                           const catTitle = svc.categoryId?.title || '';

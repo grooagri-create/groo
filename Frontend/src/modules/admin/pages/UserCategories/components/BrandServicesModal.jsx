@@ -129,20 +129,20 @@ const BrandServicesModal = ({ isOpen, onClose, brand }) => {
   if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Manage Services for ${brand?.title}`} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Manage Equipment for ${brand?.title}`} size="xl">
       <div className="space-y-6">
         {/* Form */}
         <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
           <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
-            {editingId ? 'Edit Service' : 'Add New Service'}
+            {editingId ? 'Edit Equipment' : 'Add New Equipment'}
           </h3>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Service Title</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Equipment Title</label>
               <input
                 value={form.title}
                 onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-                placeholder="e.g. AC Filter Cleaning"
+                placeholder="e.g. Tractor 50HP with Plow"
                 className="w-full px-3 py-2 border rounded-lg text-sm"
               />
             </div>
@@ -227,7 +227,7 @@ const BrandServicesModal = ({ isOpen, onClose, brand }) => {
               {services.length === 0 && (
                 <tr>
                   <td colSpan="4" className="px-4 py-8 text-center text-sm text-gray-500">
-                    No services found for this brand. Add one above.
+                    No equipment found for this brand. Add one above.
                   </td>
                 </tr>
               )}

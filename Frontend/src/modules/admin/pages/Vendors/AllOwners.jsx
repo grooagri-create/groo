@@ -6,147 +6,147 @@ import CardShell from '../UserCategories/components/CardShell';
 import Modal from '../UserCategories/components/Modal';
 import adminVendorService from '../../../../services/adminVendorService';
 
-const AllVendors = () => {
-  const [vendors, setVendors] = useState([]);
+const AllOwners = () => {
+  const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [selectedOwner, setSelectedOwner] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
-  // Load vendors from backend
+  // Load owners from backend
   useEffect(() => {
-    loadVendors();
+    loadOwners();
   }, []);
 
-  const loadVendors = async () => {
+  const loadOwners = async () => {
     try {
       setLoading(true);
       const response = await adminVendorService.getAllVendors();
       if (response.success) {
         // Transform backend data to frontend format
-        const transformedVendors = response.data.map(vendor => ({
-          id: vendor._id,
-          name: vendor.name,
-          email: vendor.email,
-          phone: vendor.phone,
-          businessName: vendor.businessName,
-          service: vendor.service,
-          approvalStatus: vendor.approvalStatus,
-          aadhar: vendor.aadhar?.number,
-          pan: vendor.pan?.number,
+        const transformedOwners = response.data.map(owner => ({
+          id: owner._id,
+          name: owner.name,
+          email: owner.email,
+          phone: owner.phone,
+          businessName: owner.businessName,
+          service: owner.service,
+          approvalStatus: owner.approvalStatus,
+          aadhar: owner.aadhar?.number,
+          pan: owner.pan?.number,
           documents: {
-            aadhar: vendor.aadhar?.document,
-            aadharBack: vendor.aadhar?.backDocument,
-            pan: vendor.pan?.document,
-            other: vendor.otherDocuments?.[0]
+            aadhar: owner.aadhar?.document,
+            aadharBack: owner.aadhar?.backDocument,
+            pan: owner.pan?.document,
+            other: owner.otherDocuments?.[0]
           },
-          createdAt: vendor.createdAt,
-          isActive: vendor.isActive
+          createdAt: owner.createdAt,
+          isActive: owner.isActive
         }));
-        setVendors(transformedVendors);
+        setOwners(transformedOwners);
       } else {
-        toast.error(response.message || 'Failed to load vendors');
+        toast.error(response.message || 'Failed to load owners');
       }
     } catch (error) {
-      console.error('Error loading vendors:', error);
-      toast.error('Failed to load vendors. Please try again.');
+      console.error('Error loading owners:', error);
+      toast.error('Failed to load owners. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredVendors = useMemo(() => {
-    return vendors.filter(vendor => {
-      const serviceString = Array.isArray(vendor.service)
-        ? vendor.service.join(' ')
-        : (vendor.service || '');
+  const filteredOwners = useMemo(() => {
+    return owners.filter(owner => {
+      const serviceString = Array.isArray(owner.service)
+        ? owner.service.join(' ')
+        : (owner.service || '');
 
-      const matchesStatus = filterStatus === 'all' || vendor.approvalStatus === filterStatus;
+      const matchesStatus = filterStatus === 'all' || owner.approvalStatus === filterStatus;
 
       const matchesSearch =
-        vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.phone.includes(searchQuery) ||
+        owner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        owner.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        owner.phone.includes(searchQuery) ||
         serviceString.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (vendor.businessName && vendor.businessName.toLowerCase().includes(searchQuery.toLowerCase()));
+        (owner.businessName && owner.businessName.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesStatus && matchesSearch;
     });
-  }, [vendors, filterStatus, searchQuery]);
+  }, [owners, filterStatus, searchQuery]);
 
-  const handleApprove = async (vendorId) => {
+  const handleApprove = async (ownerId) => {
     try {
-      const response = await adminVendorService.approveVendor(vendorId);
+      const response = await adminVendorService.approveVendor(ownerId);
       if (response.success) {
-        setVendors(prev => prev.map(v =>
-          v.id === vendorId ? { ...v, approvalStatus: 'approved' } : v
+        setOwners(prev => prev.map(o =>
+          o.id === ownerId ? { ...o, approvalStatus: 'approved' } : o
         ));
-        toast.success('Vendor approved successfully!');
+        toast.success('Owner approved successfully!');
       } else {
-        toast.error(response.message || 'Failed to approve vendor');
+        toast.error(response.message || 'Failed to approve owner');
       }
     } catch (error) {
-      console.error('Error approving vendor:', error);
-      toast.error('Failed to approve vendor. Please try again.');
+      console.error('Error approving owner:', error);
+      toast.error('Failed to approve owner. Please try again.');
     }
   };
 
-  const handleReject = async (vendorId) => {
+  const handleReject = async (ownerId) => {
     try {
-      const response = await adminVendorService.rejectVendor(vendorId);
+      const response = await adminVendorService.rejectVendor(ownerId);
       if (response.success) {
-        setVendors(prev => prev.map(v =>
-          v.id === vendorId ? { ...v, approvalStatus: 'rejected' } : v
+        setOwners(prev => prev.map(o =>
+          o.id === ownerId ? { ...o, approvalStatus: 'rejected' } : o
         ));
-        toast.success('Vendor rejected successfully.');
+        toast.success('Owner rejected successfully.');
       } else {
-        toast.error(response.message || 'Failed to reject vendor');
+        toast.error(response.message || 'Failed to reject owner');
       }
     } catch (error) {
-      console.error('Error rejecting vendor:', error);
-      toast.error('Failed to reject vendor. Please try again.');
+      console.error('Error rejecting owner:', error);
+      toast.error('Failed to reject owner. Please try again.');
     }
   };
 
-  const handleToggleStatus = async (vendorId, currentStatus) => {
+  const handleToggleStatus = async (ownerId, currentStatus) => {
     try {
       const newStatus = !currentStatus;
-      const response = await adminVendorService.toggleStatus(vendorId, newStatus);
+      const response = await adminVendorService.toggleStatus(ownerId, newStatus);
       if (response.success) {
-        setVendors(prev => prev.map(v =>
-          v.id === vendorId ? { ...v, isActive: newStatus } : v
+        setOwners(prev => prev.map(o =>
+          o.id === ownerId ? { ...o, isActive: newStatus } : o
         ));
-        toast.success(`Vendor ${newStatus ? 'activated' : 'deactivated'} successfully`);
+        toast.success(`Owner ${newStatus ? 'activated' : 'deactivated'} successfully`);
       } else {
-        toast.error(response.message || 'Failed to update vendor status');
+        toast.error(response.message || 'Failed to update owner status');
       }
     } catch (error) {
-      console.error('Error toggling vendor status:', error);
+      console.error('Error toggling owner status:', error);
       toast.error('Failed to update status');
     }
   };
 
-  const handleDelete = async (vendorId) => {
-    if (!window.confirm('Are you sure you want to delete this vendor? This action cannot be undone.')) {
+  const handleDelete = async (ownerId) => {
+    if (!window.confirm('Are you sure you want to delete this owner? This action cannot be undone.')) {
       return;
     }
 
     try {
-      const response = await adminVendorService.deleteVendor(vendorId);
+      const response = await adminVendorService.deleteVendor(ownerId);
       if (response.success) {
-        setVendors(prev => prev.filter(v => v.id !== vendorId));
-        toast.success('Vendor deleted successfully');
+        setOwners(prev => prev.filter(o => o.id !== ownerId));
+        toast.success('Owner deleted successfully');
       } else {
-        toast.error(response.message || 'Failed to delete vendor');
+        toast.error(response.message || 'Failed to delete owner');
       }
     } catch (error) {
-      console.error('Error deleting vendor:', error);
-      toast.error('Failed to delete vendor');
+      console.error('Error deleting owner:', error);
+      toast.error('Failed to delete owner');
     }
   };
 
-  const handleViewDetails = (vendor) => {
-    setSelectedVendor(vendor);
+  const handleViewDetails = (owner) => {
+    setSelectedOwner(owner);
     setIsViewModalOpen(true);
   };
 
@@ -164,16 +164,16 @@ const AllVendors = () => {
     );
   };
 
-  const pendingCount = vendors.filter(v => v.approvalStatus === 'pending').length;
-  const approvedCount = vendors.filter(v => v.approvalStatus === 'approved').length;
-  const rejectedCount = vendors.filter(v => v.approvalStatus === 'rejected').length;
+  const pendingCount = owners.filter(v => v.approvalStatus === 'pending').length;
+  const approvedCount = owners.filter(v => v.approvalStatus === 'approved').length;
+  const rejectedCount = owners.filter(v => v.approvalStatus === 'rejected').length;
 
   return (
     <div className="space-y-4">
       <CardShell
         icon={FiFilter}
-        title="Vendor Management"
-        subtitle="Manage and verify platform vendors"
+        title="Equipment Owner Management"
+        subtitle="Manage and verify platform equipment owners"
       >
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -197,7 +197,7 @@ const AllVendors = () => {
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Search vendors..."
+              placeholder="Search equipment owners..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-xs"
@@ -225,7 +225,7 @@ const AllVendors = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Vendor Details</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Owner Details</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Business Info</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -234,70 +234,70 @@ const AllVendors = () => {
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">Loading vendors...</td>
+                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">Loading equipment owners...</td>
                   </tr>
-                ) : filteredVendors.length === 0 ? (
+                ) : filteredOwners.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">No vendors found</td>
+                    <td colSpan="4" className="px-4 py-8 text-center text-xs text-gray-500">No equipment owners found</td>
                   </tr>
                 ) : (
-                  filteredVendors.map((vendor) => (
-                    <tr key={vendor.id} className="hover:bg-gray-50 transition-colors">
+                  filteredOwners.map((owner) => (
+                    <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-bold text-gray-900 text-xs">{vendor.name}</p>
-                          <p className="text-[10px] text-gray-500">{vendor.phone}</p>
-                          <p className="text-[10px] text-gray-400">{vendor.email}</p>
+                          <p className="font-bold text-gray-900 text-xs">{owner.name}</p>
+                          <p className="text-[10px] text-gray-500">{owner.phone}</p>
+                          <p className="text-[10px] text-gray-400">{owner.email}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-bold text-gray-800 text-xs">{vendor.businessName || 'N/A'}</p>
+                          <p className="font-bold text-gray-800 text-xs">{owner.businessName || 'N/A'}</p>
                           <p className="text-[10px] text-blue-600 font-medium">
-                            {Array.isArray(vendor.service) ? vendor.service.join(', ') : (vendor.service || 'No service')}
+                            {Array.isArray(owner.service) ? owner.service.join(', ') : (owner.service || 'No equipment')}
                           </p>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${vendor.approvalStatus === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
-                          vendor.approvalStatus === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' :
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${owner.approvalStatus === 'approved' ? 'bg-green-50 text-green-700 border-green-100' :
+                          owner.approvalStatus === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' :
                             'bg-yellow-50 text-yellow-700 border-yellow-100'
                           }`}>
-                          {vendor.approvalStatus}
+                          {owner.approvalStatus}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           {/* View Details */}
                           <button
-                            onClick={() => handleViewDetails(vendor)}
+                            onClick={() => handleViewDetails(owner)}
                             className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                             title="View Details"
                           >
                             <FiEye className="w-3.5 h-3.5" />
                           </button>
-
+ 
                           {/* Toggle Active Status */}
                           <button
-                            onClick={() => handleToggleStatus(vendor.id, vendor.isActive)}
-                            className={`p-1.5 rounded-lg transition-colors ${vendor.isActive ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`}
-                            title={vendor.isActive ? "Disable Login" : "Enable Login"}
+                            onClick={() => handleToggleStatus(owner.id, owner.isActive)}
+                            className={`p-1.5 rounded-lg transition-colors ${owner.isActive ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                            title={owner.isActive ? "Disable Login" : "Enable Login"}
                           >
-                            <FiPower className={`w-3.5 h-3.5 ${vendor.isActive ? 'fill-current' : ''}`} />
+                            <FiPower className={`w-3.5 h-3.5 ${owner.isActive ? 'fill-current' : ''}`} />
                           </button>
-
+ 
                           {/* Approve/Reject (Only for pending) */}
-                          {vendor.approvalStatus === 'pending' && (
+                          {owner.approvalStatus === 'pending' && (
                             <>
                               <button
-                                onClick={() => handleApprove(vendor.id)}
+                                onClick={() => handleApprove(owner.id)}
                                 className="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
                                 title="Approve"
                               >
                                 <FiCheck className="w-3.5 h-3.5" />
                               </button>
                               <button
-                                onClick={() => handleReject(vendor.id)}
+                                onClick={() => handleReject(owner.id)}
                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Reject"
                               >
@@ -305,12 +305,12 @@ const AllVendors = () => {
                               </button>
                             </>
                           )}
-
-                          {/* Delete Vendor */}
+ 
+                          {/* Delete Owner */}
                           <button
-                            onClick={() => handleDelete(vendor.id)}
+                            onClick={() => handleDelete(owner.id)}
                             className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete Vendor"
+                            title="Delete Owner"
                           >
                             <FiTrash2 className="w-3.5 h-3.5" />
                           </button>
@@ -330,67 +330,67 @@ const AllVendors = () => {
         isOpen={isViewModalOpen}
         onClose={() => {
           setIsViewModalOpen(false);
-          setSelectedVendor(null);
+          setSelectedOwner(null);
         }}
-        title="Vendor Details"
+        title="Owner Details"
         size="lg"
       >
-        {selectedVendor && (
+        {selectedOwner && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Business Name</label>
-                <div className="text-gray-900">{selectedVendor.businessName || 'N/A'}</div>
+                <div className="text-gray-900">{selectedOwner.businessName || 'N/A'}</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Owner Name</label>
-                <div className="text-gray-900">{selectedVendor.name}</div>
+                <div className="text-gray-900">{selectedOwner.name}</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                <div className="text-gray-900">{selectedVendor.email}</div>
+                <div className="text-gray-900">{selectedOwner.email}</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
-                <div className="text-gray-900">{selectedVendor.phone}</div>
+                <div className="text-gray-900">{selectedOwner.phone}</div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Service Category</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Equipment Category</label>
                 <div className="text-gray-900">
-                  {Array.isArray(selectedVendor.service) ? selectedVendor.service.join(', ') : (selectedVendor.service || 'N/A')}
+                  {Array.isArray(selectedOwner.service) ? selectedOwner.service.join(', ') : (selectedOwner.service || 'N/A')}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
-                <div>{getStatusBadge(selectedVendor.approvalStatus)}</div>
+                <div>{getStatusBadge(selectedOwner.approvalStatus)}</div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Registered On</label>
                 <div className="text-gray-900">
-                  {new Date(selectedVendor.createdAt).toLocaleDateString()}
+                  {new Date(selectedOwner.createdAt).toLocaleDateString()}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Active</label>
-                <div className={`text-sm font-semibold ${selectedVendor.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                  {selectedVendor.isActive ? 'Active' : 'Inactive'}
+                <div className={`text-sm font-semibold ${selectedOwner.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                  {selectedOwner.isActive ? 'Active' : 'Inactive'}
                 </div>
               </div>
             </div>
-
+ 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">Verification Documents</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {selectedVendor.documents.aadhar && (
+                {selectedOwner.documents.aadhar && (
                   <div>
                     <label className="block text-xs text-gray-600 mb-2">Aadhar Front</label>
                     <img
-                      src={selectedVendor.documents.aadhar}
+                      src={selectedOwner.documents.aadhar}
                       alt="Aadhar Front"
                       className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                     />
                     <a
-                      href={selectedVendor.documents.aadhar}
+                      href={selectedOwner.documents.aadhar}
                       download
                       className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
                     >
@@ -399,16 +399,16 @@ const AllVendors = () => {
                     </a>
                   </div>
                 )}
-                {selectedVendor.documents.aadharBack && (
+                {selectedOwner.documents.aadharBack && (
                   <div>
                     <label className="block text-xs text-gray-600 mb-2">Aadhar Back</label>
                     <img
-                      src={selectedVendor.documents.aadharBack}
+                      src={selectedOwner.documents.aadharBack}
                       alt="Aadhar Back"
                       className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                     />
                     <a
-                      href={selectedVendor.documents.aadharBack}
+                      href={selectedOwner.documents.aadharBack}
                       download
                       className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
                     >
@@ -417,16 +417,16 @@ const AllVendors = () => {
                     </a>
                   </div>
                 )}
-                {selectedVendor.documents.pan && (
+                {selectedOwner.documents.pan && (
                   <div>
                     <label className="block text-xs text-gray-600 mb-2">PAN Card</label>
                     <img
-                      src={selectedVendor.documents.pan}
+                      src={selectedOwner.documents.pan}
                       alt="PAN"
                       className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                     />
                     <a
-                      href={selectedVendor.documents.pan}
+                      href={selectedOwner.documents.pan}
                       download
                       className="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
                     >
@@ -438,29 +438,29 @@ const AllVendors = () => {
               </div>
             </div>
 
-            {selectedVendor.approvalStatus === 'pending' && (
+            {selectedOwner.approvalStatus === 'pending' && (
               <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={async () => {
-                    await handleApprove(selectedVendor.id);
+                    await handleApprove(selectedOwner.id);
                     setIsViewModalOpen(false);
-                    setSelectedVendor(null);
+                    setSelectedOwner(null);
                   }}
                   className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <FiCheck className="w-5 h-5" />
-                  Approve Vendor
+                  Approve Owner
                 </button>
                 <button
                   onClick={async () => {
-                    await handleReject(selectedVendor.id);
+                    await handleReject(selectedOwner.id);
                     setIsViewModalOpen(false);
-                    setSelectedVendor(null);
+                    setSelectedOwner(null);
                   }}
                   className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                 >
                   <FiX className="w-5 h-5" />
-                  Reject Vendor
+                  Reject Owner
                 </button>
               </div>
             )}
@@ -471,4 +471,4 @@ const AllVendors = () => {
   );
 };
 
-export default AllVendors;
+export default AllOwners;

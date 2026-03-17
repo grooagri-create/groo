@@ -16,9 +16,9 @@
       "admin"
     ],
     "children": [
-      "All Users",
-      "User Bookings",
-      "User Analytics"
+      "All Farmers",
+      "Farmer Bookings",
+      "Farmer Analytics"
     ]
   },
   {
@@ -29,22 +29,9 @@
       "admin"
     ],
     "children": [
-      "All Vendors",
-      "Vendor Bookings",
-      "Vendor Analytics"
-    ]
-  },
-  {
-    "title": "Operators",
-    "route": "/admin/workers",
-    "allowedRoles": [
-      "super_admin",
-      "admin"
-    ],
-    "children": [
-      "All Operators",
-      "Operator Jobs",
-      "Operator Analytics"
+      "All Owners",
+      "Owner Bookings",
+      "Owner Analytics"
     ]
   },
   {
@@ -68,8 +55,8 @@
     ],
     "children": [
       "Payment Overview",
-      "User Payments",
-      "Vendor Payments",
+      "Farmer Payments",
+      "Owner Payments",
       "Admin Revenue",
       "Payment Reports"
     ]
@@ -83,13 +70,13 @@
     "children": [
       "Pending",
       "Withdrawals",
-      "Vendors with Due",
+      "Owners with Due",
       "History"
     ]
   },
   {
     "title": "Equipment Catalog",
-    "route": "/admin/user-categories",
+    "route": "/admin/equipment-catalog",
     "allowedRoles": [
       "super_admin",
       "admin"
@@ -98,17 +85,8 @@
       "Home",
       "Manage Categories",
       "Manage Brands",
-      "Manage Services"
+      "Manage Equipment Types"
     ]
-  },
-  {
-    "title": "Vendor Services",
-    "route": "/admin/user-categories/vendor-services",
-    "allowedRoles": [
-      "super_admin",
-      "admin"
-    ],
-    "children": []
   },
   {
     "title": "Reports",

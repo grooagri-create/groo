@@ -62,7 +62,7 @@ const RecentBookings = ({ bookings = [], onViewBooking }) => {
               <p className="text-sm text-gray-600 truncate">{b.user?.name || 'Farmer'}</p>
               <p className="text-xs text-gray-500 mt-1">
                 {new Date(b.createdAt || b.acceptedAt || b.assignedAt || b.visitedAt || b.completedAt || Date.now()).toLocaleString()} •{' '}
-                {b.serviceType || 'Service'}
+                {b.serviceType || 'Equipment'}
               </p>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0 ml-4">

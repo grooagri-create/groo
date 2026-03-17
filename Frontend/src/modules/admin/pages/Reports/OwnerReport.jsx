@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiStar, FiTrendingUp, FiUserCheck } from 'react-icons/fi';
+import { FiBriefcase, FiTrendingUp, FiStar } from 'react-icons/fi';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -9,20 +9,20 @@ import { toast } from 'react-hot-toast';
 import adminReportService from '../../../../services/adminReportService';
 import CardShell from '../UserCategories/components/CardShell';
 
-const WorkerReport = () => {
+const OwnerReport = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await adminReportService.getWorkerReport();
+      const res = await adminReportService.getVendorReport();
       if (res.success) {
         setData(res.data);
       }
     } catch (error) {
-      console.error('Worker report error:', error);
-      toast.error('Failed to load worker report');
+      console.error('Owner report error:', error);
+      toast.error('Failed to load owner report');
     } finally {
       setLoading(false);
     }
@@ -40,25 +40,25 @@ const WorkerReport = () => {
     );
   }
 
-  const COLORS = ['#10B981', '#EF4444', '#F59E0B', '#2874F0', '#6366F1'];
+  const COLORS = ['#2874F0', '#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Workers by Bookings */}
+        {/* Top Owners by Revenue */}
         <CardShell className="bg-white p-4">
           <h3 className="text-base font-bold mb-4 flex items-center gap-2">
             <FiTrendingUp className="text-primary-600" />
-            Top 10 Workers by Bookings
+            Top 10 Owners by Revenue
           </h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data?.topWorkers} layout="vertical">
+              <BarChart data={data?.topVendors} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                <YAxis dataKey="fullName" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10 }} width={100} />
+                <XAxis type="number" axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} tick={{ fontSize: 11 }} />
+                <YAxis dataKey="businessName" type="category" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10 }} width={100} />
                 <Tooltip />
-                <Bar dataKey="totalBookings" name="Bookings" fill="#2874F0" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="totalRevenue" name="Revenue" fill="#2874F0" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -68,8 +68,8 @@ const WorkerReport = () => {
           {/* Status Distribution */}
           <CardShell className="bg-white p-4">
             <h3 className="text-base font-bold mb-4 flex items-center gap-2">
-              <FiUserCheck className="text-amber-600" />
-              Worker Approval Status
+              <FiBriefcase className="text-amber-600" />
+              Owner Approval Status
             </h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -95,15 +95,15 @@ const WorkerReport = () => {
             </div>
           </CardShell>
 
-          {/* Average Rating Distribution */}
+          {/* Category Distribution */}
           <CardShell className="bg-white p-4">
             <h3 className="text-base font-bold mb-4 flex items-center gap-2">
-              <FiStar className="text-indigo-600" />
-              Average Rating Overview
+              <FiBriefcase className="text-indigo-600" />
+              Owners by Category
             </h3>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data?.ratingDistribution}>
+                <BarChart data={data?.categoryDistribution}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                   <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 10 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11 }} />
@@ -119,4 +119,4 @@ const WorkerReport = () => {
   );
 };
 
-export default WorkerReport;
+export default OwnerReport;

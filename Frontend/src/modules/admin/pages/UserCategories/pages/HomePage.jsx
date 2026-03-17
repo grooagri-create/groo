@@ -104,10 +104,10 @@ const RedirectionSelector = ({
           </select>
         </div>
 
-        {/* Step 2: Service Selection */}
+        {/* Step 2: Equipment Selection */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
-            2. Select Service
+            2. Select Equipment
           </label>
           <select
             value={selectedSlug}
@@ -116,10 +116,10 @@ const RedirectionSelector = ({
             className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white transition-all text-sm ${!selectedCategory ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
               }`}
           >
-            <option value="" disabled>-- Select Service --</option>
+            <option value="" disabled>-- Select Equipment --</option>
             {filteredServices.map((s) => (
               <option key={s.id || s._id} value={s.slug || ""}>
-                {s.title || "Untitled Service"}
+                {s.title || "Untitled Equipment"}
               </option>
             ))}
             {selectedCategory && filteredServices.length === 0 && (
@@ -128,7 +128,7 @@ const RedirectionSelector = ({
           </select>
           {selectedSlug && (
             <p className="text-xs text-blue-600 mt-1 font-medium">
-              * Will redirect to Service Details page
+              * Will redirect to Equipment Details page
             </p>
           )}
         </div>
@@ -598,7 +598,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
                       <td className="py-2.5 px-3">
                         <div className="text-sm text-gray-600">
                           {b.slug
-                            ? `Service: ${allServices.find(s => s.slug === b.slug)?.title || b.slug}`
+                            ? `Equipment: ${allServices.find(s => s.slug === b.slug)?.title || b.slug}`
                             : (b.targetCategoryId ? getCategoryTitle(b.targetCategoryId) : "—")
                           }
                         </div>
@@ -753,7 +753,7 @@ const HomePage = ({ catalog, setCatalog, selectedCity }) => {
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3 pb-2 mb-3 border-b border-gray-200">
             <div>
-              <div className="text-lg font-bold text-gray-900">Thoughtful Curations</div>
+              <div className="text-lg font-bold text-gray-900">Equipment Curations</div>
             </div>
           </div>
           <div className="flex items-center gap-4">

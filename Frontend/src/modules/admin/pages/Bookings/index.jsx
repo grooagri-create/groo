@@ -103,11 +103,11 @@ const Bookings = () => {
   }, [page, debouncedSearch, statusFilter, startDate, endDate]);
 
   const handleExport = () => {
-    const headers = ['Order ID', 'Farmer', 'Service', 'Total', 'Status', 'Date'];
+    const headers = ['Order ID', 'Farmer', 'Equipment', 'Total', 'Status', 'Date'];
     const rows = bookings.map(b => [
       b.bookingNumber,
       b.userId?.name || 'Unknown',
-      b.serviceId?.title || 'Service',
+      b.serviceId?.title || 'Equipment',
       b.finalAmount,
       b.status,
       new Date(b.createdAt).toLocaleDateString()

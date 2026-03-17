@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSearch, FiLoader, FiCalendar, FiClock, FiUser, FiShoppingBag } from 'react-icons/fi';
+import { FiSearch, FiLoader, FiCalendar, FiClock, FiUser, FiBriefcase } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import CardShell from '../UserCategories/components/CardShell';
-import { adminUserService } from '../../../../services/adminUserService';
+import adminVendorService from '../../../../services/adminVendorService';
 
-const UserBookings = () => {
+const OwnerBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -21,15 +21,14 @@ const UserBookings = () => {
         status: filterStatus === 'all' ? undefined : filterStatus,
         search: searchQuery || undefined
       };
-      // Note: We'll need to implement getAllUserBookings in adminUserService
-      const response = await adminUserService.getAllUserBookings(params);
+      const response = await adminVendorService.getAllBookings(params);
       if (response.success) {
         setBookings(response.data);
         setPagination(response.pagination);
       }
     } catch (error) {
-      console.error('Error loading user bookings:', error);
-      toast.error('Failed to load user bookings');
+      console.error('Error loading owner bookings:', error);
+      toast.error('Failed to load owner bookings');
     } finally {
       setLoading(false);
     }
@@ -53,7 +52,7 @@ const UserBookings = () => {
   return (
     <div className="space-y-6">
       <CardShell
-        icon={FiShoppingBag}
+        icon={FiBriefcase}
       >
         {/* Search and Filter */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -63,7 +62,7 @@ const UserBookings = () => {
             </div>
             <input
               type="text"
-              placeholder="Search by user name, phone or email..."
+              placeholder="Search by business name, owner or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -104,16 +103,20 @@ const UserBookings = () => {
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
                       <div className="bg-blue-50 p-3 rounded-lg">
-                        <FiShoppingBag className="text-blue-600 w-6 h-6" />
+                        <FiBriefcase className="text-blue-600 w-6 h-6" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-gray-900">{booking.serviceId?.title || 'General Service'}</h4>
+                          <h4 className="font-bold text-gray-900">{booking.serviceId?.title || 'General Equipment'}</h4>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(booking.status)}`}>
                             {booking.status.toUpperCase()}
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <FiBriefcase className="w-4 h-4" />
+                            <span>Owner: <span className="font-medium text-gray-800">{booking.vendorId?.businessName || booking.vendorId?.name || 'Unassigned'}</span></span>
+                          </div>
                           <div className="flex items-center gap-2">
                             <FiUser className="w-4 h-4 text-blue-500" />
                             <span>Farmer: <span className="font-medium text-gray-800">{booking.userId?.name}</span></span>
@@ -124,11 +127,7 @@ const UserBookings = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <FiUser className="w-4 h-4 text-green-500" />
-                            <span>Worker: <span className="font-medium text-gray-800">{booking.workerId?.name || 'Pending Assignment'}</span></span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <FiClock className="w-4 h-4" />
-                            <span>Slot: {booking.bookingSlot}</span>
+                            <span>Operator: <span className="font-medium text-gray-800">{booking.workerId?.name || 'Manual Assignment'}</span></span>
                           </div>
                         </div>
                       </div>
@@ -166,4 +165,4 @@ const UserBookings = () => {
   );
 };
 
-export default UserBookings;
+export default OwnerBookings;

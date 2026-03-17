@@ -15,7 +15,7 @@ const SettlementManagement = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [dashboard, setDashboard] = useState(null);
   const [pendingSettlements, setPendingSettlements] = useState([]);
-  const [vendors, setVendors] = useState([]);
+  const [owners, setOwners] = useState([]);
   const [history, setHistory] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
@@ -30,7 +30,7 @@ const SettlementManagement = () => {
   // Determine active tab from URL
   useEffect(() => {
     const path = location.pathname.split('/').pop();
-    if (['pending', 'vendors', 'history', 'withdrawals'].includes(path)) {
+    if (['pending', 'owners', 'history', 'withdrawals'].includes(path)) {
       setActiveTab(path);
     } else {
       setActiveTab('pending');
@@ -54,9 +54,9 @@ const SettlementManagement = () => {
       if (activeTab === 'pending') {
         const res = await adminSettlementService.getPendingSettlements();
         if (res.success) setPendingSettlements(res.data || []);
-      } else if (activeTab === 'vendors') {
+      } else if (activeTab === 'owners' || activeTab === 'vendors') {
         const res = await adminSettlementService.getVendorBalances({ filterDue: 'true' });
-        if (res.success) setVendors(res.data || []);
+        if (res.success) setOwners(res.data || []);
       } else if (activeTab === 'history') {
         const res = await adminSettlementService.getSettlementHistory();
         if (res.success) setHistory(res.data || []);
@@ -91,12 +91,12 @@ const SettlementManagement = () => {
   const openBlockVendor = (vendor) => {
     setSelectedItem(vendor);
     setModalInput('');
-    setActiveModal('block_vendor');
+    setActiveModal('block_owner');
   };
 
   const openUnblockVendor = (vendor) => {
     setSelectedItem(vendor);
-    setActiveModal('unblock_vendor');
+    setActiveModal('unblock_owner');
   };
 
   const openUpdateLimit = (vendor) => {
@@ -166,7 +166,7 @@ const SettlementManagement = () => {
       setActionLoading(true);
       const res = await adminSettlementService.blockVendor(selectedItem._id, modalInput);
       if (res.success) {
-        toast.success('Vendor blocked');
+        toast.success('Owner blocked');
         loadData();
         closeModals();
       }
@@ -199,7 +199,7 @@ const SettlementManagement = () => {
       setActionLoading(true);
       const res = await adminSettlementService.unblockVendor(selectedItem._id);
       if (res.success) {
-        toast.success('Vendor unblocked');
+        toast.success('Owner unblocked');
         loadData();
         closeModals();
       }
@@ -257,7 +257,7 @@ const SettlementManagement = () => {
   const handleExport = () => {
     if (activeTab === 'history' && history.length > 0) {
       exportToCSV(history, 'settlement_history', [
-        { key: 'vendorId.name', label: 'Vendor Name' },
+        { key: 'vendorId.name', label: 'Owner Name' },
         { key: 'vendorId.businessName', label: 'Business Name' },
         { key: 'amount', label: 'Amount', type: 'currency' },
         { key: 'paymentMethod', label: 'Payment Method' },
@@ -265,9 +265,9 @@ const SettlementManagement = () => {
         { key: 'status', label: 'Status' },
         { key: 'createdAt', label: 'Date', type: 'datetime' }
       ]);
-    } else if (activeTab === 'vendors' && vendors.length > 0) {
-      exportToCSV(vendors, 'vendor_dues', [
-        { key: 'name', label: 'Vendor Name' },
+    } else if ((activeTab === 'owners' || activeTab === 'vendors') && owners.length > 0) {
+      exportToCSV(owners, 'owner_dues', [
+        { key: 'name', label: 'Owner Name' },
         { key: 'businessName', label: 'Business Name' },
         { key: 'phone', label: 'Phone', type: 'phone' },
         { key: 'amountDue', label: 'Amount Due', type: 'currency' },
@@ -276,7 +276,7 @@ const SettlementManagement = () => {
       ]);
     } else if (activeTab === 'withdrawals' && withdrawals.length > 0) {
       exportToCSV(withdrawals, 'withdrawal_requests', [
-        { key: 'vendorId.name', label: 'Vendor Name' },
+        { key: 'vendorId.name', label: 'Owner Name' },
         { key: 'vendorId.businessName', label: 'Business Name' },
         { key: 'amount', label: 'Amount', type: 'currency' },
         { key: 'status', label: 'Status' },
@@ -284,7 +284,7 @@ const SettlementManagement = () => {
       ]);
     } else if (activeTab === 'pending' && pendingSettlements.length > 0) {
       exportToCSV(pendingSettlements, 'pending_settlements', [
-        { key: 'vendorId.name', label: 'Vendor Name' },
+        { key: 'vendorId.name', label: 'Owner Name' },
         { key: 'vendorId.businessName', label: 'Business Name' },
         { key: 'amount', label: 'Amount', type: 'currency' },
         { key: 'paymentMethod', label: 'Payment Method' },
@@ -342,16 +342,16 @@ const SettlementManagement = () => {
           border: 'border-purple-100'
         }
       ];
-    } else if (activeTab === 'vendors') {
-      // Vendor Payables stats
-      const totalVendors = vendors.length;
-      const totalDue = vendors.reduce((sum, v) => sum + (v.amountDue || 0), 0);
-      const blockedCount = vendors.filter(v => v.isBlocked).length;
-      const totalLimit = vendors.reduce((sum, v) => sum + (v.cashLimit || 0), 0);
+    } else if (activeTab === 'owners' || activeTab === 'vendors') {
+      // Owner Payables stats
+      const totalOwners = owners.length;
+      const totalDue = owners.reduce((sum, v) => sum + (v.amountDue || 0), 0);
+      const blockedCount = owners.filter(v => v.isBlocked).length;
+      const totalLimit = owners.reduce((sum, v) => sum + (v.cashLimit || 0), 0);
 
       cards = [
         {
-          title: 'Total Due from Vendors',
+          title: 'Total Due from Owners',
           value: `₹${totalDue.toLocaleString()}`,
           icon: FiDollarSign,
           color: 'text-red-600',
@@ -359,15 +359,15 @@ const SettlementManagement = () => {
           border: 'border-red-100'
         },
         {
-          title: 'Vendors with Dues',
-          value: totalVendors,
+          title: 'Owners with Dues',
+          value: totalOwners,
           icon: FiUsers,
           color: 'text-blue-600',
           bg: 'bg-blue-50',
           border: 'border-blue-100'
         },
         {
-          title: 'Blocked Vendors',
+          title: 'Blocked Owners',
           value: blockedCount,
           icon: FiAlertCircle,
           color: 'text-orange-600',
@@ -484,7 +484,8 @@ const SettlementManagement = () => {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'pending': return 'Pending Settlements';
-      case 'vendors': return 'Vendor Balances & Limits';
+      case 'owners':
+      case 'vendors': return 'Owner Balances & Limits';
       case 'history': return 'Settlement History';
       case 'withdrawals': return 'Withdrawal Requests';
       default: return 'Settlements';
@@ -506,7 +507,7 @@ const SettlementManagement = () => {
             <div className="flex justify-between items-start gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-gray-900">{settlement.vendorId?.name || 'Unknown Vendor'}</h3>
+                  <h3 className="font-bold text-gray-900">{settlement.vendorId?.name || 'Unknown Owner'}</h3>
                   <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">{settlement.vendorId?.businessName}</span>
                 </div>
 
@@ -558,25 +559,25 @@ const SettlementManagement = () => {
     )
   );
 
-  const renderVendorsList = () => (
-    vendors.length === 0 ? (
+  const renderOwnersList = () => (
+    owners.length === 0 ? (
       <div className="text-center py-10">
         <FiCheck className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-        <p className="text-gray-500 text-sm font-medium">All vendors are settled!</p>
+        <p className="text-gray-500 text-sm font-medium">All owners are settled!</p>
       </div>
     ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Vendor Details</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Owner Details</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Cash Limit Status</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Amount Due</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {vendors.map(vendor => (
+            {owners.map(vendor => (
               <tr key={vendor._id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -799,7 +800,7 @@ const SettlementManagement = () => {
         ) : (
           <div className="p-6">
             {activeTab === 'pending' && renderPendingSettlements()}
-            {activeTab === 'vendors' && renderVendorsList()}
+            {(activeTab === 'owners' || activeTab === 'vendors') && renderOwnersList()}
             {activeTab === 'history' && renderHistoryList()}
             {activeTab === 'withdrawals' && renderWithdrawalsList()}
           </div>
@@ -818,7 +819,7 @@ const SettlementManagement = () => {
           <p className="text-gray-600">
             Are you sure you want to approve this settlement of
             <span className="font-bold text-gray-900 mx-1">₹{selectedItem?.amount?.toLocaleString()}</span>
-            from {selectedItem?.vendorId?.name}?
+            from {selectedItem?.vendorId?.name || selectedItem?.name}?
           </p>
           <div className="flex justify-end gap-3 mt-6">
             <Button variant="ghost" onClick={closeModals}>Cancel</Button>
@@ -864,9 +865,9 @@ const SettlementManagement = () => {
 
       {/* Block Vendor Modal */}
       <Modal
-        isOpen={activeModal === 'block_vendor'}
+        isOpen={activeModal === 'block_owner'}
         onClose={closeModals}
-        title="Block Vendor"
+        title="Block Owner"
         size="sm"
       >
         <div className="space-y-4">
@@ -887,17 +888,17 @@ const SettlementManagement = () => {
               isLoading={actionLoading}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              Block Vendor
+              Block Owner
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Unblock Vendor Modal */}
+      {/* Unblock Owner Modal */}
       <Modal
-        isOpen={activeModal === 'unblock_vendor'}
+        isOpen={activeModal === 'unblock_owner'}
         onClose={closeModals}
-        title="Unblock Vendor"
+        title="Unblock Owner"
         size="sm"
       >
         <div className="space-y-4">

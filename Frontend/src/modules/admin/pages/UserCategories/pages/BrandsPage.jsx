@@ -382,7 +382,7 @@ const BrandsPage = ({ catalog, setCatalog, selectedCity }) => {
                   <th className="text-left py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="text-left py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Categories</th>
                   <th className="text-left py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Badge</th>
-                  <th className="text-center py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Services</th>
+                  <th className="text-center py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Equipment</th>
                   <th className="text-right py-4 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Actions</th>
                 </tr>
               </thead>
@@ -449,7 +449,7 @@ const BrandsPage = ({ catalog, setCatalog, selectedCity }) => {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-green-50 text-green-700 rounded-lg hover:bg-green-100 border border-green-200 transition-colors"
                         >
                           <FiGrid className="w-3.5 h-3.5" />
-                          Manage ({s.id ? 'Services' : 'Wait'})
+                          Manage ({s.id ? 'Equipment' : 'Wait'})
                         </button>
                       </td>
                       <td className="py-4 px-4 text-right">

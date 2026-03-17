@@ -59,14 +59,14 @@ const BookingReport = () => {
     ]);
   };
 
-  // Export service distribution
+  // Export equipment distribution
   const handleExportService = () => {
     if (!data?.serviceDistribution || data.serviceDistribution.length === 0) {
-      toast.error('No service data to export');
+      toast.error('No equipment data to export');
       return;
     }
-    exportToCSV(data.serviceDistribution, 'booking_by_service', [
-      { key: '_id', label: 'Service' },
+    exportToCSV(data.serviceDistribution, 'booking_by_equipment', [
+      { key: '_id', label: 'Equipment' },
       { key: 'count', label: 'Bookings', type: 'number' }
     ]);
   };
@@ -135,7 +135,7 @@ const BookingReport = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-base font-bold flex items-center gap-2">
               <FiBarChart2 className="text-amber-600" />
-              Bookings by Service
+              Bookings by Equipment
             </h3>
             <button onClick={handleExportService} className="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1">
               <FiDownload className="w-3 h-3" /> Export

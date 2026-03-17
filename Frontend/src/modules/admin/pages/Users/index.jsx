@@ -5,22 +5,22 @@ import { FiUsers, FiShoppingBag, FiActivity, FiDollarSign } from 'react-icons/fi
 
 // Import sub-components
 // Import sub-components
-import AllUsers from './AllUsers';
-import UserBookings from './UserBookings';
-import UserAnalytics from './UserAnalytics';
+import AllFarmers from './AllFarmers';
+import FarmerBookings from './FarmerBookings';
+import FarmerAnalytics from './FarmerAnalytics';
 
 const Users = () => {
   const location = useLocation();
 
   const navTabs = [
-    { name: 'All Users', path: '/admin/users/all', icon: FiUsers },
-    { name: 'User Bookings', path: '/admin/users/bookings', icon: FiShoppingBag },
-    { name: 'User Analytics', path: '/admin/users/analytics', icon: FiActivity },
+    { name: 'All Farmers', path: '/admin/users/all', icon: FiUsers },
+    { name: 'Farmer Bookings', path: '/admin/users/bookings', icon: FiShoppingBag },
+    { name: 'Farmer Analytics', path: '/admin/users/analytics', icon: FiActivity },
   ];
 
   const getPageTitle = () => {
     const currentTab = navTabs.find(tab => location.pathname === tab.path);
-    return currentTab ? currentTab.name : 'User Management';
+    return currentTab ? currentTab.name : 'Farmer Management';
   };
 
   return (
@@ -34,9 +34,9 @@ const Users = () => {
       >
         <Routes>
           <Route path="/" element={<Navigate to="all" replace />} />
-          <Route path="all" element={<AllUsers />} />
-          <Route path="bookings" element={<UserBookings />} />
-          <Route path="analytics" element={<UserAnalytics />} />
+          <Route path="all" element={<AllFarmers />} />
+          <Route path="bookings" element={<FarmerBookings />} />
+          <Route path="analytics" element={<FarmerAnalytics />} />
           <Route path="*" element={<Navigate to="all" replace />} />
         </Routes>
       </motion.div>
