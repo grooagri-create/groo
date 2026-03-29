@@ -16,7 +16,7 @@ const ArticleDetail = () => {
         window.scrollTo(0, 0);
         const fetchArticle = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/public/website/articles`);
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/public/website/articles`);
                 if (res.data.success) {
                     const found = res.data.data.find(a => a._id === id);
                     setArticle(found);

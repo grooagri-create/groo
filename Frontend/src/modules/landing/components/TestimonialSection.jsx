@@ -13,7 +13,7 @@ const TestimonialSection = () => {
         const fetchReviews = async () => {
             try {
                 // Using relative path or base URL from env
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/public/website/reviews`);
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/public/website/reviews`);
                 if (res.data.success) {
                     setReviews(res.data.data.filter(r => r.isActive));
                 }

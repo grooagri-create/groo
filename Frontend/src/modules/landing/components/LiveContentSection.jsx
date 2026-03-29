@@ -13,10 +13,10 @@ const LiveContentSection = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const apiBase = import.meta.env.VITE_API_URL || '';
+                const apiBase = import.meta.env.VITE_API_BASE_URL || '';
                 const [blogRes, articleRes] = await Promise.all([
-                    axios.get(`${apiBase}/api/public/website/blogs`),
-                    axios.get(`${apiBase}/api/public/website/articles`)
+                    axios.get(`${apiBase}/public/website/blogs`),
+                    axios.get(`${apiBase}/public/website/articles`)
                 ]);
                 
                 if (blogRes.data.success) {

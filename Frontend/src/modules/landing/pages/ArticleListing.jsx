@@ -15,7 +15,7 @@ const ArticleListing = () => {
         window.scrollTo(0, 0);
         const fetchArticles = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/public/website/articles`);
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/public/website/articles`);
                 if (res.data.success) {
                     setArticles(res.data.data.filter(a => a.isActive));
                 }

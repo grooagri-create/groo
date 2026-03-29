@@ -15,7 +15,7 @@ const BlogListing = () => {
         window.scrollTo(0, 0);
         const fetchBlogs = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/public/website/blogs`);
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/public/website/blogs`);
                 if (res.data.success) {
                     setBlogs(res.data.data.filter(b => b.isActive));
                 }

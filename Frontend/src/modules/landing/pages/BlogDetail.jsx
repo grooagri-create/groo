@@ -16,7 +16,7 @@ const BlogDetail = () => {
         window.scrollTo(0, 0);
         const fetchBlog = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/public/website/blogs`);
+                const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/public/website/blogs`);
                 if (res.data.success) {
                     const found = res.data.data.find(b => b._id === id);
                     setBlog(found);

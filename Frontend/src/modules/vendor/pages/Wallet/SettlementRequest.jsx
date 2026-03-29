@@ -120,8 +120,8 @@ const SettlementRequest = () => {
       const file = await compressImage(originalFile);
 
       // 1. Get Signature from Backend (Generic Endpoint)
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const sigRes = await fetch(`${apiUrl}/api/upload/sign-signature`);
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const sigRes = await fetch(`${apiUrl}/upload/sign-signature`);
       const sigData = await sigRes.json();
 
       if (!sigData.success) {
