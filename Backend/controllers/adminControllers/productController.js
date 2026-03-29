@@ -1,8 +1,8 @@
 const Product = require('../../models/Product');
+const EcommerceOrder = require('../../models/EcommerceOrder');
 
 /**
- * Admin: Get all products (Agri Marketplace)
- * Only shows Admin-created products (vendorId = null)
+ * Admin: Get all products (Central Store)
  */
 const getAllProducts = async (req, res) => {
     try {
@@ -14,120 +14,128 @@ const getAllProducts = async (req, res) => {
 };
 
 /**
- * Admin: Get all vendor-added equipment (plan2.txt Step 4)
- * Shows equipment submitted by vendors, filterable by approvalStatus
+ * Admin: Get all vendor submitted products
  */
-const getVendorEquipment = async (req, res) => {
+const getVendorProducts = async (req, res) => {
     try {
-        const { approvalStatus } = req.query;
+        const { approvalStatus, type } = req.query;
         const query = { vendorId: { $ne: null } };
         if (approvalStatus) query.approvalStatus = approvalStatus;
+        if (type) query.type = type;
 
-        const equipment = await Product.find(query)
+        const products = await Product.find(query)
             .populate('categoryId', 'title')
-            .populate('vendorId', 'name businessName phone profilePhoto');
-        res.status(200).json({ success: true, data: equipment });
+            .populate('vendorId', 'name businessName phone profilePhoto')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: products });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch vendor equipment' });
+        res.status(500).json({ success: false, message: 'Failed to fetch vendor products' });
     }
 };
 
 /**
- * Admin: Approve vendor equipment (plan2.txt Step 4)
+ * Admin: Approve vendor product & set tax/commission
  */
-const approveEquipment = async (req, res) => {
+const approveProduct = async (req, res) => {
     try {
+        const { commissionPercentage, gstPercentage } = req.body;
+        
         const product = await Product.findOneAndUpdate(
             { _id: req.params.id, vendorId: { $ne: null } },
-            { approvalStatus: 'approved', rejectionReason: null },
+            { 
+                approvalStatus: 'approved', 
+                rejectionReason: null,
+                commissionPercentage: Number(commissionPercentage) || 0,
+                gstPercentage: Number(gstPercentage) || 5,
+                status: 'active'
+            },
             { new: true }
         );
-        if (!product) return res.status(404).json({ success: false, message: 'Equipment not found' });
-        res.status(200).json({ success: true, message: 'Equipment approved. Now live on farmer app.', data: product });
+
+        if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+        res.status(200).json({ success: true, message: 'Product approved. Now live on marketplace.', data: product });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to approve equipment' });
+        res.status(500).json({ success: false, message: 'Failed to approve product' });
     }
 };
 
 /**
- * Admin: Reject vendor equipment (plan2.txt Step 4)
+ * Admin: Reject vendor product
  */
-const rejectEquipment = async (req, res) => {
+const rejectProduct = async (req, res) => {
     try {
         const { reason } = req.body;
         const product = await Product.findOneAndUpdate(
             { _id: req.params.id, vendorId: { $ne: null } },
-            { approvalStatus: 'rejected', rejectionReason: reason || 'Not meeting platform standards' },
+            { 
+                approvalStatus: 'rejected', 
+                rejectionReason: reason || 'Not meeting platform standards',
+                status: 'inactive'
+            },
             { new: true }
         );
-        if (!product) return res.status(404).json({ success: false, message: 'Equipment not found' });
-        res.status(200).json({ success: true, message: 'Equipment rejected.', data: product });
+        if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+        res.status(200).json({ success: true, message: 'Product rejected.', data: product });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to reject equipment' });
+        res.status(500).json({ success: false, message: 'Failed to reject product' });
     }
 };
 
 /**
- * Admin: Create new product (Agri Marketplace - admin only)
+ * Admin: Create/Update/Delete (Central Store)
  */
 const createProduct = async (req, res) => {
     try {
         const product = new Product({ ...req.body, vendorId: null, approvalStatus: 'approved' });
         await product.save();
-        res.status(201).json({ success: true, data: product, message: 'Product created successfully' });
+        res.status(201).json({ success: true, data: product });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message || 'Failed to create product' });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-/**
- * Admin: Update product
- */
 const updateProduct = async (req, res) => {
     try {
         const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-        res.status(200).json({ success: true, data: product, message: 'Product updated successfully' });
+        res.status(200).json({ success: true, data: product });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to update product' });
     }
 };
 
-/**
- * Admin: Delete product
- */
 const deleteProduct = async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
         if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-        res.status(200).json({ success: true, message: 'Product deleted successfully' });
+        res.status(200).json({ success: true, message: 'Product deleted' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to delete product' });
     }
 };
 
 /**
- * Admin: Toggle product featured status
+ * Admin: View all Ecommerce Orders
  */
-const toggleFeatured = async (req, res) => {
+const getAllEcommerceOrders = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
-        if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-        product.isFeatured = !product.isFeatured;
-        await product.save();
-        res.status(200).json({ success: true, isFeatured: product.isFeatured, message: `Product ${product.isFeatured ? 'featured' : 'removed from featured'}` });
+        const orders = await EcommerceOrder.find()
+            .populate('userId', 'name phone')
+            .populate('vendorId', 'businessName name phone')
+            .sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: orders });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to update product status' });
+        res.status(500).json({ success: false, message: 'Failed to fetch orders' });
     }
 };
 
 module.exports = {
     getAllProducts,
-    getVendorEquipment,
-    approveEquipment,
-    rejectEquipment,
+    getVendorProducts,
+    approveProduct,
+    rejectProduct,
     createProduct,
     updateProduct,
     deleteProduct,
-    toggleFeatured
+    getAllEcommerceOrders
 };

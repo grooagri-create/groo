@@ -63,6 +63,10 @@ const CancellationPolicy = lazyLoad(() => import('../pages/CancellationPolicy'))
 const WeatherReport = lazyLoad(() => import('../pages/WeatherReport'));
 const Marketplace = lazyLoad(() => import('../pages/Marketplace'));
 const SoilTesting = lazyLoad(() => import('../pages/SoilTesting'));
+const AgriMarket = lazyLoad(() => import('../pages/AgriMarket'));
+const AgriProductDetail = lazyLoad(() => import('../pages/AgriMarket/ProductDetail'));
+const MyAgriOrders = lazyLoad(() => import('../pages/AgriMarket/MyOrders'));
+const AgriOrderPayment = lazyLoad(() => import('../pages/AgriMarket/OrderPayment'));
 
 // Loading fallback component
 import LogoLoader from '../../../components/common/LogoLoader';
@@ -132,6 +136,10 @@ const UserRoutes = () => {
               <Route path="/weather" element={<ProtectedRoute userType="user"><WeatherReport /></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute userType="user"><Marketplace /></ProtectedRoute>} />
               <Route path="/soil-testing" element={<ProtectedRoute userType="user"><SoilTesting /></ProtectedRoute>} />
+              <Route path="/agri-marketplace" element={<ProtectedRoute userType="user"><AgriMarket /></ProtectedRoute>} />
+              <Route path="/agri-marketplace/:id" element={<ProtectedRoute userType="user"><AgriProductDetail /></ProtectedRoute>} />
+              <Route path="/my-agri-orders" element={<ProtectedRoute userType="user"><MyAgriOrders /></ProtectedRoute>} />
+              <Route path="/order-payment/:id" element={<ProtectedRoute userType="user"><AgriOrderPayment /></ProtectedRoute>} />
             </Routes>
           </PageTransition>
         </Suspense>

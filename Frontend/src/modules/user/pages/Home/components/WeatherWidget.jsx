@@ -34,45 +34,38 @@ export default function WeatherWidget() {
 
     const getWeatherIcon = (description) => {
         const d = description?.toLowerCase() || '';
-        if (d.includes('rain')) return <FiCloudRain className="w-8 h-8 text-blue-400" />;
-        if (d.includes('cloud')) return <FiCloud className="w-8 h-8 text-gray-400" />;
-        if (d.includes('sun') || d.includes('clear')) return <FiSun className="w-8 h-8 text-yellow-400" />;
-        return <FiCloud className="w-8 h-8 text-gray-400" />;
+        if (d.includes('rain')) return <FiCloudRain className="w-8 h-8 text-white drop-shadow-md" />;
+        if (d.includes('cloud')) return <FiCloud className="w-8 h-8 text-white drop-shadow-md" />;
+        if (d.includes('sun') || d.includes('clear')) return <FiSun className="w-8 h-8 text-white drop-shadow-md" />;
+        return <FiCloud className="w-8 h-8 text-white drop-shadow-md" />;
     };
 
-    if (loading) return null;
-    if (!weather) return null;
+    const displayTemp = weather ? `${Math.round(weather.current.temp)}°C` : (loading ? "..." : "--");
+    const displayDesc = weather ? weather.current.description : (loading ? "Loading..." : "Unknown");
+    const iconToRender = weather ? getWeatherIcon(weather.current.description) : <FiCloud className="w-8 h-8 text-white drop-shadow-md opacity-50" />;
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             onClick={() => navigate('/user/weather')}
-            className="mx-5 mb-6 bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
+            className="flex flex-col items-center cursor-pointer active:scale-95 transition-all group w-[70px]"
         >
-            <div className="flex items-center gap-4">
-                <div className="bg-slate-50 p-3 rounded-2xl">
-                    {getWeatherIcon(weather.current.description)}
+            <div className="relative">
+                <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center bg-gradient-to-tr from-indigo-500 to-purple-500 shadow-md transition-all border border-white/20 ${loading ? 'animate-pulse' : 'group-hover:shadow-lg group-hover:shadow-indigo-500/30'}`}>
+                    <div className="absolute inset-0 bg-white/10 rounded-full" />
+                    {iconToRender}
                 </div>
-                <div>
-                    <div className="flex items-center gap-1 mb-0.5">
-                        <FiMapPin className="w-3 h-3 text-emerald-600" />
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{weather.current.city}</span>
+                {/* Temperature Badge */}
+                {(!loading && weather) && (
+                    <div className="absolute -top-1 -right-2 bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-sm border-[1.5px] border-white">
+                        {displayTemp}
                     </div>
-                    <h4 className="text-xl font-black text-slate-800 leading-none mb-1">{Math.round(weather.current.temp)}°C</h4>
-                    <p className="text-xs text-slate-500 font-medium capitalize">{weather.current.description}</p>
-                </div>
+                )}
             </div>
-
-            <div className="bg-emerald-50 h-10 w-10 rounded-full flex items-center justify-center text-emerald-600">
-                <FiArrowRight />
-            </div>
-
-            {/* Mini Alert Tag */}
-            <div className="absolute top-2 right-5">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 text-[8px] font-black uppercase tracking-tighter">
-                    Agri Alert
-                </span>
+            <div className="text-center mt-2 w-full">
+                <p className="text-[10px] font-black text-slate-800 leading-tight uppercase tracking-tight truncate">Weather</p>
+                <p className="text-[8px] font-bold text-slate-400 truncate capitalize">{displayDesc}</p>
             </div>
         </motion.div>
     );

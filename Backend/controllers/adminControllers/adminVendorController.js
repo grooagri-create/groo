@@ -513,6 +513,44 @@ const deleteVendor = async (req, res) => {
   }
 };
 
+/**
+ * Update vendor services
+ */
+const updateVendorServices = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { services } = req.body;
+
+    const vendor = await Vendor.findById(id);
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found'
+      });
+    }
+
+    if (services !== undefined) {
+      vendor.service = Array.isArray(services) ? services : [];
+      vendor.categories = vendor.service; // Sync
+    }
+
+    await vendor.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Vendor services updated successfully',
+      data: vendor
+    });
+  } catch (error) {
+    console.error('Update vendor services error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update vendor services'
+    });
+  }
+};
+
 module.exports = {
   getAllVendors,
   getVendorDetails,
@@ -524,6 +562,57 @@ module.exports = {
   getAllVendorBookings,
   getVendorPaymentsSummary,
   toggleVendorStatus,
-  deleteVendor
+  updateVendorServices,
+  deleteVendor,
+  // Agri-Marketplace Shop Management
+  getPendingShopApprovals: async (req, res) => {
+    try {
+      const vendors = await Vendor.find({
+        'shopDetails.storeApprovalStatus': 'pending'
+      }).select('name businessName phone shopDetails email');
+      res.status(200).json({ success: true, data: vendors });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+  updateShopStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, remarks } = req.body;
+      if (!['approved', 'rejected'].includes(status)) {
+        return res.status(400).json({ success: false, message: 'Invalid status' });
+      }
+      const updateData = {
+        'shopDetails.storeApprovalStatus': status,
+        'shopDetails.isStoreApproved': status === 'approved'
+      };
+      const vendor = await Vendor.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+      if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found' });
+      
+      // Notification
+      await createNotification({
+        vendorId: vendor._id,
+        type: status === 'approved' ? 'shop_approved' : 'shop_rejected',
+        title: status === 'approved' ? 'Shop Registration Approved' : 'Shop Registration Rejected',
+        message: status === 'approved' ? 'Your Agri-Store is now live. You can add products.' : `Your shop registration was rejected. ${remarks || ''}`,
+        relatedId: vendor._id,
+        relatedType: 'vendor'
+      });
+
+      res.status(200).json({ success: true, message: `Shop registration ${status}`, data: vendor.shopDetails });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+  getApprovedShops: async (req, res) => {
+    try {
+      const vendors = await Vendor.find({
+        'shopDetails.storeApprovalStatus': 'approved'
+      }).select('name businessName phone shopDetails email profilePhoto');
+      res.status(200).json({ success: true, data: vendors });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 };
 

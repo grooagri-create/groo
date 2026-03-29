@@ -8,7 +8,9 @@ import {
     FiCheckCircle,
     FiClock,
     FiFileText,
-    FiInfo
+    FiInfo,
+    FiDownload,
+    FiShield
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/layout/Header';
@@ -23,6 +25,8 @@ const SoilTesting = () => {
     const [submitting, setSubmitting] = useState(false);
     const [requests, setRequests] = useState([]);
     const [showForm, setShowForm] = useState(false);
+    const [paymentModal, setPaymentModal] = useState(null);
+    const [processingPayment, setProcessingPayment] = useState(false);
 
     const [formData, setFormData] = useState({
         landSize: '',
@@ -53,7 +57,7 @@ const SoilTesting = () => {
             setSubmitting(true);
             const res = await soilTestService.request(formData);
             if (res.success) {
-                toast.success("Request submit ho gayi! Hum aapse jald hi contact karenge.");
+                toast.success("Request submitted successfully! Our team will contact you soon.");
                 setShowForm(false);
                 fetchMyRequests();
                 setFormData({
@@ -64,25 +68,161 @@ const SoilTesting = () => {
                 });
             }
         } catch (err) {
-            toast.error("Submit nahi ho paya. Dobara koshish karein.");
+            toast.error("Submission failed. Please try again.");
         } finally {
             setSubmitting(false);
         }
     };
 
+    const handleWalletPayment = async (req) => {
+        try {
+            setProcessingPayment(true);
+            const res = await soilTestService.payForReport(req._id, 'wallet');
+            if (res.success) {
+                toast.success('Payment successful via Wallet!');
+                setPaymentModal(null);
+                fetchMyRequests();
+            }
+        } catch (error) {
+            if (error.response?.data?.needsOnlinePayment) {
+                toast.error('Insufficient Wallet Balance. Please pay online.');
+                handleOnlinePayment(req);
+            } else {
+                toast.error(error.response?.data?.message || 'Wallet payment failed');
+            }
+        } finally {
+            setProcessingPayment(false);
+        }
+    };
+
+    const handleOnlinePayment = async (req) => {
+        try {
+            setProcessingPayment(true);
+            const res = await soilTestService.payForReport(req._id, 'online');
+            
+            if (res.success && res.data?.orderId) {
+                const options = {
+                    key: res.data.key,
+                    amount: res.data.amount * 100,
+                    currency: res.data.currency,
+                    name: 'GrooAgri',
+                    description: 'Soil Test Report',
+                    order_id: res.data.orderId,
+                    handler: async function (response) {
+                        try {
+                            const verifyRes = await soilTestService.verifyPayment(req._id, {
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            });
+                            if (verifyRes.success) {
+                                toast.success('Payment verified successfully!');
+                                setPaymentModal(null);
+                                fetchMyRequests();
+                            }
+                        } catch (verifyErr) {
+                            toast.error(verifyErr.response?.data?.message || 'Payment verification failed');
+                        }
+                    },
+                    prefill: {
+                        name: JSON.parse(localStorage.getItem('userData') || '{}').name || 'Farmer',
+                        contact: JSON.parse(localStorage.getItem('userData') || '{}').phone || ''
+                    },
+                    theme: { color: '#0d9488' }
+                };
+                
+                const rzp = new window.Razorpay(options);
+                rzp.on('payment.failed', function (response) {
+                    toast.error('Payment failed: ' + response.error.description);
+                });
+                rzp.open();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Online payment initialization failed');
+        } finally {
+            setProcessingPayment(false);
+        }
+    };
+
+    const TRACKING_STEPS = [
+        { key: 'pending',          label: 'Submitted' },
+        { key: 'assigned',         label: 'Assigned' },
+        { key: 'sample_collected', label: 'Sample Collected' },
+        { key: 'at_lab',           label: 'At Lab' },
+        { key: 'completed',        label: 'Approved' },
+    ];
+
+    const stepIndex = (status) => TRACKING_STEPS.findIndex(s => s.key === status);
+
+    const TrackingBar = ({ status }) => {
+        const current = stepIndex(status);
+        return (
+            <div className="flex items-center gap-0.5 mt-4">
+                {TRACKING_STEPS.map((step, i) => (
+                    <React.Fragment key={step.key}>
+                        <div className="flex flex-col items-center">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black transition-all
+                                ${i <= current ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                                {i < current ? '✓' : i + 1}
+                            </div>
+                            <p className={`text-[8px] mt-1 font-bold text-center leading-tight max-w-[40px]
+                                ${i <= current ? 'text-teal-600' : 'text-slate-300'}`}>
+                                {step.label}
+                            </p>
+                        </div>
+                        {i < TRACKING_STEPS.length - 1 && (
+                            <div className={`flex-1 h-0.5 mb-4 rounded-full transition-all ${
+                                i < current ? 'bg-teal-500' : 'bg-slate-100'}`} />
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
+        );
+    };
+
     const StatusBadge = ({ status }) => {
         const styles = {
-            pending: "bg-amber-50 text-amber-600 border-amber-100",
-            processing: "bg-blue-50 text-blue-600 border-blue-100",
-            completed: "bg-emerald-50 text-emerald-600 border-emerald-100",
-            cancelled: "bg-slate-50 text-slate-400 border-slate-100"
+            pending:          'bg-amber-50 text-amber-600 border-amber-100',
+            assigned:         'bg-blue-50 text-blue-600 border-blue-100',
+            sample_collected: 'bg-purple-50 text-purple-600 border-purple-100',
+            at_lab:           'bg-indigo-50 text-indigo-600 border-indigo-100',
+            completed:        'bg-emerald-50 text-emerald-600 border-emerald-100',
+            cancelled:        'bg-slate-50 text-slate-400 border-slate-100',
         };
+        const labels = {
+            pending:          'Pending',
+            assigned:         'Assigned',
+            sample_collected: 'Sample Collected',
+            at_lab:           'At Lab',
+            completed:        'Approved ✓',
+            cancelled:        'Cancelled',
+        };
+
         return (
-            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${styles[status]}`}>
-                {status}
+            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${styles[status] || styles.pending}`}>
+                {labels[status] || status}
             </span>
         );
     };
+
+    const handleDownload = async (url) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', `soil_report_${Date.now()}${url.toLowerCase().includes('.pdf') ? '.pdf' : '.jpg'}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            window.open(url, '_blank');
+        }
+    };
+
 
     return (
         <div className="min-h-screen bg-[#F1F8E9] pb-24">
@@ -93,7 +233,7 @@ const SoilTesting = () => {
                 </button>
                 <div className="flex-1">
                     <h1 className="text-xl font-black text-slate-800 leading-tight">Soil Testing</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mitti ki jaanch, behtar fasal</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Soil Testing, Better Crops</p>
                 </div>
             </div>
 
@@ -101,8 +241,8 @@ const SoilTesting = () => {
                 {/* Hero Header */}
                 <div className="bg-gradient-to-br from-[#347989] to-[#255b68] rounded-[40px] p-8 text-white relative overflow-hidden shadow-xl shadow-teal-900/10">
                     <div className="relative z-10">
-                        <h2 className="text-2xl font-black mb-2">Apni mitti ki jaanch karayein</h2>
-                        <p className="text-white/80 text-sm font-medium leading-relaxed mb-6">Mitti ke poshak tatvon ko jaanein aur sahi khad ka upyog karein.</p>
+                        <h2 className="text-2xl font-black mb-2">Get your soil tested</h2>
+                        <p className="text-white/80 text-sm font-medium leading-relaxed mb-6">Know your soil nutrients and use the right fertilizer.</p>
                         <button
                             onClick={() => setShowForm(true)}
                             className="bg-white text-[#347989] px-6 py-3 rounded-2xl font-black text-sm shadow-lg active:scale-95 transition-all"
@@ -135,7 +275,7 @@ const SoilTesting = () => {
                 {/* Previous Requests */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">Meri Requests</h2>
+                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">My Requests</h2>
                         <FiFileText className="text-slate-400" />
                     </div>
 
@@ -146,29 +286,54 @@ const SoilTesting = () => {
                     ) : requests.length === 0 ? (
                         <div className="bg-white/50 border-2 border-dashed border-slate-200 rounded-[40px] p-12 text-center">
                             <FiInfo className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                            <p className="font-black text-slate-800">Abhi tak koi request nahi hain</p>
-                            <p className="text-xs text-slate-400 font-medium">Behtar fasal ke liye mitti ki jaanch zaroori hai.</p>
+                            <p className="font-black text-slate-800">No requests yet</p>
+                            <p className="text-xs text-slate-400 font-medium">Soil testing is essential for a better harvest.</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {requests.map(req => (
                                 <div key={req._id} className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm">
-                                    <div className="flex justify-between items-start mb-4">
+                                    <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Request ID: {req._id.slice(-8)}</p>
-                                            <h4 className="font-black text-slate-800 text-base">{req.landSize} Land - {req.cropType || 'General'}</h4>
+                                            <h4 className="font-black text-slate-800 text-base">{req.landSize?.replace(/Arce/g, 'Acre')} Land — {req.cropType || 'General'}</h4>
                                         </div>
                                         <StatusBadge status={req.status} />
                                     </div>
-                                    <div className="flex items-center gap-2 text-slate-500 mb-4">
+                                    <div className="flex items-center gap-2 text-slate-500 mb-2">
                                         <FiMapPin className="flex-shrink-0" />
                                         <p className="text-xs font-bold truncate">{req.location}</p>
                                     </div>
-                                    <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+
+                                    {/* Real-time Tracking Bar */}
+                                    {req.status !== 'cancelled' && <TrackingBar status={req.status} />}
+
+                                    {/* Approved — Verified Report Badge + Download */}
+                                    {req.status === 'completed' && req.reportStatus === 'approved' && req.reportUrl && (
+                                        <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <FiShield className="text-emerald-600 w-5 h-5" />
+                                                <div>
+                                                    <p className="text-xs font-black text-emerald-800">Verified Report Ready</p>
+                                                    <p className="text-[10px] text-emerald-600 font-bold">Verified by Admin ✓</p>
+                                                </div>
+                                            </div>
+                                            {req.paymentStatus === 'paid' ? (
+                                                <button onClick={() => handleDownload(req.reportUrl)}
+                                                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+                                                    <FiDownload /> Download
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => setPaymentModal(req)}
+                                                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
+                                                    <FiShield /> Pay ₹{req.totalAmount || 0} to View
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="pt-4 border-t border-slate-50 mt-4">
                                         <p className="text-[10px] font-bold text-slate-400">{new Date(req.createdAt).toLocaleDateString()}</p>
-                                        {req.reportUrl && (
-                                            <a href={req.reportUrl} target="_blank" rel="noreferrer" className="text-teal-600 font-black text-xs uppercase hover:underline">Download Report</a>
-                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -176,6 +341,55 @@ const SoilTesting = () => {
                     )}
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            <AnimatePresence>
+                {paymentModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPaymentModal(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6">
+                            <h3 className="text-xl font-black text-slate-800 mb-2">Unlock Report</h3>
+                            <p className="text-xs font-bold text-slate-500 mb-6">Choose a payment method to unlock and download your verified soil report.</p>
+                            
+                            <div className="bg-slate-50 p-4 rounded-2xl mb-6">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-sm font-bold text-slate-500">Total Fee:</span>
+                                    <span className="text-lg font-black text-slate-800">₹{paymentModal.totalAmount || 0}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 font-medium">Includes sample collection & lab charges</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <button onClick={() => handleWalletPayment(paymentModal)} disabled={processingPayment}
+                                    className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-slate-100 hover:border-teal-500 bg-white transition-all active:scale-95 disabled:opacity-50 group">
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-black text-slate-800 group-hover:text-teal-700">GrooAgri Wallet</span>
+                                        <span className="text-[10px] font-bold text-slate-400">Pay using your platform balance</span>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-all">
+                                        →
+                                    </div>
+                                </button>
+
+                                <button onClick={() => handleOnlinePayment(paymentModal)} disabled={processingPayment}
+                                    className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-slate-100 hover:border-blue-500 bg-white transition-all active:scale-95 disabled:opacity-50 group">
+                                    <div className="flex flex-col items-start">
+                                        <span className="font-black text-slate-800 group-hover:text-blue-700">Pay Online</span>
+                                        <span className="text-[10px] font-bold text-slate-400">UPI, Cards, Netbanking</span>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                        →
+                                    </div>
+                                </button>
+                            </div>
+
+                            <button onClick={() => setPaymentModal(null)} disabled={processingPayment} className="w-full mt-4 py-3 text-xs font-black text-slate-400 hover:text-slate-600">
+                                Cancel
+                            </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Request Form Modal */}
             <AnimatePresence>
@@ -198,7 +412,7 @@ const SoilTesting = () => {
                             <div className="p-8 pb-4 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-slate-50">
                                 <div>
                                     <h2 className="text-2xl font-black text-slate-800">Soil Test Form</h2>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sahi details bharein</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fill in correct details</p>
                                 </div>
                                 <button onClick={() => setShowForm(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center font-bold">✕</button>
                             </div>
@@ -228,7 +442,7 @@ const SoilTesting = () => {
                                                 required
                                                 rows="3"
                                                 className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-5 font-bold outline-none"
-                                                placeholder="Apna pura pata likhein"
+                                                placeholder="Enter your full address"
                                                 value={formData.location}
                                                 onChange={e => setFormData({ ...formData, location: e.target.value })}
                                             />
@@ -241,7 +455,7 @@ const SoilTesting = () => {
                                             <input
                                                 type="text"
                                                 className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none"
-                                                placeholder="Kaunsi fasal ugayenge?"
+                                                placeholder="Which crop will you grow?"
                                                 value={formData.cropType}
                                                 onChange={e => setFormData({ ...formData, cropType: e.target.value })}
                                             />
@@ -262,7 +476,7 @@ const SoilTesting = () => {
                                 <div className="bg-teal-50 p-6 rounded-[32px] flex gap-4 items-start border border-teal-100/50">
                                     <FiInfo className="text-teal-600 flex-shrink-0 mt-1" />
                                     <p className="text-xs font-bold text-teal-900 leading-relaxed">
-                                        Hamari team aapse sampark karegi aur aapke khet se mitti ka sample degi. Lab report aane par aapko notification mil jayega.
+                                        Our team will contact you and collect the soil sample from your field. You will receive a notification once the lab report is available.
                                     </p>
                                 </div>
 

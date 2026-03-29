@@ -23,10 +23,9 @@ const Footer = () => {
                             <strong>GLOBAL RURAL OUTREACH ORGANISATION LLP</strong>. Smart farming for a smarter future.
                         </p>
                         <div className="flex space-x-5">
-                            <a href="#" className="hover:text-white transition-colors"><FaFacebook size={24} /></a>
-                            <a href="#" className="hover:text-white transition-colors"><FaTwitter size={24} /></a>
-                            <a href="#" className="hover:text-white transition-colors"><FaInstagram size={24} /></a>
-                            <a href="#" className="hover:text-white transition-colors"><FaLinkedin size={24} /></a>
+                            <a href="https://www.facebook.com/share/1YgEfFD8jW/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors"><FaFacebook size={24} /></a>
+                            <a href="https://www.instagram.com/grooagri?igsh=MWticXBlbHR4YnVjMQ==" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors"><FaInstagram size={24} /></a>
+                            <a href="https://www.linkedin.com/in/global-rural-outreach-organisation-llp-groo-4923873b8/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors"><FaLinkedin size={24} /></a>
                         </div>
                     </div>
 
@@ -36,7 +35,7 @@ const Footer = () => {
                         <ul className="space-y-4 text-sm">
                             <li><a href="#services" className="hover:text-yellow-500 transition-colors">Rent Equipment</a></li>
                             <li><a href="#workflow" className="hover:text-yellow-500 transition-colors">How to Book</a></li>
-                            <li><a href="#features" className="hover:text-yellow-500 transition-colors">Plateform Features</a></li>
+                            <li><a href="#features" className="hover:text-yellow-500 transition-colors">Platform Features</a></li>
                             <li><a href="/vendor/login" className="hover:text-yellow-500 transition-colors">Owner Dashboard</a></li>
                         </ul>
                     </div>
@@ -52,7 +51,6 @@ const Footer = () => {
                             <li className="flex items-center space-x-3">
                                 <span className="text-green-600">📞</span>
                                 <div>
-                                    <p className="font-bold">+91 95707 52983</p>
                                     <p className="font-bold">+91 91177 04450</p>
                                 </div>
                             </li>

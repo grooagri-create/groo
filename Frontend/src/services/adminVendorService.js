@@ -50,6 +50,14 @@ const adminVendorService = {
   },
 
   /**
+   * Update vendor services (e.g. to mark as Soil Lab)
+   */
+  updateServices: async (id, services) => {
+    const response = await api.patch(`/admin/vendors/${id}/services`, { services });
+    return response.data;
+  },
+
+  /**
    * Delete vendor
    */
   deleteVendor: async (id) => {

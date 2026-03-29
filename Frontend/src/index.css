@@ -319,3 +319,8 @@ html {
 .focus\:ring-primary-500:focus {
   --tw-ring-color: #2874F0;
 }
+
+/* Hide bottom navigation when location modal is open (prevents iOS keyboard push issue) */
+body.hide-bottom-nav nav.fixed.bottom-0 {
+  display: none !important;
+}

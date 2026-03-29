@@ -25,6 +25,8 @@ const AdminDashboard = () => {
     activeBookings: 0,
     completedBookings: 0,
     totalRevenue: 0,
+    bookingRevenue: 0,
+    soilTestRevenue: 0,
     todayRevenue: 0,
   });
 
@@ -41,6 +43,8 @@ const AdminDashboard = () => {
             activeBookings: s.pendingBookings,
             completedBookings: s.completedBookings,
             totalRevenue: s.totalRevenue,
+            bookingRevenue: s.bookingRevenue,
+            soilTestRevenue: s.soilTestRevenue,
             todayRevenue: 0,
           });
           setRecentBookingsList(statsRes.data.recentBookings || []);
@@ -73,9 +77,11 @@ const AdminDashboard = () => {
 
         if (revRes.success) {
           const mapped = revRes.data.revenueData.map(item => ({
-            date: item._id,
-            revenue: item.revenue,
-            orders: item.bookings
+            date: item.date,
+            revenue: item.totalRevenue,
+            bookingRevenue: item.bookingRevenue,
+            soilTestRevenue: item.soilTestRevenue,
+            orders: item.bookings || 0
           }));
           mapped.sort((a, b) => new Date(a.date) - new Date(b.date));
           setRevenueData(mapped);
@@ -130,6 +136,28 @@ const AdminDashboard = () => {
       color: 'text-white',
       bgColor: 'bg-gradient-to-br from-green-500 to-emerald-600',
       cardBg: 'bg-gradient-to-br from-green-50 to-emerald-50',
+      iconBg: 'bg-white/20',
+      link: '/admin/reports/revenue'
+    },
+    {
+      title: 'Booking Revenue',
+      value: formatCurrency(stats.bookingRevenue || 0),
+      change: 0,
+      icon: FiDollarSign,
+      color: 'text-white',
+      bgColor: 'bg-gradient-to-br from-indigo-500 to-blue-600',
+      cardBg: 'bg-gradient-to-br from-indigo-50 to-blue-50',
+      iconBg: 'bg-white/20',
+      link: '/admin/reports/revenue'
+    },
+    {
+      title: 'Soil Test Revenue',
+      value: formatCurrency(stats.soilTestRevenue || 0),
+      change: 0,
+      icon: FiDollarSign,
+      color: 'text-white',
+      bgColor: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+      cardBg: 'bg-gradient-to-br from-emerald-50 to-teal-50',
       iconBg: 'bg-white/20',
       link: '/admin/reports/revenue'
     },

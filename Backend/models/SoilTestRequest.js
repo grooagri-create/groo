@@ -23,11 +23,22 @@ const soilTestRequestSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Vendor',
+        default: null,
+        index: true
+    },
     status: {
         type: String,
-        enum: ['pending', 'processing', 'completed', 'cancelled'],
+        enum: ['pending', 'assigned', 'sample_collected', 'at_lab', 'completed', 'cancelled'],
         default: 'pending',
         index: true
+    },
+    reportStatus: {
+        type: String,
+        enum: ['pending', 'uploaded', 'approved', 'rejected'],
+        default: 'pending'
     },
     adminNotes: {
         type: String,
@@ -36,7 +47,48 @@ const soilTestRequestSchema = new mongoose.Schema({
     reportUrl: {
         type: String,
         default: null
-    }
+    },
+    reportDate: {
+        type: Date,
+        default: null
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid'],
+        default: 'pending'
+    },
+    totalAmount: {
+        type: Number,
+        default: 0
+    },
+    adminCommission: {
+        type: Number,
+        default: 0
+    },
+    commissionPercentage: {
+        type: Number,
+        default: 0
+    },
+    vendorEarning: {
+        type: Number,
+        default: 0
+    },
+    paymentMethod: {
+        type: String, // 'wallet', 'online'
+        default: ''
+    },
+    transactionId: {
+        type: String,
+        default: ''
+    },
+    rejectionReason: {
+        type: String,
+        default: ''
+    },
+    rejectedByVendors: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Vendor'
+    }]
 }, {
     timestamps: true
 });

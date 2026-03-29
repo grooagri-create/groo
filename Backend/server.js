@@ -12,6 +12,10 @@ const rateLimiter = require('./middleware/rateLimiter');
 // Load environment variables
 dotenv.config();
 
+console.log('[Server Startup] NODE_ENV:', process.env.NODE_ENV);
+console.log('[Server Startup] PORT:', process.env.PORT || 5000);
+console.log('[Server Startup] MONGODB_URI starts with:', process.env.MONGODB_URI?.substring(0, 15) + '...');
+
 // Connect to database
 connectDB();
 
@@ -194,12 +198,14 @@ app.use('/api/admin', require('./routes/admin-routes/soilTest.routes'));
 app.use('/api/admin', require('./routes/admin-routes/reportManagement.routes'));
 app.use('/api/admin/disputes', require('./routes/admin-routes/disputeManagement.routes'));
 app.use('/api/admin/settlements', require('./routes/admin-routes/settlementManagement.routes'));
+app.use('/api/admin/website', require('./routes/admin-routes/websiteManagement.routes'));
 app.use('/api/admin/admins', require('./routes/admin-routes/adminManagement.routes'));
 app.use('/api/image', require('./routes/admin-routes/image.routes'));
 app.use('/api', require('./routes/admin-routes/upload.routes')); // Generic upload access
 
 // User routes additions
 app.use('/api/user/soil-test', require('./routes/user-routes/soilTest.routes'));
+app.use('/api/user/ecommerce', require('./routes/user-routes/product.routes.js'));
 
 // Vendor Wallet/Ledger routes
 // Vendor Wallet/Ledger routes
@@ -207,6 +213,8 @@ app.use('/api/user/soil-test', require('./routes/user-routes/soilTest.routes'));
 // e.g., router.post('/withdrawal') becomes /api/vendors/withdrawal
 app.use('/api/vendors', require('./routes/vendor-routes/vendorWallet.routes'));
 app.use('/api/vendors/store', require('./routes/vendor-routes/productManagement.routes'));
+app.use('/api/vendors/shop', require('./routes/vendor-routes/shop.routes'));
+app.use('/api/vendors/soil-test', require('./routes/vendor-routes/soilTest.routes'));
 
 // Booking routes
 app.use('/api/bookings', require('./routes/booking-routes/userBooking.routes'));
@@ -222,12 +230,14 @@ app.use('/api/notifications', require('./routes/notification.routes'));
 app.use('/api/disputes', require('./routes/common-routes/dispute.routes'));
 
 // Public routes (no authentication required)
+app.use('/api/public/website', require('./routes/public-routes/website.routes'));
 app.use('/api/public', require('./routes/public-routes/catalog.routes'));
 app.use('/api/public', require('./routes/public-routes/plan.routes'));
 app.use('/api/public', require('./routes/public-routes/config.routes'));
 app.use('/api/products', require('./routes/public-routes/product.routes'));
 app.use('/api/weather', require('./routes/common-routes/weather.routes'));
 app.use('/api/availabilities', require('./routes/common-routes/availability.routes'));
+app.use('/api/v1/translate', require('./routes/common-routes/translation.routes'));
 
 // 404 handler
 app.use((req, res) => {

@@ -14,12 +14,15 @@ const HomeContent = require('../../models/HomeContent');
  */
 const getPublicCategories = async (req, res) => {
   try {
-    const { cityId } = req.query;
+    const { cityId, type } = req.query;
 
     // Build query
     const query = { status: 'active' };
     if (cityId) {
       query.cityIds = cityId;
+    }
+    if (type) {
+      query.type = type;
     }
 
     const categories = await Category.find(query)

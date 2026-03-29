@@ -26,7 +26,8 @@ const ManageProducts = () => {
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
-    const [activeTab, setActiveTab] = useState('marketplace'); // 'marketplace' or 'pending'
+    const [activeTab, setActiveTab] = useState('marketplace');
+
     const [formData, setFormData] = useState({
         title: '',
         categoryId: '',
@@ -34,13 +35,19 @@ const ManageProducts = () => {
         description: '',
         price: '',
         discountPrice: '',
-        unit: 'bag',
-        stock: 0,
+        unit: 'hour',
+        stock: 1,
         imageUrl: '',
-        isFeatured: false,
-        specifications: [],
+        images: [],
+        type: 'machinery',
         hasDriver: false,
-        driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
+        driverDetails: {
+            name: '',
+            phone: '',
+            photo: '',
+            licenseNumber: ''
+        },
+        specifications: []
     });
 
     useEffect(() => {
@@ -52,60 +59,20 @@ const ManageProducts = () => {
             setLoading(true);
             const [prodRes, pendingRes, catRes] = await Promise.all([
                 adminProductService.getAll(),
-                adminProductService.getVendorEquipment('pending_approval'),
+                adminProductService.getVendorSubmissions('pending', 'machinery'),
                 publicCatalogService.getCategories()
             ]);
-            if (prodRes.success) setProducts(prodRes.data);
+            if (prodRes.success) setProducts((prodRes.data || []).filter(p => p.type === 'machinery' || !p.type));
             if (pendingRes.success) setPendingProducts(pendingRes.data);
             if (catRes.success) setCategories(catRes.categories || catRes.data || []);
         } catch (err) {
-            toast.error("Data load karne mein dikkat hui");
+            toast.error("Machinery data load karne mein dikkat hui");
         } finally {
             setLoading(false);
         }
     };
 
     const handleImageUpload = async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        try {
-            setUploading(true);
-            const token = sessionStorage.getItem('adminAccessToken') || localStorage.getItem('adminAccessToken');
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-            const uploadedUrls = [];
-            for (const file of files) {
-                const uploadFormData = new FormData();
-                uploadFormData.append('file', file);
-                
-                const res = await fetch(`${baseUrl}/admin/upload`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: uploadFormData
-                });
-                const data = await res.json();
-                if (data.success) {
-                    uploadedUrls.push(data.imageUrl);
-                }
-            }
-
-            if (uploadedUrls.length > 0) {
-                setFormData(prev => ({ 
-                    ...prev, 
-                    imageUrl: prev.imageUrl || uploadedUrls[0],
-                    images: [...(prev.images || []), ...uploadedUrls]
-                }));
-                toast.success(`${uploadedUrls.length} images upload ho gayi!`);
-            }
-        } catch (err) {
-            toast.error("Image upload fail ho gayi");
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleDriverPhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -116,7 +83,7 @@ const ManageProducts = () => {
 
             const uploadFormData = new FormData();
             uploadFormData.append('file', file);
-
+            
             const res = await fetch(`${baseUrl}/admin/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
@@ -124,40 +91,57 @@ const ManageProducts = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setFormData(prev => ({
-                    ...prev,
-                    driverDetails: { ...prev.driverDetails, photo: data.imageUrl }
+                setFormData(prev => ({ 
+                    ...prev, 
+                    imageUrl: data.imageUrl,
+                    images: [...(prev.images || []), data.imageUrl]
                 }));
-                toast.success("Driver photo upload ho gayi!");
+                toast.success("Image upload ho gayi!");
             }
         } catch (err) {
-            toast.error("Photo upload fail ho gayi");
+            toast.error("Upload failed");
         } finally {
             setUploading(false);
         }
     };
 
-    const handleToggleFeatured = async (id) => {
+    const handleDriverPhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
         try {
-            const res = await adminProductService.toggleFeatured(id);
-            if (res.success) {
-                setProducts(products.map(p =>
-                    p._id === id ? { ...p, isFeatured: res.isFeatured } : p
-                ));
-                toast.success(res.message);
+            setUploading(true);
+            const token = sessionStorage.getItem('adminAccessToken') || localStorage.getItem('adminAccessToken');
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', file);
+            const res = await fetch(`${baseUrl}/admin/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: uploadFormData
+            });
+            const data = await res.json();
+            if (data.success) {
+                setFormData(prev => ({ 
+                    ...prev, 
+                    driverDetails: { ...prev.driverDetails, photo: data.imageUrl }
+                }));
+                toast.success("Driver photo uploaded!");
             }
         } catch (err) {
-            toast.error("Status update nahi ho paya");
+            toast.error("Driver photo upload failed");
+        } finally {
+            setUploading(false);
         }
     };
 
     const handleApprove = async (id) => {
-        if (!window.confirm("Approve this product and make it live on the farmer app?")) return;
+        if (!window.confirm("Approve this machinery/equipment?")) return;
         try {
-            const res = await adminProductService.approveEquipment(id);
+            const res = await adminProductService.approveProduct(id, { commissionPercentage: 0, gstPercentage: 18 });
             if (res.success) {
-                toast.success("Product approved beautifully!");
-                fetchData(); // Refresh both lists
+                toast.success("Machinery Approved!");
+                fetchData();
+                setShowModal(false);
             }
         } catch (err) {
             toast.error("Approval failed");
@@ -165,47 +149,21 @@ const ManageProducts = () => {
     };
 
     const handleReject = async (id) => {
-        const reason = window.prompt("Enter reason for rejection:");
-        if (reason === null) return; // Cancelled
+        const reason = window.prompt("Enter rejection reason:");
+        if (reason === null) return;
         try {
-            const res = await adminProductService.rejectEquipment(id, reason);
+            const res = await adminProductService.rejectProduct(id, reason);
             if (res.success) {
-                toast.success("Product rejected");
-                fetchData(); // Refresh both lists
+                toast.success("Rejected");
+                fetchData();
             }
         } catch (err) {
             toast.error("Rejection failed");
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Kya aap waqai is product ko delete karna chahte hain?")) return;
-        try {
-            const res = await adminProductService.delete(id);
-            if (res.success) {
-                setProducts(products.filter(p => p._id !== id));
-                toast.success("Product uda diya gaya");
-            }
-        } catch (err) {
-            toast.error("Delete nahi ho paya");
-        }
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Basic Validations
-        if (!formData.title || !formData.price || !formData.categoryId || !formData.unit) {
-            return toast.error("Kripya Title, Price, Category aur Unit bharein");
-        }
-
-        // Driver Validations
-        if (formData.hasDriver) {
-            if (!formData.driverDetails.name) return toast.error("Driver ka naam zaroori hai");
-            if (!formData.driverDetails.phone) return toast.error("Driver ka phone number zaroori hai");
-            if (formData.driverDetails.phone.length !== 10) return toast.error("Phone number 10 digits ka hona chahiye");
-        }
-
         try {
             let res;
             if (editMode) {
@@ -213,15 +171,13 @@ const ManageProducts = () => {
             } else {
                 res = await adminProductService.create(formData);
             }
-
             if (res.success) {
-                toast.success(res.message);
+                toast.success("Saved successfully");
                 setShowModal(false);
                 fetchData();
-                resetForm();
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || "Submit fail ho gaya");
+            toast.error("Save failed");
         }
     };
 
@@ -233,33 +189,24 @@ const ManageProducts = () => {
             description: '',
             price: '',
             discountPrice: '',
-            unit: 'bag',
-            stock: 0,
+            unit: 'hour',
+            stock: 1,
             imageUrl: '',
-            isFeatured: false,
-            specifications: [],
+            images: [],
+            type: 'machinery',
             hasDriver: false,
-            driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
+            driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' },
+            specifications: []
         });
         setEditMode(false);
-        setCurrentProduct(null);
     };
 
     const openEdit = (product) => {
         setCurrentProduct(product);
         setFormData({
-            title: product.title,
+            ...product,
             categoryId: product.categoryId?._id || product.categoryId,
-            brandName: product.brandName || '',
-            description: product.description || '',
-            price: product.price,
-            discountPrice: product.discountPrice || '',
-            unit: product.unit,
-            stock: product.stock,
-            imageUrl: product.imageUrl || '',
-            images: product.images && product.images.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []),
-            isFeatured: product.isFeatured || false,
-            specifications: product.specifications || [],
+            type: 'machinery',
             hasDriver: product.hasDriver || false,
             driverDetails: product.driverDetails || { name: '', phone: '', photo: '', licenseNumber: '' }
         });
@@ -275,549 +222,145 @@ const ManageProducts = () => {
 
     return (
         <div className="p-6 bg-slate-50 min-h-screen">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-black text-slate-800">Marketplace Products</h1>
-                    <p className="text-sm text-slate-500 font-medium">Manage Seeds, Fertilizers & Agri-inputs</p>
+                    <h1 className="text-2xl font-black text-slate-800">Machinery Management</h1>
+                    <p className="text-sm text-slate-500 font-medium">Manage Equipment & Heavy Machinery Approvals</p>
                 </div>
                 <button
                     onClick={() => { resetForm(); setShowModal(true); }}
-                    className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95"
+                    className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all"
                 >
-                    <FiPlus className="w-5 h-5" /> Add New Product
+                    + Add Machinery
                 </button>
             </div>
 
-            {/* Stats & Search */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Products</p>
-                    <p className="text-2xl font-black text-slate-800">{products.length}</p>
-                </div>
-                <div className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Featured Items</p>
-                    <p className="text-2xl font-black text-emerald-600">{products.filter(p => p.isFeatured).length}</p>
-                </div>
-                <div className="md:col-span-2 bg-white px-5 py-2 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-3">
-                    <FiSearch className="text-slate-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        placeholder="Search by name or brand..."
-                        className="flex-1 bg-transparent border-none outline-none font-bold text-slate-700 placeholder:text-slate-300"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b border-slate-200">
-                <button
-                    onClick={() => setActiveTab('marketplace')}
-                    className={`pb-4 px-2 font-black text-sm uppercase tracking-wider transition-all relative ${
-                        activeTab === 'marketplace' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                >
-                    Marketplace ({products.length})
-                    {activeTab === 'marketplace' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800 rounded-t-full" />
-                    )}
+                <button onClick={() => setActiveTab('marketplace')} className={`pb-4 px-2 font-black text-sm uppercase tracking-wider relative ${activeTab === 'marketplace' ? 'text-slate-800' : 'text-slate-400'}`}>
+                    Live Fleet ({products.length})
+                    {activeTab === 'marketplace' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800 rounded-t-full" />}
                 </button>
-                <button
-                    onClick={() => setActiveTab('pending')}
-                    className={`pb-4 px-2 font-black text-sm uppercase tracking-wider transition-all relative flex items-center gap-2 ${
-                        activeTab === 'pending' ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                >
-                    Pending Approvals 
-                    {pendingProducts.length > 0 && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeTab === 'pending' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
-                            {pendingProducts.length}
-                        </span>
-                    )}
-                    {activeTab === 'pending' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500 rounded-t-full" />
-                    )}
+                <button onClick={() => setActiveTab('pending')} className={`pb-4 px-2 font-black text-sm uppercase tracking-wider relative ${activeTab === 'pending' ? 'text-orange-600' : 'text-slate-400'}`}>
+                    New Approvals ({pendingProducts.length})
+                    {activeTab === 'pending' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-600 rounded-t-full" />}
                 </button>
             </div>
 
-            {/* Products Table */}
             <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock/Unit</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Featured</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {loading ? (
-                                [1, 2, 3].map(i => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan="6" className="px-6 py-8 bg-slate-50/50"></td>
-                                    </tr>
-                                ))
-                            ) : filteredProducts.length === 0 ? (
-                                <tr>
-                                    <td colSpan="6" className="px-6 py-20 text-center font-bold text-slate-400">No products found</td>
-                                </tr>
-                            ) : filteredProducts.map((product) => (
-                                <tr key={product._id} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                                {product.imageUrl ? (
-                                                    <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <FiPackage className="text-slate-400" />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-slate-800 text-sm leading-tight">{product.title}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{product.brandName || 'N/A'}</p>
-                                                    {product.hasDriver && <span className="text-[8px] bg-orange-100 text-orange-600 px-1 rounded font-black uppercase tracking-tighter">W/ Driver</span>}
-                                                </div>
-                                            </div>
+                <table className="w-full text-left">
+                    <thead>
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Machine</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                        {loading ? (
+                            <tr><td colSpan="4" className="text-center py-20 text-slate-400 font-bold">Loading...</td></tr>
+                        ) : filteredProducts.length === 0 ? (
+                            <tr><td colSpan="4" className="text-center py-20 text-slate-400 font-bold">No machinery found</td></tr>
+                        ) : filteredProducts.map(p => (
+                            <tr key={p._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 overflow-hidden">
+                                            {p.imageUrl && <img src={p.imageUrl} alt="" className="w-full h-full object-cover" />}
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center">
-                                            <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-tight whitespace-nowrap">
-                                                {product.categoryId?.title || 'Uncategorized'}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
                                         <div>
-                                            <p className="font-black text-emerald-600 text-sm">₹{product.discountPrice || product.price}</p>
-                                            {product.discountPrice && (
-                                                <p className="text-[10px] text-slate-300 line-through font-bold">₹{product.price}</p>
-                                            )}
+                                            <p className="font-black text-slate-800 text-sm">{p.title}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">{p.brandName}</p>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col gap-0.5 max-w-[150px]">
-                                            <p className="font-black text-slate-700 text-sm">Qty: {product.stock}</p>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase leading-tight break-words">{product.unit}</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <button
-                                            onClick={() => handleToggleFeatured(product._id)}
-                                            className={`p-2 rounded-xl transition-all ${product.isFeatured
-                                                    ? 'bg-amber-100 text-amber-600 shadow-sm shadow-amber-50'
-                                                    : 'bg-slate-100 text-slate-300 hover:text-slate-400'
-                                                }`}
-                                            disabled={activeTab === 'pending'}
-                                        >
-                                            <FiStar className={product.isFeatured ? 'fill-current' : ''} />
-                                        </button>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {activeTab === 'pending' ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => openEdit(product)}
-                                                        className="px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-xs rounded-xl transition-all uppercase tracking-wider"
-                                                    >
-                                                        View
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleApprove(product._id)}
-                                                        className="px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold text-xs rounded-xl transition-all uppercase tracking-wider"
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReject(product._id)}
-                                                        className="px-4 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs rounded-xl transition-all uppercase tracking-wider"
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button
-                                                        onClick={() => openEdit(product)}
-                                                        className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
-                                                    >
-                                                        <FiEdit2 className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(product._id)}
-                                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                                                    >
-                                                        <FiTrash2 className="w-4 h-4" />
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase">
+                                        {p.categoryId?.title || 'Machine'}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 font-black text-slate-800 text-sm">₹{p.price}/{p.unit}</td>
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex gap-2 justify-end">
+                                        {activeTab === 'pending' ? (
+                                            <>
+                                                <button onClick={() => openEdit(p)} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs">Review</button>
+                                                <button onClick={() => handleApprove(p._id)} className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs">Approve</button>
+                                                <button onClick={() => handleReject(p._id)} className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs">Reject</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => openEdit(p)} className="p-2 text-slate-400 hover:text-slate-800 transition-all"><FiEdit2 /></button>
+                                                <button onClick={() => adminProductService.delete(p._id).then(fetchData)} className="p-2 text-slate-400 hover:text-rose-600 transition-all"><FiTrash2 /></button>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
-            {/* Product Modal */}
             <AnimatePresence>
                 {showModal && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative bg-white w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
-                            style={{ maxHeight: 'calc(100vh - 40px)' }}
-                        >
-                            <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
-                                <div>
-                                    <h2 className="text-xl font-black text-slate-800">{activeTab === 'pending' ? 'Review & Approve Vendor Product' : (editMode ? 'Edit Product' : 'Add New Product')}</h2>
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Product Specifications</p>
-                                </div>
-                                <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors">✕</button>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="relative bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="p-8 border-b flex justify-between items-center">
+                                <h2 className="text-xl font-black text-slate-800">{editMode ? 'Edit Machinery' : 'New Machinery'}</h2>
+                                <button onClick={() => setShowModal(false)}>✕</button>
                             </div>
-
-                            <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-                                <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
-                                    {/* Image Upload & Basic Info Row */}
-                                    <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-                                        <div className="w-full md:w-1/2 space-y-4">
-                                        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar snap-x">
-                                            {/* Existing Images */}
-                                            {formData.images && formData.images.map((url, idx) => (
-                                                <div key={idx} className="w-32 h-32 flex-shrink-0 rounded-[32px] bg-slate-50 relative overflow-hidden group snap-start border border-slate-100">
-                                                    <img src={url} alt="" className="w-full h-full object-cover" />
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newImages = formData.images.filter((_, i) => i !== idx);
-                                                            setFormData({
-                                                                ...formData, 
-                                                                images: newImages,
-                                                                imageUrl: newImages.length > 0 ? newImages[0] : ''
-                                                            });
-                                                        }}
-                                                        className="absolute top-2 right-2 p-2 bg-rose-500 text-white rounded-xl scale-0 group-hover:scale-100 transition-all shadow-lg"
-                                                    >
-                                                        <FiTrash2 className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                            ))}
-
-                                            {/* Add Button */}
-                                            <div className="w-32 h-32 flex-shrink-0 rounded-[32px] bg-slate-50 border-2 border-dashed border-slate-200 relative overflow-hidden group snap-start flex flex-col items-center justify-center">
-                                                <FiUploadCloud className="w-6 h-6 text-slate-300 mb-1" />
-                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest text-center px-4">Add Photos</p>
-                                                <input
-                                                    type="file"
-                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    onChange={handleImageUpload}
-                                                    accept="image/*"
-                                                    multiple
-                                                />
-                                                {uploading && (
-                                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                                                        <div className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase ml-2 italic">Tip: Add multiple images for better product visibility</p>
+                            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="col-span-2 space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Title</label>
+                                        <input className="w-full bg-slate-50 rounded-2xl p-4 font-bold outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
                                     </div>
-
-                                    <div className="w-full md:w-1/2 space-y-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Title</label>
-                                            <input
-                                                required
-                                                type="text"
-                                                className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                                value={formData.title}
-                                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                                placeholder="e.g. Hybrid Tomato Seeds"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Brand</label>
-                                            <input
-                                                type="text"
-                                                className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                                value={formData.brandName}
-                                                onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
-                                                placeholder="e.g. Syngenta"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
-                                        <select
-                                            required
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                            value={formData.categoryId}
-                                            onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                                        >
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Category</label>
+                                        <select className="w-full bg-slate-50 rounded-2xl p-4 font-bold outline-none" value={formData.categoryId} onChange={e => setFormData({...formData, categoryId: e.target.value})} required>
                                             <option value="">Select Category</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id || cat._id} value={cat.id || cat._id}>{cat.title}</option>
-                                            ))}
+                                            {categories.map(c => <option key={c._id} value={c._id}>{c.title}</option>)}
                                         </select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit</label>
-                                        <input
-                                            type="text"
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                            value={formData.unit}
-                                            onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                                            placeholder="kg, bag, litre..."
-                                        />
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Price</label>
+                                        <input type="number" className="w-full bg-slate-50 rounded-2xl p-4 font-bold outline-none" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Original Price (₹)</label>
-                                        <input
-                                            required
-                                            type="number"
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                            value={formData.price}
-                                            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                        />
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Unit (hour/day)</label>
+                                        <input className="w-full bg-slate-50 rounded-2xl p-4 font-bold outline-none" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Offer Price (₹)</label>
-                                        <input
-                                            type="number"
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-emerald-600 outline-none"
-                                            value={formData.discountPrice}
-                                            onChange={(e) => setFormData({ ...formData, discountPrice: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stock Quantity</label>
-                                        <input
-                                            type="number"
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                            value={formData.stock}
-                                            onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                                        <select
-                                            className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none"
-                                            value={formData.status || 'active'}
-                                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                        >
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase">Brand</label>
+                                        <input className="w-full bg-slate-50 rounded-2xl p-4 font-bold outline-none" value={formData.brandName} onChange={e => setFormData({...formData, brandName: e.target.value})} />
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
-                                    <textarea
-                                        rows="3"
-                                        className="w-full bg-slate-50 border-none rounded-2xl py-3 px-4 font-medium text-slate-700 outline-none"
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        placeholder="Add product details, benefits, etc."
-                                    />
-                                </div>
-
-                                {/* Agri-Specifications (Dynamic) */}
-                                <div className="space-y-4 pt-2">
-                                    <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Technical Specs (HP, Composition, etc.)</label>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setFormData({...formData, specifications: [...(formData.specifications || []), {name: '', value: ''}]})}
-                                            className="text-[10px] font-bold text-emerald-600 uppercase bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100"
-                                        >
-                                            + Add Spec
-                                        </button>
-                                    </div>
-                                    
-                                    {formData.specifications && formData.specifications.length > 0 && (
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {formData.specifications.map((spec, idx) => (
-                                                <div key={idx} className="flex gap-3 items-center">
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Spec Name" 
-                                                        className="flex-1 bg-slate-50 border-none rounded-xl py-2 px-4 text-xs font-bold outline-none"
-                                                        value={spec.name}
-                                                        onChange={e => {
-                                                            const newSpecs = [...formData.specifications];
-                                                            newSpecs[idx].name = e.target.value;
-                                                            setFormData({...formData, specifications: newSpecs});
-                                                        }}
-                                                    />
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Value" 
-                                                        className="flex-1 bg-slate-50 border-none rounded-xl py-2 px-4 text-xs font-bold outline-none"
-                                                        value={spec.value}
-                                                        onChange={e => {
-                                                            const newSpecs = [...formData.specifications];
-                                                            newSpecs[idx].value = e.target.value;
-                                                            setFormData({...formData, specifications: newSpecs});
-                                                        }}
-                                                    />
-                                                    <button 
-                                                        type="button" 
-                                                        onClick={() => setFormData({...formData, specifications: formData.specifications.filter((_, i) => i !== idx)})}
-                                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"
-                                                    >
-                                                        <FiTrash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Add Driver Logic */}
-                                <div className="pt-4 border-t border-slate-50">
-                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                <div className="pt-4 border-t">
+                                    <label className="flex items-center gap-3 cursor-pointer">
                                         <div className={`w-10 h-6 rounded-full p-1 transition-all ${formData.hasDriver ? 'bg-orange-500' : 'bg-slate-200'}`}>
-                                            <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.hasDriver ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                                            <div className={`w-4 h-4 rounded-full bg-white transform ${formData.hasDriver ? 'translate-x-4' : 'translate-x-0'}`} />
                                         </div>
-                                        <input 
-                                            type="checkbox" 
-                                            className="hidden" 
-                                            checked={formData.hasDriver}
-                                            onChange={e => setFormData({...formData, hasDriver: e.target.checked})}
-                                        />
-                                        <span className="text-xs font-black text-slate-800 uppercase tracking-tight">Include Driver with this Service?</span>
+                                        <input type="checkbox" className="hidden" checked={formData.hasDriver} onChange={e => setFormData({...formData, hasDriver: e.target.checked})} />
+                                        <span className="text-xs font-black uppercase tracking-tight">Include Driver Details?</span>
                                     </label>
-
+                                    
                                     {formData.hasDriver && (
                                         <div className="mt-4 p-5 bg-orange-50/30 rounded-3xl border border-orange-100 space-y-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-dashed border-orange-200 flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0">
-                                                    {formData.driverDetails.photo ? (
-                                                        <img src={formData.driverDetails.photo} alt="driver" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <FiUser className="text-orange-300 w-6 h-6" />
-                                                    )}
-                                                    <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleDriverPhotoUpload} accept="image/*" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <p className="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">Driver Details</p>
-                                                    <p className="text-[10px] text-orange-600 font-bold leading-tight">Admin can verify driver info here</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Driver Name</label>
-                                                    <input 
-                                                        type="text" 
-                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
-                                                        value={formData.driverDetails.name}
-                                                        onChange={e => {
-                                                            const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                                                            setFormData({...formData, driverDetails: {...formData.driverDetails, name: val}});
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Phone Number</label>
-                                                    <input 
-                                                        type="tel" 
-                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
-                                                        value={formData.driverDetails.phone}
-                                                        maxLength={10}
-                                                        onChange={e => {
-                                                            const val = e.target.value.replace(/\D/g, '');
-                                                            if(val.length <= 10) {
-                                                                setFormData({...formData, driverDetails: {...formData.driverDetails, phone: val}});
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Driving License (DL)</label>
-                                                <input 
-                                                    type="text" 
-                                                    className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
-                                                    value={formData.driverDetails.licenseNumber}
-                                                    maxLength={16}
-                                                    onChange={e => {
-                                                        const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                                                        setFormData({...formData, driverDetails: {...formData.driverDetails, licenseNumber: val}});
-                                                    }}
-                                                />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input placeholder="Driver Name" className="bg-white rounded-xl p-3 text-sm font-bold outline-none" value={formData.driverDetails.name} onChange={e => setFormData({...formData, driverDetails: {...formData.driverDetails, name: e.target.value}})} />
+                                                <input placeholder="Phone" className="bg-white rounded-xl p-3 text-sm font-bold outline-none" value={formData.driverDetails.phone} onChange={e => setFormData({...formData, driverDetails: {...formData.driverDetails, phone: e.target.value}})} />
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center gap-2 pt-2 pb-4">
-                                    <input
-                                        type="checkbox"
-                                        id="featured_check_modal"
-                                        className="w-5 h-5 rounded border-none bg-slate-100 text-slate-900 focus:ring-0"
-                                        checked={formData.isFeatured}
-                                        onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                                    />
-                                    <label htmlFor="featured_check_modal" className="text-sm font-black text-slate-800">Feature this product on Home Page</label>
-                                </div>
-
-                                </div>
-
-                                <div className="flex gap-4 p-6 border-t border-slate-100 bg-white flex-shrink-0 z-10 transition-all">
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowModal(false)}
-                                        className="flex-1 px-8 py-4 bg-slate-50 hover:bg-slate-100 text-slate-600 font-black rounded-2xl transition-all active:scale-95 text-sm uppercase tracking-wider"
-                                    >
-                                        Cancel
-                                    </button>
-                                    
-                                    {activeTab === 'pending' ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowModal(false);
-                                                if(formData._id) handleApprove(formData._id);
-                                            }}
-                                            className="flex-1 px-8 py-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-black rounded-2xl transition-all active:scale-95 text-sm uppercase tracking-wider"
-                                        >
-                                            Approve Product
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="submit"
-                                            disabled={uploading}
-                                            className="flex-1 px-8 py-4 bg-slate-900 text-white font-black rounded-2xl shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 text-sm uppercase tracking-wider"
-                                        >
-                                            {editMode ? 'Update Product' : 'Save Product'}
-                                        </button>
                                     )}
                                 </div>
                             </form>
+                            <div className="p-8 bg-slate-50 border-t flex gap-4">
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-white border rounded-2xl font-black text-xs uppercase">Cancel</button>
+                                <button onClick={handleSubmit} className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase shadow-xl">Save Machinery</button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

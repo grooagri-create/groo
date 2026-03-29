@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiBriefcase, FiUsers, FiBell, FiArrowRight, FiUser, FiClock, FiMapPin, FiCheckCircle, FiTrendingUp, FiChevronRight, FiAlertTriangle, FiCalendar, FiBarChart2 } from 'react-icons/fi';
+import { FiBriefcase, FiUsers, FiBell, FiArrowRight, FiUser, FiClock, FiMapPin, FiCheckCircle, FiTrendingUp, FiChevronRight, FiAlertTriangle, FiCalendar, FiBarChart2, FiActivity } from 'react-icons/fi';
 import { FaWallet } from 'react-icons/fa';
 import { vendorTheme as themeColors } from '../../../../theme';
 import Header from '../../components/layout/Header';
@@ -323,7 +323,14 @@ const Dashboard = memo(() => {
       path: '/vendor/analytics',
       subtitle: 'Equipment ROI',
     },
-  ], [stats.activeJobs, stats.workersOnline, stats.totalEarnings]);
+    {
+      title: 'Soil Testing',
+      icon: FiActivity,
+      color: '#347989',
+      path: '/vendor/soil-tests',
+      subtitle: 'Manage Tests',
+    },
+  ], [stats.activeJobs, stats.workersOnline, stats.totalEarnings, stats.machinesInMaintenance]);
 
   const getStatusColor = (status) => {
     const s = String(status).toLowerCase();

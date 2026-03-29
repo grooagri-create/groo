@@ -1,88 +1,151 @@
 import React, { useState, useEffect } from 'react';
 import {
-    FiSearch,
-    FiFilter,
-    FiEdit2,
-    FiTrash2,
-    FiEye,
-    FiCheckCircle,
-    FiClock,
-    FiAlertCircle,
-    FiDownload,
-    FiUser,
-    FiMapPin,
-    FiActivity
+    FiSearch, FiFilter, FiTrash2, FiCheckCircle, FiClock,
+    FiUser, FiMapPin, FiActivity, FiUpload, FiUserCheck, FiX
 } from 'react-icons/fi';
 import adminSoilTestService from '../../../../services/adminSoilTestService';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const STATUS_CONFIG = {
+    pending:          { label: 'Pending',          color: 'amber' },
+    assigned:         { label: 'Assigned',          color: 'blue' },
+    sample_collected: { label: 'Sample Collected',  color: 'purple' },
+    at_lab:           { label: 'At Lab',            color: 'indigo' },
+    completed:        { label: 'Completed',         color: 'emerald' },
+    cancelled:        { label: 'Cancelled',         color: 'slate' },
+};
+
+const REPORT_STATUS_CONFIG = {
+    pending:  { label: 'No Report',  color: 'slate' },
+    uploaded: { label: 'Uploaded ⬆', color: 'orange' },
+    approved: { label: 'Approved ✓', color: 'emerald' },
+    rejected: { label: 'Rejected',   color: 'rose' },
+};
+
+const StatusBadge = ({ status, config }) => {
+    const cfg = config[status] || { label: status, color: 'slate' };
+    return (
+        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border bg-${cfg.color}-50 text-${cfg.color}-600 border-${cfg.color}-100`}>
+            {cfg.label}
+        </span>
+    );
+};
+
 const ManageSoilTests = () => {
-    const [requests, setRequests] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [requests, setRequests]         = useState([]);
+    const [vendors, setVendors]           = useState([]);
+    const [loading, setLoading]           = useState(true);
+    const [searchTerm, setSearchTerm]     = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
-    const [selectedRequest, setSelectedRequest] = useState(null);
-    const [showModal, setShowModal] = useState(false);
 
-    const [editData, setEditData] = useState({
-        status: '',
-        adminNotes: '',
-        reportUrl: ''
-    });
+    // Vendor matching filters
+    const [filterByState, setFilterByState] = useState(false);
+    const [filterByDistrict, setFilterByDistrict] = useState(false);
 
-    useEffect(() => {
-        fetchRequests();
-    }, []);
+    // Modal states
+    const [assignModal, setAssignModal]   = useState(null); // request object
+    const [approveModal, setApproveModal] = useState(null); // request object
+    const [selectedVendorId, setSelectedVendorId] = useState('');
+    const [approveNotes, setApproveNotes]           = useState('');
+    const [approvePrice, setApprovePrice]           = useState('500'); // Default ₹500
+    const [approveCommission, setApproveCommission] = useState('10');  // Default 10%
+    const [previewUrl, setPreviewUrl]               = useState(null);
+    const [saving, setSaving]             = useState(false);
+
+    useEffect(() => { fetchRequests(); fetchVendors(); }, []);
 
     const fetchRequests = async () => {
         try {
             setLoading(true);
             const res = await adminSoilTestService.getAll();
             if (res.success) setRequests(res.data);
-        } catch (err) {
-            toast.error("Failed to fetch requests");
+        } catch {
+            toast.error('Failed to fetch requests');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleUpdate = async (e) => {
-        e.preventDefault();
+    const fetchVendors = async () => {
         try {
-            const res = await adminSoilTestService.update(selectedRequest._id, editData);
+            const res = await adminSoilTestService.getVendors();
             if (res.success) {
-                toast.success("Request updated successfully");
-                setShowModal(false);
+                const allVendors = res.data || res.vendors || [];
+                // Filter to only include active, approved vendors who are marked as a 'soil_testing' service
+                const soilLabs = allVendors.filter(v => 
+                    v.isActive && 
+                    v.approvalStatus === 'approved' && 
+                    (Array.isArray(v.service) ? v.service.includes('soil_testing') : v.service === 'soil_testing')
+                );
+                setVendors(soilLabs);
+            }
+        } catch {
+            // silently fail — vendor list optional
+        }
+    };
+
+    const handleAssignVendor = async () => {
+        if (!selectedVendorId) return toast.error('Please select a vendor');
+        try {
+            setSaving(true);
+            const res = await adminSoilTestService.assignVendor(assignModal._id, selectedVendorId);
+            if (res.success) {
+                toast.success('Vendor assigned successfully!');
+                setAssignModal(null);
+                setSelectedVendorId('');
                 fetchRequests();
             }
-        } catch (err) {
-            toast.error("Update failed");
-        }
+        } catch { toast.error('Failed to assign vendor'); }
+        finally { setSaving(false); }
+    };
+
+    const handleApproveReport = async () => {
+        try {
+            setSaving(true);
+            const res = await adminSoilTestService.approveReport(
+                approveModal._id, 
+                approveNotes,
+                approvePrice,
+                approveCommission
+            );
+            if (res.success) {
+                toast.success('Report approved! The farmer can now pay & download it.');
+                setApproveModal(null);
+                setApproveNotes('');
+                fetchRequests();
+            }
+        } catch { toast.error('Failed to approve report'); }
+        finally { setSaving(false); }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this request?")) return;
+        if (!window.confirm('Are you sure?')) return;
         try {
             const res = await adminSoilTestService.delete(id);
-            if (res.success) {
-                toast.success("Request deleted");
-                fetchRequests();
-            }
-        } catch (err) {
-            toast.error("Delete failed");
+            if (res.success) { toast.success('Request deleted'); fetchRequests(); }
+        } catch { toast.error('Delete failed'); }
+    };
+
+    const handleDownload = async (url) => {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', `soil_report_${Date.now()}${isPDF(url) ? '.pdf' : '.jpg'}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            window.open(url, '_blank');
         }
     };
 
-    const openEdit = (req) => {
-        setSelectedRequest(req);
-        setEditData({
-            status: req.status,
-            adminNotes: req.adminNotes || '',
-            reportUrl: req.reportUrl || ''
-        });
-        setShowModal(true);
-    };
+    const isPDF = (url) => url?.toLowerCase().includes('.pdf');
 
     const filteredRequests = requests.filter(req => {
         const matchesSearch =
@@ -93,37 +156,37 @@ const ManageSoilTests = () => {
     });
 
     const stats = {
-        total: requests.length,
-        pending: requests.filter(r => r.status === 'pending').length,
-        processing: requests.filter(r => r.status === 'processing').length,
-        completed: requests.filter(r => r.status === 'completed').length
+        total:    requests.length,
+        pending:  requests.filter(r => r.status === 'pending').length,
+        at_lab:   requests.filter(r => r.status === 'at_lab').length,
+        completed:requests.filter(r => r.status === 'completed').length,
     };
 
     return (
         <div className="p-8">
             <div className="flex justify-between items-start mb-8">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-800">Manage Soil Tests</h1>
-                    <p className="text-slate-500 font-medium">Review and process farmer soil testing requests</p>
+                    <h1 className="text-3xl font-black text-slate-800">Soil Testing Requests</h1>
+                    <p className="text-slate-500 font-medium tracking-tight">Review, assign lab vendors, and verify farmer soil test reports</p>
                 </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats */}
             <div className="grid grid-cols-4 gap-6 mb-8">
                 {[
-                    { label: 'Total Requests', value: stats.total, color: 'slate', icon: FiActivity },
-                    { label: 'Pending', value: stats.pending, color: 'amber', icon: FiClock },
-                    { label: 'Processing', value: stats.processing, color: 'blue', icon: FiActivity },
+                    { label: 'Total',     value: stats.total,     color: 'slate',   icon: FiActivity },
+                    { label: 'Pending',   value: stats.pending,   color: 'amber',   icon: FiClock },
+                    { label: 'At Lab',    value: stats.at_lab,    color: 'indigo',  icon: FiUpload },
                     { label: 'Completed', value: stats.completed, color: 'emerald', icon: FiCheckCircle },
-                ].map((stat, i) => (
-                    <div key={i} className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm`}>
+                ].map((s, i) => (
+                    <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
                         <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl bg-${stat.color}-50 flex items-center justify-center`}>
-                                <stat.icon className={`text-${stat.color}-600 w-6 h-6`} />
+                            <div className={`w-12 h-12 rounded-2xl bg-${s.color}-50 flex items-center justify-center`}>
+                                <s.icon className={`text-${s.color}-600 w-6 h-6`} />
                             </div>
                             <div>
-                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-                                <p className="text-2xl font-black text-slate-800">{stat.value}</p>
+                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
+                                <p className="text-2xl font-black text-slate-800">{s.value}</p>
                             </div>
                         </div>
                     </div>
@@ -134,146 +197,280 @@ const ManageSoilTests = () => {
             <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm mb-8 flex gap-4">
                 <div className="flex-1 relative">
                     <FiSearch className="absolute left-4 top-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Search by Farmar Name or Request ID..."
+                    <input type="text" placeholder="Search by Farmer name or Request ID..."
                         className="w-full bg-slate-50 border-none rounded-2xl py-3.5 pl-12 pr-5 font-bold outline-none"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+                        value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
                 <div className="flex items-center gap-3">
                     <FiFilter className="text-slate-400" />
-                    <select
-                        className="bg-slate-50 border-none rounded-2xl py-3.5 px-6 font-bold outline-none"
-                        value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
-                    >
+                    <select className="bg-slate-50 border-none rounded-2xl py-3.5 px-6 font-bold outline-none"
+                        value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
+                        <option value="assigned">Assigned</option>
+                        <option value="sample_collected">Sample Collected</option>
+                        <option value="at_lab">At Lab</option>
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
             </div>
 
-            {/* Requests Table */}
+            {/* Table */}
             <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
                 <table className="w-full text-left">
                     <thead>
                         <tr className="border-b border-slate-50">
-                            <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Farmer</th>
-                            <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Details</th>
-                            <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Request Date</th>
-                            <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                            <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
+                            {['Farmer', 'Details', 'Status', 'Report', 'Actions'].map(h => (
+                                <th key={h} className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan="5" className="p-20 text-center font-bold text-slate-400">Loading requests...</td></tr>
+                            <tr><td colSpan="5" className="p-20 text-center font-bold text-slate-400">Loading...</td></tr>
                         ) : filteredRequests.length === 0 ? (
                             <tr><td colSpan="5" className="p-20 text-center font-bold text-slate-400">No requests found.</td></tr>
-                        ) : (
-                            filteredRequests.map(req => (
-                                <tr key={req._id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                                    <td className="p-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
-                                                <FiUser className="text-teal-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-black text-slate-800">{req.userId?.name || 'Unknown'}</p>
-                                                <p className="text-xs font-bold text-slate-400">{req.phoneNumber}</p>
-                                            </div>
+                        ) : filteredRequests.map(req => (
+                            <tr key={req._id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                <td className="p-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
+                                            <FiUser className="text-teal-600" />
                                         </div>
-                                    </td>
-                                    <td className="p-6">
-                                        <p className="font-bold text-slate-800 text-sm">{req.landSize} - {req.cropType || 'General'}</p>
-                                        <div className="flex items-center gap-1 text-slate-400">
-                                            <FiMapPin className="text-[10px]" />
-                                            <p className="text-[10px] font-medium truncate max-w-[200px]">{req.location}</p>
+                                        <div>
+                                            <p className="font-black text-slate-800">{req.userId?.name || 'Unknown'}</p>
+                                            <p className="text-xs font-bold text-slate-400">{req.phoneNumber}</p>
                                         </div>
-                                    </td>
-                                    <td className="p-6 font-bold text-slate-500 text-sm">
-                                        {new Date(req.createdAt).toLocaleDateString()}
-                                    </td>
-                                    <td className="p-6">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border 
-                                            ${req.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                req.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                    'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                            {req.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-6 text-right">
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => openEdit(req)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-800 transition-colors">
-                                                <FiEdit2 />
+                                    </div>
+                                </td>
+                                <td className="p-6">
+                                    <p className="font-bold text-slate-800 text-sm">{req.landSize?.replace(/Arce/g, 'Acre')} — {req.cropType || 'General'}</p>
+                                    <div className="flex items-center gap-1 text-slate-400">
+                                        <FiMapPin className="text-[10px]" />
+                                        <p className="text-[10px] font-medium truncate max-w-[180px]">{req.location}</p>
+                                    </div>
+                                    <p className="text-[10px] text-slate-300 mt-1">{new Date(req.createdAt).toLocaleDateString()}</p>
+                                </td>
+                                <td className="p-6">
+                                    <StatusBadge status={req.status} config={STATUS_CONFIG} />
+                                    {req.vendorId && (
+                                        <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                                            <FiUserCheck className="text-teal-500" /> Vendor Assigned
+                                        </p>
+                                    )}
+                                </td>
+                                <td className="p-6">
+                                    <div className="flex flex-col gap-2 items-start">
+                                        <StatusBadge status={req.reportStatus || 'pending'} config={REPORT_STATUS_CONFIG} />
+                                        {req.reportUrl && (
+                                            <button 
+                                                onClick={() => setPreviewUrl(req.reportUrl)}
+                                                className="text-[10px] text-teal-600 font-black hover:bg-teal-50 px-2 py-1 rounded-lg border border-teal-100 transition-all flex items-center gap-1">
+                                                View Report ↗
                                             </button>
-                                            <button onClick={() => handleDelete(req._id)} className="p-2 bg-rose-50 text-rose-400 rounded-xl hover:text-rose-600 transition-colors">
-                                                <FiTrash2 />
+                                        )}
+                                    </div>
+                                </td>
+                                <td className="p-6">
+                                    <div className="flex flex-col gap-2">
+                                        {['pending', 'assigned'].includes(req.status) && (
+                                            <button onClick={() => { setAssignModal(req); setSelectedVendorId(req.vendorId || ''); }}
+                                                className="px-3 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                                <FiUserCheck className="text-xs" /> Assign Lab
                                             </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                                        )}
+                                        {req.reportStatus === 'uploaded' && (
+                                            <button onClick={() => { setApproveModal(req); setApproveNotes(''); }}
+                                                className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-[10px] font-black shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                                <FiCheckCircle className="text-xs" /> Approve Report
+                                            </button>
+                                        )}
+                                        <button onClick={() => handleDelete(req._id)}
+                                            className="px-3 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black hover:bg-rose-50 hover:text-rose-500 transition-all flex items-center justify-center gap-2">
+                                            <FiTrash2 className="text-xs" /> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
 
-            {/* Edit Modal */}
+            {/* ── Assign Vendor Modal ── */}
             <AnimatePresence>
-                {showModal && (
+                {assignModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[48px] shadow-2xl p-10">
-                            <h2 className="text-2xl font-black text-slate-800 mb-8">Process Request</h2>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setAssignModal(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative bg-white w-full max-w-md rounded-[40px] shadow-2xl p-8">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-black text-slate-800">Assign Lab Vendor</h2>
+                                <button onClick={() => setAssignModal(null)} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+                                    <FiX />
+                                </button>
+                            </div>
+                            <div className="bg-slate-50 rounded-2xl p-4 mb-6">
+                                <p className="text-xs font-black text-slate-400 uppercase mb-1">Request</p>
+                                <p className="font-black text-slate-800">{assignModal.userId?.name} — {assignModal.landSize}</p>
+                                <p className="text-xs text-slate-400">{assignModal.location}</p>
+                            </div>
 
-                            <form onSubmit={handleUpdate} className="space-y-6">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                                    <select
-                                        className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none"
-                                        value={editData.status}
-                                        onChange={e => setEditData({ ...editData, status: e.target.value })}
-                                    >
-                                        <option value="pending">Pending</option>
-                                        <option value="processing">Processing</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
-                                    </select>
-                                </div>
+                            {/* Filters for Vendor Matching */}
+                            <div className="flex gap-4 mb-4 px-1">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    checked={filterByState} onChange={e => setFilterByState(e.target.checked)} />
+                                  <span className="text-xs font-bold text-slate-600">Same State</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    checked={filterByDistrict} onChange={e => setFilterByDistrict(e.target.checked)} />
+                                  <span className="text-xs font-bold text-slate-600">Same District/City</span>
+                                </label>
+                            </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Admin Notes</label>
-                                    <textarea
-                                        rows="3"
-                                        className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-medium outline-none"
-                                        placeholder="Add notes for farmer..."
-                                        value={editData.adminNotes}
-                                        onChange={e => setEditData({ ...editData, adminNotes: e.target.value })}
-                                    />
-                                </div>
+                            <div className="space-y-1 mb-6">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Soil Lab Vendor</label>
+                                <select className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none appearance-none"
+                                    value={selectedVendorId} onChange={e => setSelectedVendorId(e.target.value)}>
+                                    <option value="">— Select a Lab Vendor —</option>
+                                    {vendors.filter(v => {
+                                        const reqLoc = (assignModal.location || '').toLowerCase();
+                                        const vState = (v.address?.state || '').toLowerCase();
+                                        const vCity = (v.address?.city || '').toLowerCase();
+                                        
+                                        if (filterByState && vState && !reqLoc.includes(vState)) return false;
+                                        if (filterByDistrict && vCity && !reqLoc.includes(vCity)) return false;
+                                        
+                                        return true;
+                                    }).map(v => (
+                                        <option key={v._id} value={v._id}>{v.businessName || v.name} {v.address?.city ? `(${v.address.city}, ${v.address.state})` : ''}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setAssignModal(null)}
+                                    className="flex-1 py-4 rounded-2xl font-black text-slate-500 bg-slate-100">Cancel</button>
+                                <button onClick={handleAssignVendor} disabled={saving || !selectedVendorId}
+                                    className="flex-1 py-4 rounded-[20px] font-black text-white bg-blue-600 shadow-xl shadow-blue-500/30 active:scale-95 transition-all disabled:opacity-50">
+                                    {saving ? 'Assigning...' : 'Assign Lab Now'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Report URL (Optional)</label>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none"
-                                        placeholder="Link to PDF/Image report"
-                                        value={editData.reportUrl}
-                                        onChange={e => setEditData({ ...editData, reportUrl: e.target.value })}
-                                    />
-                                </div>
+            {/* ── Approve Report Modal ── */}
+            <AnimatePresence>
+                {approveModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setApproveModal(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl p-6 overflow-y-auto max-h-[90vh] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                            <div className="flex justify-between items-center mb-5 sticky top-0 bg-white z-10 py-2 border-b border-transparent">
+                                <h2 className="text-xl font-black text-slate-800">Report Verify & Approve</h2>
+                                <button onClick={() => setApproveModal(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                                    <FiX />
+                                </button>
+                            </div>
+                            <div className="bg-emerald-50 rounded-2xl p-4 mb-5 border border-emerald-100 mt-2">
+                                <p className="text-[10px] font-black text-emerald-600 uppercase mb-1">📄 Vendor Report</p>
+                                <a href={approveModal.reportUrl} target="_blank" rel="noreferrer"
+                                    className="text-teal-600 font-bold text-sm hover:underline flex items-center gap-1">
+                                    View / Download Lab Report ↗
+                                </a>
+                            </div>
 
-                                <div className="flex gap-4 pt-4">
-                                    <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 rounded-2xl font-black text-slate-500 bg-slate-100 active:scale-95 transition-all">Cancel</button>
-                                    <button type="submit" className="flex-1 py-4 rounded-2xl font-black text-white bg-teal-600 shadow-lg shadow-teal-600/20 active:scale-95 transition-all">Update Request</button>
+                            <div className="flex gap-4 mb-4">
+                                <div className="space-y-1 flex-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                        Total Price (₹)
+                                    </label>
+                                    <input type="number" placeholder="e.g. 500" min="0" required
+                                        className="w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-bold outline-none"
+                                        value={approvePrice} onChange={e => setApprovePrice(e.target.value)} />
                                 </div>
-                            </form>
+                                <div className="space-y-1 flex-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                        Admin Cut (%)
+                                    </label>
+                                    <input type="number" placeholder="e.g. 10" min="0" max="100" required
+                                        className="w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-bold outline-none"
+                                        value={approveCommission} onChange={e => setApproveCommission(e.target.value)} />
+                                </div>
+                            </div>
+                            
+                            <div className="bg-blue-50/50 p-3 rounded-xl mb-4">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Calculation Preview</p>
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-slate-500 font-bold">User Pays:</span>
+                                    <span className="font-black text-slate-800">₹{approvePrice || 0}</span>
+                                </div>
+                                <div className="flex justify-between text-xs border-b border-blue-100/50 pb-1 mb-1">
+                                    <span className="text-slate-500 font-bold">Admin Cut ({approveCommission || 0}%):</span>
+                                    <span className="font-black text-rose-600">-₹{((approvePrice || 0) * ((approveCommission || 0) / 100)).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs pt-1">
+                                    <span className="text-slate-500 font-bold">Vendor Earns:</span>
+                                    <span className="font-black text-emerald-600">₹{((approvePrice || 0) - ((approvePrice || 0) * ((approveCommission || 0) / 100))).toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1 mb-5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    Admin Notes (Optional)
+                                </label>
+                                <textarea rows="2" placeholder="Write a note for the farmer..."
+                                    className="w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-sm font-medium outline-none resize-none"
+                                    value={approveNotes} onChange={e => setApproveNotes(e.target.value)} />
+                            </div>
+                            <div className="flex gap-3">
+                                <button onClick={() => setApproveModal(null)}
+                                    className="flex-1 py-3.5 rounded-xl text-sm font-black text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors">Cancel</button>
+                                <button onClick={handleApproveReport} disabled={saving}
+                                    className="flex-1 py-3.5 rounded-[14px] text-sm font-black text-white bg-emerald-600 shadow-xl shadow-emerald-500/30 active:scale-95 transition-all disabled:opacity-50">
+                                    {saving ? 'Approving...' : '✓ Approve Report'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* ── Report Preview Modal ── */}
+            <AnimatePresence>
+                {previewUrl && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setPreviewUrl(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white w-full max-w-5xl h-full max-h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col">
+                            
+                            <div className="p-6 flex justify-between items-center border-b border-slate-100">
+                                <h2 className="text-xl font-black text-slate-800">Report Preview</h2>
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={() => handleDownload(previewUrl)}
+                                        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-black transition-all">
+                                        Download
+                                    </button>
+                                    <button onClick={() => setPreviewUrl(null)} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center transition-all">
+                                        <FiX className="text-xl" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 bg-slate-50 p-4 md:p-8 overflow-auto flex items-center justify-center">
+                                {isPDF(previewUrl) ? (
+                                    <iframe src={`${previewUrl}#toolbar=0`} className="w-full h-full rounded-2xl border-none bg-white shadow-inner" title="PDF Preview" />
+                                ) : (
+                                    <img src={previewUrl} alt="Report Preview" className="max-w-full max-h-full object-contain rounded-2xl shadow-xl bg-white" />
+                                )}
+                            </div>
                         </motion.div>
                     </div>
                 )}

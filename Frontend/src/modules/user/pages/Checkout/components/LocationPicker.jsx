@@ -189,7 +189,7 @@ const LocationPicker = ({ onLocationSelect, initialPosition = null }) => {
         </GoogleMap>
 
         {/* Pin Instruction Overlay */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-10">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-10 w-max max-w-[90%] text-center">
           {loading ? 'Fetching address...' : 'Place the pin accurately on map'}
         </div>
 

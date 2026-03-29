@@ -19,6 +19,7 @@ import {
   FiStar,
   FiActivity,
   FiAlertTriangle,
+  FiGlobe,
 } from "react-icons/fi";
 import adminMenu from "../../config/adminMenu.json";
 import dashboardService from "../../services/dashboardService";
@@ -41,6 +42,8 @@ const iconMap = {
   "Soil Testing": FiActivity,
   Disputes: FiAlertTriangle,
   "Equipment Catalog": FiGrid,
+  "Machinery Management": FiPackage,
+  "Manage Website": FiGlobe,
 };
 
 // Helper function to convert child name to route path
@@ -95,6 +98,20 @@ const getChildRoute = (parentRoute, childName) => {
       "Withdrawals": "/admin/settlements/withdrawals",
       "Owners with Due": "/admin/settlements/vendors",
       "History": "/admin/settlements/history",
+    },
+    "/admin/products": {
+      "Equipment Approval": "/admin/products",
+    },
+    "/admin/marketplace": {
+      "Marketplace Manager": "/admin/marketplace",
+      "Global Orders": "/admin/products/orders",
+      "Store Approvals": "/admin/marketplace/store-approvals",
+      "Registered Shops": "/admin/marketplace/registered-shops",
+    },
+    "/admin/manage-website": {
+      "Blogs": "/admin/manage-website/blogs",
+      "Articles": "/admin/manage-website/articles",
+      "Reviews": "/admin/manage-website/reviews",
     },
   };
 

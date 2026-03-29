@@ -1,57 +1,50 @@
 import api from './api';
 
-/**
- * Admin Product Service
- * Handles product management for marketplace
- */
 const adminProductService = {
-    // Get all products
+    // Admin Store Management (Central Store)
     getAll: async () => {
         const response = await api.get('/admin/products');
         return response.data;
     },
 
-    // Create new product
     create: async (data) => {
         const response = await api.post('/admin/products', data);
         return response.data;
     },
 
-    // Update product
     update: async (id, data) => {
         const response = await api.put(`/admin/products/${id}`, data);
         return response.data;
     },
 
-    // Delete product
     delete: async (id) => {
         const response = await api.delete(`/admin/products/${id}`);
         return response.data;
     },
 
-    // Toggle featured status
-    toggleFeatured: async (id) => {
-        const response = await api.patch(`/admin/products/${id}/toggle-featured`);
+    // Vendor Submission Workflow
+    getVendorSubmissions: async (approvalStatus = '', type = '') => {
+        const params = {};
+        if (approvalStatus) params.approvalStatus = approvalStatus;
+        if (type) params.type = type;
+        const response = await api.get('/admin/vendor-submissions', { params });
         return response.data;
     },
 
-    // ── Vendor Equipment Approval (plan2.txt Step 4) ──
-    // Get all vendor-submitted equipment
-    getVendorEquipment: async (approvalStatus = '') => {
-        const params = approvalStatus ? { approvalStatus } : {};
-        const response = await api.get('/admin/vendor-equipment', { params });
+    approveProduct: async (id, data) => {
+        // data: { commissionPercentage, gstPercentage }
+        const response = await api.post(`/admin/vendor-submissions/${id}/approve`, data);
         return response.data;
     },
 
-    // Approve vendor equipment → goes live on farmer app
-    approveEquipment: async (id) => {
-        const response = await api.post(`/admin/vendor-equipment/${id}/approve`);
+    rejectProduct: async (id, reason = '') => {
+        const response = await api.post(`/admin/vendor-submissions/${id}/reject`, { reason });
         return response.data;
     },
 
-    // Reject vendor equipment with reason
-    rejectEquipment: async (id, reason = '') => {
-        const response = await api.post(`/admin/vendor-equipment/${id}/reject`, { reason });
+    // Ecommerce Orders (Global View)
+    getEcommerceOrders: async () => {
+        const response = await api.get('/admin/orders');
         return response.data;
     }
 };

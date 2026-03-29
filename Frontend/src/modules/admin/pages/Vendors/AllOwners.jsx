@@ -32,6 +32,7 @@ const AllOwners = () => {
           phone: owner.phone,
           businessName: owner.businessName,
           service: owner.service,
+          labDetails: owner.labDetails,
           approvalStatus: owner.approvalStatus,
           aadhar: owner.aadhar?.number,
           pan: owner.pan?.number,
@@ -123,6 +124,35 @@ const AllOwners = () => {
     } catch (error) {
       console.error('Error toggling owner status:', error);
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleToggleSoilLab = async (ownerId, currentServices) => {
+    try {
+      const isCurrentlyLab = Array.isArray(currentServices) && currentServices.includes('soil_testing');
+      let newServices = Array.isArray(currentServices) ? [...currentServices] : [];
+      
+      if (isCurrentlyLab) {
+        newServices = newServices.filter(s => s !== 'soil_testing');
+      } else {
+        newServices.push('soil_testing');
+      }
+
+      const response = await adminVendorService.updateServices(ownerId, newServices);
+      if (response.success) {
+        setOwners(prev => prev.map(o =>
+          o.id === ownerId ? { ...o, service: newServices } : o
+        ));
+        if (selectedOwner && selectedOwner.id === ownerId) {
+          setSelectedOwner({ ...selectedOwner, service: newServices });
+        }
+        toast.success(`Owner marked as ${!isCurrentlyLab ? 'Soil Lab' : 'Standard Vendor'}`);
+      } else {
+        toast.error(response.message || 'Failed to update services');
+      }
+    } catch (error) {
+      console.error('Error toggling soil lab status:', error);
+      toast.error('Failed to update services');
     }
   };
 
@@ -375,6 +405,44 @@ const AllOwners = () => {
                 <div className={`text-sm font-semibold ${selectedOwner.isActive ? 'text-green-600' : 'text-red-600'}`}>
                   {selectedOwner.isActive ? 'Active' : 'Inactive'}
                 </div>
+              </div>
+              
+              {/* Soil Lab Verification */}
+              <div className="col-span-2 mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-800">Soil Testing Lab Verification</h4>
+                    <p className="text-xs text-gray-500">Allow this vendor to receive soil testing requests</p>
+                  </div>
+                  <button 
+                    onClick={() => handleToggleSoilLab(selectedOwner.id, selectedOwner.service)}
+                    className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                    style={{ backgroundColor: (Array.isArray(selectedOwner.service) && selectedOwner.service.includes('soil_testing')) ? '#10B981' : '#d1d5db' }}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${(Array.isArray(selectedOwner.service) && selectedOwner.service.includes('soil_testing')) ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+                
+                {selectedOwner.labDetails && (selectedOwner.labDetails.labName || selectedOwner.labDetails.licenseNumber) && (
+                  <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
+                    <div>
+                      <span className="block text-xs text-gray-500">Registered Lab Name</span>
+                      <span className="text-sm font-semibold text-gray-800">{selectedOwner.labDetails.labName || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-gray-500">License Number</span>
+                      <span className="text-sm font-semibold text-gray-800">{selectedOwner.labDetails.licenseNumber || 'N/A'}</span>
+                    </div>
+                    {selectedOwner.labDetails.certificationDocument && (
+                      <div className="col-span-2">
+                         <span className="block text-xs text-gray-500 mb-1">Certification Document</span>
+                         <a href={selectedOwner.labDetails.certificationDocument} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                           <FiEye className="w-3 h-3" /> View Document
+                         </a>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
  

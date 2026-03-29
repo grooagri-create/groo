@@ -5,6 +5,12 @@ const mongoose = require('mongoose');
  * Represents physical agricultural inputs like Seeds, Fertilizers, Pesticides
  */
 const productSchema = new mongoose.Schema({
+    type: {
+        type: String,
+        enum: ['physical_good', 'machinery'],
+        default: 'physical_good',
+        index: true
+    },
     title: {
         type: String,
         required: [true, 'Please provide a product title'],
@@ -21,12 +27,12 @@ const productSchema = new mongoose.Schema({
     categoryId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
-        required: [true, 'Category is required'],
+        // Category is optional for some vendor submissions
         index: true
     },
     vendorId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Vendor',
         default: null, // null means Admin/Central Store product
         index: true
     },
@@ -59,6 +65,10 @@ const productSchema = new mongoose.Schema({
         required: [true, 'Unit (kg, bag, litre) is required'],
         default: 'bag'
     },
+    bagWeight: {
+        type: Number, // Weight of a single unit/bag in kg
+        default: 50
+    },
     stock: {
         type: Number,
         required: true,
@@ -67,6 +77,10 @@ const productSchema = new mongoose.Schema({
     gstPercentage: {
         type: Number,
         default: 5 // Agriculture usually has lower GST
+    },
+    commissionPercentage: {
+        type: Number,
+        default: 0 // Admin sets this during approval
     },
     status: {
         type: String,
@@ -78,17 +92,10 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    // ==========================================
-    // EQUIPMENT APPROVAL WORKFLOW (plan2.txt Step 4)
-    // Vendor adds equipment → Admin approves → Live on User App
-    // ==========================================
     approvalStatus: {
         type: String,
-        enum: ['pending_approval', 'approved', 'rejected'],
-        default: function () {
-            // Admin-added products are auto-approved; vendor-added need admin review
-            return this.vendorId ? 'pending_approval' : 'approved';
-        }
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
     },
     rejectionReason: {
         type: String,
@@ -97,17 +104,7 @@ const productSchema = new mongoose.Schema({
     specifications: [{
         name: String,
         value: String
-    }],
-    hasDriver: {
-        type: Boolean,
-        default: false
-    },
-    driverDetails: {
-        name: { type: String, default: '' },
-        phone: { type: String, default: '' },
-        photo: { type: String, default: '' },
-        licenseNumber: { type: String, default: '' }
-    }
+    }]
 }, {
     timestamps: true
 });

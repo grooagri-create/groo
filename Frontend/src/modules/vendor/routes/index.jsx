@@ -66,6 +66,10 @@ const Maintenance = lazyLoad(() => import('../pages/Maintenance'));
 const Compliance = lazyLoad(() => import('../pages/Compliance'));
 const Analytics = lazyLoad(() => import('../pages/Analytics'));
 const MyStore = lazyLoad(() => import('../pages/MyStore'));
+const StoreRegistration = lazyLoad(() => import('../pages/MyStore/StoreRegistration'));
+const StoreOrders = lazyLoad(() => import('../pages/MyStore/Orders'));
+const SoilTesting = lazyLoad(() => import('../pages/SoilTesting'));
+const BusinessDetails = lazyLoad(() => import('../pages/BusinessDetails'));
 
 // Loading fallback component
 import LogoLoader from '../../../components/common/LogoLoader';
@@ -128,6 +132,10 @@ const VendorRoutes = () => {
               <Route path="/compliance" element={<ProtectedRoute userType="vendor"><Compliance /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute userType="vendor"><Analytics /></ProtectedRoute>} />
               <Route path="/store" element={<ProtectedRoute userType="vendor"><MyStore /></ProtectedRoute>} />
+              <Route path="/store/registration" element={<ProtectedRoute userType="vendor"><StoreRegistration /></ProtectedRoute>} />
+              <Route path="/store/orders" element={<ProtectedRoute userType="vendor"><StoreOrders /></ProtectedRoute>} />
+              <Route path="/soil-tests" element={<ProtectedRoute userType="vendor"><SoilTesting /></ProtectedRoute>} />
+              <Route path="/business-details" element={<ProtectedRoute userType="vendor"><BusinessDetails /></ProtectedRoute>} />
             </Routes>
           </PageTransition>
         </Suspense>

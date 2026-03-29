@@ -205,13 +205,20 @@ export const homeContentService = {
  */
 export const publicCatalogService = {
   // Get all active categories (cached for 5 minutes)
-  getCategories: async (cityId) => {
-    const cacheKey = `public:categories:${cityId || 'default'}`;
+  getCategories: async (params = {}) => {
+    // Legacy support for passing cityId directly
+    const normalizedParams = typeof params === 'string' ? { cityId: params } : params;
+    
+    const queryParams = new URLSearchParams();
+    if (normalizedParams.cityId) queryParams.append('cityId', normalizedParams.cityId);
+    if (normalizedParams.type) queryParams.append('type', normalizedParams.type);
+    
+    const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const cacheKey = `public:categories:${queryStr || 'default'}`;
     const cached = apiCache.get(cacheKey);
     if (cached) return cached;
 
-    const query = cityId ? `?cityId=${cityId}` : '';
-    const response = await api.get(`/public/categories${query}`);
+    const response = await api.get(`/public/categories${queryStr}`);
     if (response.data.success) {
       apiCache.set(cacheKey, response.data, 300); // 5 minutes
     }

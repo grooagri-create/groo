@@ -51,6 +51,7 @@ const getProfile = async (req, res) => {
         isEmailVerified: vendor.isEmailVerified || false,
         profilePhoto: vendor.profilePhoto || null,
         aadharDocument: vendor.aadhar?.document || null,
+        labDetails: vendor.labDetails || {},
         createdAt: vendor.createdAt,
         updatedAt: vendor.updatedAt
       }
@@ -201,8 +202,8 @@ const updateProfile = async (req, res) => {
         isPhoneVerified: vendor.isPhoneVerified,
         isEmailVerified: vendor.isEmailVerified,
         profilePhoto: vendor.profilePhoto,
-        service: vendor.service,
-        skills: vendor.skills
+        skills: vendor.skills,
+        labDetails: vendor.labDetails || {}
       }
     });
   } catch (error) {
@@ -295,10 +296,69 @@ const updateLocation = async (req, res) => {
   }
 };
 
+/**
+ * Update vendor business profile (specifically lab details & services)
+ */
+const updateBusinessProfile = async (req, res) => {
+  try {
+    const vendorId = req.user.id;
+    const { services, labName, licenseNumber, certificationDocument } = req.body;
+
+    const vendor = await Vendor.findById(vendorId);
+
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found'
+      });
+    }
+
+    // Update services array safely
+    if (services !== undefined) {
+      vendor.service = Array.isArray(services) ? services : [];
+      vendor.categories = vendor.service;
+    }
+
+    // Update Lab Details (if Soil Testing is enabled/managed)
+    if (labName !== undefined || licenseNumber !== undefined || certificationDocument !== undefined) {
+      if (!vendor.labDetails) vendor.labDetails = {};
+      
+      if (labName !== undefined) vendor.labDetails.labName = labName;
+      if (licenseNumber !== undefined) vendor.labDetails.licenseNumber = licenseNumber;
+
+      // Handle file upload base64 -> Cloudinary
+      if (certificationDocument) {
+        if (certificationDocument.startsWith('data:')) {
+          const uploadRes = await cloudinaryService.uploadFile(certificationDocument, { folder: 'vendors/documents/labs' });
+          if (uploadRes.success) vendor.labDetails.certificationDocument = uploadRes.url;
+        } else {
+          vendor.labDetails.certificationDocument = certificationDocument;
+        }
+      }
+    }
+
+    await vendor.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Business profile updated successfully',
+      service: vendor.service,
+      labDetails: vendor.labDetails
+    });
+  } catch (error) {
+    console.error('Update vendor business profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update business profile. Please try again.'
+    });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
   updateAddress,
-  updateLocation
+  updateLocation,
+  updateBusinessProfile
 };
 

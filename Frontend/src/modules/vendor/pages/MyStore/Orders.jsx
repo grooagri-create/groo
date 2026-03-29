@@ -1,0 +1,224 @@
+import React, { useState, useEffect } from 'react';
+import { 
+    FiChevronLeft, 
+    FiPackage, 
+    FiTruck, 
+    FiCheckCircle, 
+    FiInfo,
+    FiUser,
+    FiPhone,
+    FiMapPin
+} from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import vendorProductService from '../../services/vendorProductService';
+import { vendorTheme as themeColors } from '../../../../theme';
+import { toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
+
+const StoreOrders = () => {
+    const navigate = useNavigate();
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('ordered'); // ordered, packed, shipped, delivered
+
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
+    const fetchOrders = async () => {
+        try {
+            setLoading(true);
+            const res = await vendorProductService.getMyOrders();
+            if (res.success) setOrders(res.data || []);
+        } catch (err) {
+            toast.error("Failed to load orders");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (orderId, status, extra = {}) => {
+        try {
+            const res = await vendorProductService.updateOrderStatus(orderId, { status, ...extra });
+            if (res.success) {
+                toast.success(`Order marked as ${status}`);
+                fetchOrders();
+            }
+        } catch (err) {
+            toast.error("Status update failed");
+        }
+    };
+
+    const filteredOrders = orders.filter(o => o.deliveryStatus === activeTab);
+
+    return (
+        <div className="min-h-screen bg-slate-50">
+            {/* Header */}
+            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100 flex items-center px-4 py-4 gap-4">
+                <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-xl">
+                    <FiChevronLeft className="w-6 h-6 text-slate-600" />
+                </button>
+                <div className="flex-1">
+                    <h1 className="text-xl font-black text-slate-800 leading-tight">Store Orders</h1>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fulfillment Tracking</p>
+                </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="bg-white px-6 pt-2 border-b border-slate-100 sticky top-[73px] z-30">
+                <div className="flex gap-6 overflow-x-auto scrollbar-hide">
+                    {['ordered', 'packed', 'shipped', 'delivered'].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`pb-4 text-[10px] font-black uppercase tracking-widest transition-all relative ${
+                                activeTab === tab ? 'text-[#2E7D32]' : 'text-slate-400'
+                            }`}
+                        >
+                            {tab}
+                            {activeTab === tab && (
+                                <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-1 bg-[#2E7D32] rounded-t-full" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="p-4 md:p-6 pb-24">
+                {loading ? (
+                    <div className="py-20 flex justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-[#2E7D32] rounded-full animate-spin" /></div>
+                ) : filteredOrders.length === 0 ? (
+                    <div className="bg-white p-12 rounded-[40px] text-center border-2 border-dashed border-slate-100">
+                        <FiPackage className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                        <p className="font-black text-slate-400 uppercase text-xs tracking-widest">No {activeTab} orders</p>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-100 overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[800px]">
+                            <thead className="bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Info</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Details</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Address</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Balance</th>
+                                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredOrders.map(order => (
+                                    <tr key={order._id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-5">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">#{order._id.slice(-6)}</p>
+                                            <p className="font-bold text-slate-800 text-sm">{order.items[0]?.name || 'Item'} {order.items.length > 1 && `(+${order.items.length - 1})`}</p>
+                                            <p className="text-[10px] text-teal-600 font-bold">{format(new Date(order.createdAt), 'dd MMM, hh:mm a')}</p>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                                                    <FiUser className="text-slate-400 w-3 h-3" /> {order.userId?.name || 'Unknown'}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                                                    <FiPhone className="text-slate-400 w-3 h-3" /> {order.userId?.phone || 'No Phone'}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 max-w-[250px]">
+                                            <div className="flex items-start gap-1.5 text-xs font-bold text-slate-600">
+                                                <FiMapPin className="text-slate-400 w-3 h-3 mt-0.5 flex-shrink-0" />
+                                                <span className="line-clamp-2">
+                                                    {typeof order.shippingAddress === 'object' ? (
+                                                        `${order.shippingAddress.addressLine1 || ''}, ${order.shippingAddress.city || ''}`
+                                                    ) : (
+                                                        order.shippingAddress || 'No Address'
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-5 text-right">
+                                            <p className="font-black text-slate-800 text-base">₹{order.pricing?.vendorBalance || 0}</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase">Settlement Amt</p>
+                                        </td>
+                                        <td className="px-6 py-5 text-center">
+                                            {order.deliveryStatus === 'ordered' && (
+                                                <button 
+                                                    onClick={() => handleUpdateStatus(order._id, 'packed')}
+                                                    className="px-6 py-2.5 bg-amber-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                                                >
+                                                    Pack Order
+                                                </button>
+                                            )}
+                                            {order.deliveryStatus === 'packed' && (
+                                                <ShippingModal onConfirm={(data) => handleUpdateStatus(order._id, 'shipped', data)} />
+                                            )}
+                                            {order.deliveryStatus === 'shipped' && (
+                                                <button 
+                                                    onClick={() => handleUpdateStatus(order._id, 'delivered')}
+                                                    className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-95 transition-all"
+                                                >
+                                                    Delivered
+                                                </button>
+                                            )}
+                                            {order.deliveryStatus === 'delivered' && (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-lg font-black text-[9px] uppercase tracking-widest border border-green-100">
+                                                    <FiCheckCircle className="w-3 h-3" /> Done
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// Helper component for Shipping Input
+const ShippingModal = ({ onConfirm }) => {
+    const [show, setShow] = useState(false);
+    const [data, setData] = useState({ courierName: '', trackingNumber: '' });
+
+    return (
+        <>
+            <button 
+                onClick={() => setShow(true)}
+                className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+                <FiTruck /> Mark as Shipped
+            </button>
+            <AnimatePresence>
+                {show && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShow(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl">
+                            <h2 className="text-xl font-black text-slate-800">Shipping Details</h2>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Enter tracking info for user</p>
+                            
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Courier Service</label>
+                                    <input type="text" className="w-full bg-slate-50 border-none rounded-xl py-4 px-5 font-bold outline-none" placeholder="e.g. BlueDart, DTDC, Self" value={data.courierName} onChange={e => setData({...data, courierName: e.target.value})} />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Tracking Number</label>
+                                    <input type="text" className="w-full bg-slate-50 border-none rounded-xl py-4 px-5 font-bold outline-none" placeholder="e.g. TRK123456" value={data.trackingNumber} onChange={e => setData({...data, trackingNumber: e.target.value})} />
+                                </div>
+                                <button 
+                                    onClick={() => { onConfirm(data); setShow(false); }}
+                                    className="w-full py-5 bg-[#2E7D32] text-white rounded-[28px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all mt-4"
+                                >
+                                    Confirm Shipment
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </>
+    );
+}
+
+export default StoreOrders;

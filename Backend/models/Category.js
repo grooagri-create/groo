@@ -13,6 +13,12 @@ const categorySchema = new mongoose.Schema({
     trim: true,
     index: true
   },
+  type: {
+    type: String,
+    enum: ['service', 'product'],
+    default: 'service',
+    index: true
+  },
   slug: {
     type: String,
     required: true,

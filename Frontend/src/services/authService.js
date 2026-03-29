@@ -194,6 +194,25 @@ export const vendorAuthService = {
       localStorage.setItem('vendorData', JSON.stringify(response.data.vendor));
     }
     return response.data;
+  },
+
+  // Update business profile
+  updateBusinessProfile: async (data) => {
+    const response = await api.put('/vendors/profile/business', data);
+    // Update local storage with new services and labDetails
+    if (response.data.success) {
+      const currentData = JSON.parse(localStorage.getItem('vendorData') || '{}');
+      const updatedData = { 
+        ...currentData, 
+        service: response.data.service,
+        labDetails: response.data.labDetails 
+      };
+      localStorage.setItem('vendorData', JSON.stringify(updatedData));
+      
+      // Dispatch event to update profile UI
+      window.dispatchEvent(new Event('vendorProfileUpdated'));
+    }
+    return response.data;
   }
 };
 

@@ -119,12 +119,28 @@
   },
   {
     "title": "Agri Marketplace",
+    "route": "/admin/marketplace",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "Marketplace Manager",
+      "Global Orders",
+      "Store Approvals",
+      "Registered Shops"
+    ]
+  },
+  {
+    "title": "Machinery Management",
     "route": "/admin/products",
     "allowedRoles": [
       "super_admin",
       "admin"
     ],
-    "children": []
+    "children": [
+      "Equipment Approval"
+    ]
   },
   {
     "title": "Soil Testing",
@@ -143,6 +159,19 @@
       "admin"
     ],
     "children": []
+  },
+  {
+    "title": "Manage Website",
+    "route": "/admin/manage-website",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "Blogs",
+      "Articles",
+      "Reviews"
+    ]
   },
   {
     "title": "Settings",

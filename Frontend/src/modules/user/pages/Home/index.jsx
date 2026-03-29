@@ -357,6 +357,10 @@ const Home = () => {
         return;
       }
     }
+    if (promo.slug) {
+      navigate(`/user/${promo.slug}`);
+      return;
+    }
     if (promo.route && !promo.slug) {
       if (promo.scrollToSection) {
         navigate(promo.route, {
@@ -540,33 +544,112 @@ const Home = () => {
             </div>
           ) : (
             <>
-              {/* Hero Section - Promo Carousel */}
-              {homeContent?.isPromosVisible !== false && (
+              {/* Hero Section - Promo Carousel (Includes Banners and Promos) */}
+              {(homeContent?.isPromosVisible !== false || homeContent?.isBannersVisible !== false) && (
                 <motion.section variants={itemVariants} className="relative z-0">
                   <PromoCarousel
-                    promos={(homeContent?.promos || []).sort((a, b) => (a.order || 0) - (b.order || 0)).map(promo => ({
-                      id: promo.id || promo._id,
-                      title: promo.title || '',
-                      subtitle: promo.subtitle || promo.description || '',
-                      buttonText: promo.buttonText || 'Book now',
-                      className: promo.gradientClass || 'from-[#00A6A6] to-[#008a8a]',
-                      image: toAssetUrl(promo.imageUrl),
-                      targetCategoryId: promo.targetCategoryId,
-                      slug: promo.slug,
-                      scrollToSection: promo.scrollToSection,
-                      route: '/'
-                    }))}
+                    promos={[
+                      ...(homeContent?.banners || []).map(b => ({
+                        id: b.id || b._id,
+                        title: b.text || '',
+                        subtitle: '',
+                        buttonText: '',
+                        image: toAssetUrl(b.imageUrl),
+                        targetCategoryId: b.targetCategoryId,
+                        slug: b.slug,
+                        order: b.order || 0,
+                        route: '/'
+                      })),
+                      ...(homeContent?.promos || []).map(promo => ({
+                        id: promo.id || promo._id,
+                        title: promo.title || '',
+                        subtitle: promo.subtitle || promo.description || '',
+                        buttonText: promo.buttonText || 'Book now',
+                        className: promo.gradientClass || 'from-[#00A6A6] to-[#008a8a]',
+                        image: toAssetUrl(promo.imageUrl),
+                        targetCategoryId: promo.targetCategoryId,
+                        slug: promo.slug,
+                        scrollToSection: promo.scrollToSection,
+                        order: promo.order || 0,
+                        route: '/'
+                      }))
+                    ].sort((a, b) => (a.order || 0) - (b.order || 0))}
                     onPromoClick={handlePromoClick}
                   />
                 </motion.section>
               )}
 
-              {/* Weather Forecast Section */}
-              <WeatherWidget />
+              {/* Quick Agri Actions (PhonePe Style) */}
+              <motion.section variants={itemVariants} className="px-6 py-2">
+                <div className="flex justify-between items-start">
+                  
+                  {/* Weather Button */}
+                  <WeatherWidget />
+
+                  {/* Soil Testing Button */}
+                  <div
+                    onClick={() => navigate('/user/soil-testing')}
+                    className="flex flex-col items-center cursor-pointer active:scale-95 transition-all group w-[70px]"
+                  >
+                    <div className="relative">
+                      <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center bg-gradient-to-tr from-[#1A73E8] to-[#4285F4] shadow-md group-hover:shadow-lg group-hover:shadow-[#1A73E8]/30 transition-all border border-white/20">
+                         <div className="absolute inset-0 bg-white/10 rounded-full" />
+                         <svg className="w-7 h-7 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.673.337a4 4 0 01-2.506.326l-1.623-.27a2 2 0 00-1.182.15l-1.615.807a2 2 0 01-2.342-.308l-.337-.337a2 2 0 00-2.828 0l-.337.337a2 2 0 01-2.342.308l-1.615-.807a2 2 0 00-1.182-.15l-1.623.27a4 4 0 01-2.506-.326l-.673-.337a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547l-.955 3.185a1 1 0 00.957 1.287h15.756a1 1 0 00.957-1.287l-.955-3.185z" />
+                         </svg>
+                      </div>
+                    </div>
+                    <div className="text-center mt-2 w-full">
+                      <p className="text-[10px] font-black text-slate-800 leading-tight uppercase tracking-tight truncate">Soil Test</p>
+                      <p className="text-[8px] font-bold text-slate-400 truncate">Lab Reports</p>
+                    </div>
+                  </div>
+
+                  {/* Agri Marketplace Shortcut */}
+                  <div
+                    onClick={() => navigate('/user/agri-marketplace')}
+                    className="flex flex-col items-center cursor-pointer active:scale-95 transition-all group w-[70px]"
+                  >
+                    <div className="relative">
+                      <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center bg-gradient-to-tr from-[#D68F35] to-[#FCA311] shadow-md group-hover:shadow-lg group-hover:shadow-[#D68F35]/30 transition-all border border-white/20">
+                         <div className="absolute inset-0 bg-white/10 rounded-full" />
+                         <svg className="w-7 h-7 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                         </svg>
+                      </div>
+                    </div>
+                    <div className="text-center mt-2 w-full">
+                      <p className="text-[10px] font-black text-slate-800 leading-tight uppercase tracking-tight truncate">Market</p>
+                      <p className="text-[8px] font-bold text-slate-400 truncate">Buy Needs</p>
+                    </div>
+                  </div>
+
+                  {/* Agri Advisor / Care Shortcut */}
+                  <div
+                    onClick={() => navigate('/user/advisor')}
+                    className="flex flex-col items-center cursor-pointer active:scale-95 transition-all group w-[70px]"
+                  >
+                    <div className="relative">
+                      <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center bg-gradient-to-tr from-[#00A6A6] to-[#00D2D2] shadow-md group-hover:shadow-lg group-hover:shadow-[#00A6A6]/30 transition-all border border-white/20">
+                         <div className="absolute inset-0 bg-white/10 rounded-full" />
+                         <svg className="w-7 h-7 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                         </svg>
+                      </div>
+                    </div>
+                    <div className="text-center mt-2 w-full">
+                      <p className="text-[10px] font-black text-slate-800 leading-tight uppercase tracking-tight truncate">Expert</p>
+                      <p className="text-[8px] font-bold text-slate-400 truncate">Advice</p>
+                    </div>
+                  </div>
+
+                </div>
+              </motion.section>
+
 
               {/* Categories Section */}
               {homeContent?.isCategoriesVisible !== false && (
-                <motion.section variants={itemVariants} className="relative overflow-hidden">
+                <motion.section variants={itemVariants} className="relative overflow-hidden pt-2">
                   <div className="absolute inset-0 bg-gradient-to-b from-blue-50/30 to-transparent pointer-events-none -z-10" />
                   <ServiceCategories
                     categories={categories}
@@ -636,51 +719,11 @@ const Home = () => {
                 </motion.div>
               )}
 
-              {/* Soil Testing Banner */}
-              <motion.section variants={itemVariants} className="px-5">
-                <div
-                  onClick={() => navigate('/user/soil-testing')}
-                  className="bg-gradient-to-r from-[#347989] to-[#4fa1b3] rounded-[32px] p-6 text-white flex items-center justify-between relative overflow-hidden shadow-lg active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <div className="relative z-10 flex-1">
-                    <span className="bg-white/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-2 inline-block">New Service</span>
-                    <h2 className="text-xl font-black mb-1">Soil Testing</h2>
-                    <p className="text-[10px] font-bold text-white/80 leading-snug max-w-[180px]">Apni mitti ki jaanch karayein aur fasal badhayein.</p>
-                  </div>
-                  <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.673.337a4 4 0 01-2.506.326l-1.623-.27a2 2 0 00-1.182.15l-1.615.807a2 2 0 01-2.342-.308l-.337-.337a2 2 0 00-2.828 0l-.337.337a2 2 0 01-2.342.308l-1.615-.807a2 2 0 00-1.182-.15l-1.623.27a4 4 0 01-2.506-.326l-.673-.337a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547l-.337.337a2 2 0 01-2.342.308l-1.615-.807a2 2 0 00-1.182-.15l-1.623.27a4 4 0 01-2.506-.326l-.673-.337a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547l-.955 3.185a1 1 0 00.957 1.287h15.756a1 1 0 00.957-1.287l-.955-3.185z" />
-                    </svg>
-                  </div>
-                </div>
-              </motion.section>
 
               {/* Agriculture Marketplace */}
               <motion.div variants={itemVariants}>
                 <AgriMarketplaceSection />
               </motion.div>
-
-              {/* Dynamic Banner 1 */}
-              {homeContent?.isBannersVisible !== false && (
-                <motion.div variants={itemVariants}>
-                  <Suspense fallback={<div className="h-32 bg-gray-50 animate-pulse rounded-xl mx-4" />}>
-                    <Banner
-                      imageUrl={homeContent?.banners?.[0] ? toAssetUrl(homeContent.banners[0].imageUrl) : null}
-                      onClick={() => {
-                        const b = homeContent?.banners?.[0];
-                        if (b?.slug) {
-                          navigate(`/user/${b.slug}`);
-                          return;
-                        }
-                        if (b?.targetCategoryId) {
-                          const cat = categories.find(c => c.id === b.targetCategoryId);
-                          if (cat) handleCategoryClick(cat);
-                        }
-                      }}
-                    />
-                  </Suspense>
-                </motion.div>
-              )}
 
               {/* Dynamic Sections */}
               {homeContent?.isCategorySectionsVisible !== false && (homeContent?.categorySections || []).sort((a, b) => (a.order || 0) - (b.order || 0)).map((section, sIdx) => (
@@ -716,24 +759,6 @@ const Home = () => {
                   </Suspense>
                 </motion.div>
               ))}
-
-              {/* Dynamic Banner 2 */}
-              {homeContent?.isBannersVisible !== false && (
-                <motion.div variants={itemVariants}>
-                  <Suspense fallback={<div className="h-32 bg-gray-50 animate-pulse rounded-xl mx-4" />}>
-                    <Banner
-                      imageUrl={homeContent?.banners?.[1] ? toAssetUrl(homeContent.banners[1].imageUrl) : null}
-                      onClick={() => {
-                        const b = homeContent?.banners?.[1];
-                        if (b?.targetCategoryId) {
-                          const cat = categories.find(c => (c.id === b.targetCategoryId || c._id === b.targetCategoryId));
-                          if (cat) handleCategoryClick(cat);
-                        }
-                      }}
-                    />
-                  </Suspense>
-                </motion.div>
-              )}
 
               {/* Refer & Earn Section */}
               <motion.div variants={itemVariants}>

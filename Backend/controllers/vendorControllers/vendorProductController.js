@@ -1,87 +1,130 @@
 const Product = require('../../models/Product');
+const EcommerceOrder = require('../../models/EcommerceOrder');
+const User = require('../../models/User'); // Required for populate('userId')
+const Vendor = require('../../models/Vendor');
 
 /**
- * Vendor: Get my products
+ * Vendor: Get my products (Only Physical Goods for Ecommerce Store)
  */
 const getMyProducts = async (req, res) => {
     try {
-        const products = await Product.find({ vendorId: req.user.id }).populate('categoryId', 'title');
-        res.status(200).json({
-            success: true,
-            data: products
-        });
+        const products = await Product.find({ 
+            vendorId: req.user._id,
+            type: 'physical_good' 
+        }).populate('categoryId', 'title').lean();
+        res.status(200).json({ success: true, data: products });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch products' });
     }
 };
 
 /**
- * Vendor: Add product to my store
+ * Vendor: Add product to my store (Starts as PENDING, Forced Type: physical_good)
  */
 const addProduct = async (req, res) => {
     try {
-        const productData = { ...req.body };
-        if (productData.discountPrice === '') {
-            productData.discountPrice = null;
-        }
-        
-        const product = new Product({
-            ...productData,
+        const productData = {
+            ...req.body,
             vendorId: req.user._id,
-            isFeatured: false // Vendors cannot feature their own products on Home Page without Admin approval
-        });
+            type: 'physical_good',
+            approvalStatus: 'pending',
+            status: 'inactive'
+        };
+
+        // If categoryId is empty string, remove it (Mongoose CastError prevention)
+        if (productData.categoryId === "") delete productData.categoryId;
+
+        const product = new Product(productData);
         await product.save();
-        res.status(201).json({
-            success: true,
-            data: product,
-            message: 'Product added to your store'
-        });
+        res.status(201).json({ success: true, data: product, message: 'Product submitted for admin review' });
     } catch (error) {
-        console.error('Add product error:', error);
-        res.status(500).json({ success: false, message: error.message || 'Failed to add product' });
+        console.error('Error adding product:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-/**
- * Vendor: Update my product
- */
 const updateMyProduct = async (req, res) => {
     try {
+        const updateData = { ...req.body };
+        
+        // Sanitize categoryId to prevent Mongoose conversion errors if arriving as empty string
+        if (updateData.categoryId === "") delete updateData.categoryId;
+
         const product = await Product.findOneAndUpdate(
-            { _id: req.params.id, vendorId: req.user.id },
-            req.body,
+            { _id: req.params.id, vendorId: req.user._id, type: 'physical_good' },
+            updateData,
             { new: true, runValidators: true }
         );
-
-        if (!product) {
-            return res.status(404).json({ success: false, message: 'Product not found in your store' });
-        }
-
-        res.status(200).json({
-            success: true,
-            data: product,
-            message: 'Product updated successfully'
-        });
+        if (!product) return res.status(404).json({ success: false, message: 'Product not found or not an ecommerce item' });
+        res.status(200).json({ success: true, data: product });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to update product' });
     }
 };
 
-/**
- * Vendor: Delete my product
- */
 const deleteMyProduct = async (req, res) => {
     try {
-        const product = await Product.findOneAndDelete({ _id: req.params.id, vendorId: req.user.id });
-        if (!product) {
-            return res.status(404).json({ success: false, message: 'Product not found in your store' });
-        }
-        res.status(200).json({
-            success: true,
-            message: 'Product removed from your store'
+        const product = await Product.findOneAndDelete({ 
+            _id: req.params.id, 
+            vendorId: req.user._id,
+            type: 'physical_good'
         });
+        if (!product) return res.status(404).json({ success: false, message: 'Product not found or not an ecommerce item' });
+        res.status(200).json({ success: true, message: 'Product removed' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to delete product' });
+    }
+};
+
+/**
+ * Vendor: Get orders for my shop
+ */
+const getMyOrders = async (req, res) => {
+    try {
+        const orders = await EcommerceOrder.find({ vendorId: req.user._id })
+            .populate('userId', 'name phone')
+            .sort({ createdAt: -1 })
+            .lean();
+        res.status(200).json({ success: true, data: orders });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch orders' });
+    }
+};
+
+/**
+ * Vendor: Update order tracking status
+ */
+const updateOrderStatus = async (req, res) => {
+    try {
+        const { status, trackingNumber, courierName } = req.body;
+        const allowedStatuses = ['packed', 'shipped', 'delivered', 'cancelled'];
+        
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid status' });
+        }
+
+        const updateData = { deliveryStatus: status };
+        
+        // Add timestamps
+        if (status === 'packed') updateData['trackingDetails.packedAt'] = new Date();
+        if (status === 'shipped') {
+            updateData['trackingDetails.shippedAt'] = new Date();
+            updateData['trackingDetails.trackingNumber'] = trackingNumber;
+            updateData['trackingDetails.courierName'] = courierName;
+        }
+        if (status === 'delivered') updateData['trackingDetails.deliveredAt'] = new Date();
+        if (status === 'cancelled') updateData['trackingDetails.cancelledAt'] = new Date();
+
+        const order = await EcommerceOrder.findOneAndUpdate(
+            { _id: req.params.id, vendorId: req.user._id },
+            updateData,
+            { new: true }
+        );
+
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+        res.status(200).json({ success: true, message: `Order marked as ${status}`, data: order });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to update order status' });
     }
 };
 
@@ -89,5 +132,7 @@ module.exports = {
     getMyProducts,
     addProduct,
     updateMyProduct,
-    deleteMyProduct
+    deleteMyProduct,
+    getMyOrders,
+    updateOrderStatus
 };

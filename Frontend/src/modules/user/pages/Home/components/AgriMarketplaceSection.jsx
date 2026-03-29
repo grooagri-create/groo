@@ -74,7 +74,7 @@ const AgriMarketplaceSection = () => {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quality Seeds & Fertilizers</p>
                 </div>
                 <button
-                    onClick={() => navigate('/user/marketplace')}
+                    onClick={() => navigate('/user/agri-marketplace')}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-black transition-all active:scale-95"
                 >
                     See All <FiArrowRight />
@@ -91,7 +91,8 @@ const AgriMarketplaceSection = () => {
                         <motion.div
                             key={product._id}
                             whileHover={{ y: -5 }}
-                            className="min-w-[170px] bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm flex flex-col"
+                            onClick={() => navigate(`/user/agri-marketplace/${product._id}`)}
+                            className="min-w-[170px] bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm flex flex-col cursor-pointer"
                         >
                             <div className="h-28 bg-slate-50 relative group">
                                 <img

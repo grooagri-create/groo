@@ -4,29 +4,31 @@ const { authenticate } = require('../../middleware/authMiddleware');
 const { isAdmin } = require('../../middleware/roleMiddleware');
 const {
     getAllProducts,
-    getVendorEquipment,
-    approveEquipment,
-    rejectEquipment,
+    getVendorProducts,
+    approveProduct,
+    rejectProduct,
     createProduct,
     updateProduct,
     deleteProduct,
-    toggleFeatured
+    getAllEcommerceOrders
 } = require('../../controllers/adminControllers/productController');
 
 // All product management routes require admin authentication
 router.use(authenticate, isAdmin);
 
-// Agri Marketplace (admin-created products)
+// Central Store (Admin-managed products)
 router.get('/products', getAllProducts);
 router.post('/products', createProduct);
 router.put('/products/:id', updateProduct);
 router.delete('/products/:id', deleteProduct);
-router.patch('/products/:id/toggle-featured', toggleFeatured);
 
-// Vendor Equipment Approval (plan2.txt Step 4)
-router.get('/vendor-equipment', getVendorEquipment);
-router.post('/vendor-equipment/:id/approve', approveEquipment);
-router.post('/vendor-equipment/:id/reject', rejectEquipment);
+// Vendor Product Approval Workflow
+router.get('/vendor-submissions', getVendorProducts);
+router.post('/vendor-submissions/:id/approve', approveProduct);
+router.post('/vendor-submissions/:id/reject', rejectProduct);
+
+// Global Ecommerce Order View
+router.get('/orders', getAllEcommerceOrders);
 
 module.exports = router;
 

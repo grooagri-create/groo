@@ -12,6 +12,23 @@ const adminSoilTestService = {
     delete: async (id) => {
         const response = await api.delete(`/admin/soil-tests/${id}`);
         return response.data;
+    },
+    assignVendor: async (id, vendorId) => {
+        const response = await api.post(`/admin/soil-tests/${id}/assign`, { vendorId });
+        return response.data;
+    },
+    approveReport: async (id, adminNotes, price, commissionPercentage) => {
+        const payload = {
+            adminNotes,
+            price: Number(price) || 0,
+            commissionPercentage: Number(commissionPercentage) || 0
+        };
+        const response = await api.post(`/admin/soil-tests/${id}/approve`, payload);
+        return response.data;
+    },
+    getVendors: async () => {
+        const response = await api.get('/admin/vendors');
+        return response.data;
     }
 };
 

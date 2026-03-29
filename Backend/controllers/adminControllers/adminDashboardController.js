@@ -4,6 +4,7 @@ const Worker = require('../../models/Worker');
 const Booking = require('../../models/Booking');
 const Withdrawal = require('../../models/Withdrawal');
 const Settlement = require('../../models/Settlement');
+const SoilTestRequest = require('../../models/SoilTestRequest');
 
 const { BOOKING_STATUS, PAYMENT_STATUS, VENDOR_STATUS } = require('../../utils/constants');
 
@@ -42,8 +43,31 @@ const getDashboardStats = async (req, res) => {
       }
     ]);
 
-    const revenue = revenueResult[0] || { totalRevenue: 0, totalBookings: 0 };
-    const platformCommission = revenue.totalRevenue * 0.2; // 20% commission
+    const bookingRevData = revenueResult[0] || { totalRevenue: 0, totalBookings: 0 };
+    const bookingRevenue = bookingRevData.totalRevenue;
+    const bookingCommission = bookingRevenue * 0.2; // 20% commission
+
+    // Soil Test Revenue
+    const soilTestRevenueResult = await SoilTestRequest.aggregate([
+      {
+        $match: {
+          paymentStatus: 'paid'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$totalAmount' },
+          totalCommission: { $sum: '$adminCommission' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const soilTestRevData = soilTestRevenueResult[0] || { totalAmount: 0, totalCommission: 0, count: 0 };
+    const soilTestCommission = soilTestRevData.totalCommission;
+
+    const totalRevenue = bookingCommission + soilTestCommission;
 
     // Vendor approval stats
     const pendingVendors = await Vendor.countDocuments({ approvalStatus: VENDOR_STATUS.PENDING });
@@ -87,8 +111,12 @@ const getDashboardStats = async (req, res) => {
           pendingBookings,
           completedBookings,
           cancelledBookings,
-          totalRevenue: revenue.totalRevenue,
-          platformCommission,
+          totalRevenue: totalRevenue,
+          bookingRevenue: bookingCommission,
+          soilTestRevenue: soilTestCommission,
+          platformCommission: totalRevenue,
+          bookingCommission: bookingCommission,
+          soilTestCommission: soilTestCommission,
           pendingVendors,
           approvedVendors,
           pendingWithdrawals,
@@ -129,6 +157,7 @@ const getRevenueAnalytics = async (req, res) => {
     }
 
     // Revenue analytics
+    // Booking Revenue Analytics
     const revenueData = await Booking.aggregate([
       {
         $match: {
@@ -153,11 +182,78 @@ const getRevenueAnalytics = async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
+    // Combined revenue analytics
+    const mergedData = {};
+
+    revenueData.forEach(item => {
+      const commission = item.platformCommission || 0;
+      mergedData[item._id] = {
+        date: item._id,
+        bookingRevenue: commission,
+        bookingCommission: commission,
+        soilTestRevenue: 0,
+        soilTestCommission: 0,
+        totalRevenue: commission,
+        totalCommission: commission
+      };
+    });
+
+    // Soil Test Analytics
+    const soilTestDateFilter = {};
+    if (startDate || endDate) {
+      soilTestDateFilter.updatedAt = {};
+      if (startDate) soilTestDateFilter.updatedAt.$gte = new Date(startDate);
+      if (endDate) soilTestDateFilter.updatedAt.$lte = new Date(endDate);
+    }
+
+    const soilTestData = await SoilTestRequest.aggregate([
+      {
+        $match: {
+          paymentStatus: 'paid',
+          ...soilTestDateFilter
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: groupFormat,
+              date: '$updatedAt'
+            }
+          },
+          revenue: { $sum: '$totalAmount' },
+          commission: { $sum: '$adminCommission' }
+        }
+      }
+    ]);
+
+    soilTestData.forEach(item => {
+      const commission = item.commission || 0;
+      if (!mergedData[item._id]) {
+        mergedData[item._id] = {
+          date: item._id,
+          bookingRevenue: 0,
+          bookingCommission: 0,
+          soilTestRevenue: commission,
+          soilTestCommission: commission,
+          totalRevenue: commission,
+          totalCommission: commission
+        };
+      } else {
+        mergedData[item._id].soilTestRevenue = commission;
+        mergedData[item._id].soilTestCommission = commission;
+        mergedData[item._id].totalRevenue += commission;
+        mergedData[item._id].totalCommission += commission;
+      }
+    });
+
+    const finalRevenueData = Object.values(mergedData).sort((a, b) => a.date.localeCompare(b.date));
+
     res.status(200).json({
       success: true,
       data: {
         period,
-        revenueData
+        revenueData: finalRevenueData
       }
     });
   } catch (error) {

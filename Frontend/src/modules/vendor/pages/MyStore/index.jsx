@@ -7,26 +7,24 @@ import {
     FiChevronLeft,
     FiImage,
     FiTrendingUp,
-    FiTool,
-    FiUser
+    FiPackage,
+    FiInfo,
+    FiAlertCircle
 } from 'react-icons/fi';
-import { FaTractor } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import vendorProductService from '../../services/vendorProductService';
 import { publicCatalogService } from '../../../../services/catalogService';
 import { vendorTheme as themeColors } from '../../../../theme';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import maintenanceService from '../../services/maintenanceService';
-import { isWithinInterval, parseISO } from 'date-fns';
 
 const MyStore = () => {
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [maintenanceSchedules, setMaintenanceSchedules] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [shopStatus, setShopStatus] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [formData, setFormData] = useState({
@@ -35,14 +33,12 @@ const MyStore = () => {
         brandName: '',
         description: '',
         price: '',
-        discountPrice: '',
-        unit: 'Per Day',
+        unit: 'bag',
+        bagWeight: 50,
         stock: 1,
         imageUrl: '',
         images: [],
-        specifications: [],
-        hasDriver: false,
-        driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
+        specifications: []
     });
 
     useEffect(() => {
@@ -52,14 +48,14 @@ const MyStore = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [prodRes, catRes, maintRes] = await Promise.all([
-                vendorProductService.getMyStore(),
-                publicCatalogService.getCategories(),
-                maintenanceService.getSchedules()
+            const [prodRes, catRes, shopRes] = await Promise.all([
+                vendorProductService.getMyProducts(),
+                publicCatalogService.getCategories({ type: 'product' }),
+                vendorProductService.getShopStatus()
             ]);
             if (prodRes.success) setProducts(prodRes.data || []);
             if (catRes.success) setCategories(catRes.categories || catRes.data || []);
-            setMaintenanceSchedules(maintRes.data || []);
+            if (shopRes.success) setShopStatus(shopRes.data);
         } catch (err) {
             toast.error("Data load karne mein dikkat hui");
         } finally {
@@ -101,42 +97,10 @@ const MyStore = () => {
                         images: newImages
                     };
                 });
-                toast.success(`${uploadedUrls.length} image(s) upload ho gayi!`);
+                toast.success(`${uploadedUrls.length} image(s) uploaded!`);
             }
         } catch (err) {
-            toast.error("Image upload fail ho gayi");
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const handleDriverPhotoUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        try {
-            setUploading(true);
-            const token = sessionStorage.getItem('vendorAccessToken') || localStorage.getItem('vendorAccessToken');
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-            const uploadFormData = new FormData();
-            uploadFormData.append('file', file);
-
-            const res = await fetch(`${baseUrl}/upload`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: uploadFormData
-            });
-            const data = await res.json();
-            if (data.success) {
-                setFormData(prev => ({
-                    ...prev,
-                    driverDetails: { ...prev.driverDetails, photo: data.imageUrl }
-                }));
-                toast.success("Driver photo upload ho gayi!");
-            }
-        } catch (err) {
-            toast.error("Photo upload fail ho gayi");
+            toast.error("Image upload failed");
         } finally {
             setUploading(false);
         }
@@ -144,25 +108,16 @@ const MyStore = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Basic Validations
-        if (!formData.title || !formData.price || !formData.categoryId) {
-            return toast.error("Kripya Title, Price aur Category bharein");
-        }
-
-        // Driver Validations
-        if (formData.hasDriver) {
-            if (!formData.driverDetails.name) return toast.error("Driver ka naam zaroori hai");
-            if (!formData.driverDetails.phone) return toast.error("Driver ka phone number zaroori hai");
-            if (formData.driverDetails.phone.length !== 10) return toast.error("Phone number 10 digits ka hona chahiye");
+        if (!formData.title || !formData.price) {
+            return toast.error("Please fill Title and Price");
         }
 
         try {
             let res;
             if (editMode) {
-                res = await vendorProductService.update(formData._id, formData);
+                res = await vendorProductService.updateProduct(formData._id, formData);
             } else {
-                res = await vendorProductService.add(formData);
+                res = await vendorProductService.addProduct(formData);
             }
 
             if (res.success) {
@@ -171,22 +126,21 @@ const MyStore = () => {
                 fetchData();
             }
         } catch (err) {
-            console.error("Store action error:", err);
-            const errMsg = err.response?.data?.message || "Action fail ho gaya";
+            const errMsg = err.response?.data?.message || "Action failed";
             toast.error(errMsg);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Kaya aap is machine ko sach me delete karna chahte hain?")) return;
+        if (!window.confirm("Kaya aap is product ko delete karna chahte hain?")) return;
         try {
-            const res = await vendorProductService.delete(id);
+            const res = await vendorProductService.deleteProduct(id);
             if (res.success) {
                 setProducts(products.filter(p => p._id !== id));
-                toast.success("Machine aapke fleet se hata di gayi");
+                toast.success("Product removed");
             }
         } catch (err) {
-            toast.error("Delete fail ho gaya");
+            toast.error("Delete failed");
         }
     };
 
@@ -195,81 +149,126 @@ const MyStore = () => {
             ...product,
             images: product.images && product.images.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []),
             specifications: product.specifications || [],
-            categoryId: product.categoryId?._id || product.categoryId,
-            hasDriver: product.hasDriver || false,
-            driverDetails: product.driverDetails || { name: '', phone: '', photo: '', licenseNumber: '' }
+            categoryId: product.categoryId?._id || product.categoryId
         });
         setEditMode(true);
         setShowModal(true);
     };
 
+    if (!loading && !shopStatus?.isStoreApproved) {
+        return (
+            <div className="min-h-screen bg-slate-50 pb-20">
+                <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100 flex items-center px-4 py-4 gap-4">
+                    <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-xl">
+                        <FiChevronLeft className="w-6 h-6 text-slate-600" />
+                    </button>
+                    <div className="flex-1">
+                        <h1 className="text-xl font-black text-slate-800 leading-tight">My Agri-Store</h1>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Management</p>
+                    </div>
+                </div>
+
+                <div className="p-8 flex flex-col items-center justify-center pt-24 text-center">
+                    <div className="w-24 h-24 bg-amber-50 rounded-[40px] flex items-center justify-center mb-6 shadow-inner border border-amber-100/50">
+                        <FiAlertCircle className="w-10 h-10 text-amber-600" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-800 leading-tight">Shop Verification Required</h2>
+                    <p className="text-slate-500 mt-4 px-6 text-sm font-medium leading-relaxed max-w-sm">
+                        {shopStatus?.storeApprovalStatus === 'pending' 
+                            ? "Your shop registration is currently under review by admin. We will notify you once it is approved."
+                            : "To start selling seeds and fertilizers, you must first register your shop details and get admin approval."}
+                    </p>
+                    
+                    <div className="w-full space-y-3 mt-12">
+                        {shopStatus?.storeApprovalStatus !== 'pending' && (
+                            <button 
+                                onClick={() => navigate('/vendor/store/registration')}
+                                className="w-full py-5 bg-teal-600 text-white rounded-[32px] font-black uppercase tracking-wider text-[11px] shadow-2xl shadow-teal-900/20 active:scale-95 transition-all"
+                            >
+                                Register My Shop Now
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => navigate('/vendor/profile')}
+                            className="w-full py-5 bg-white border-2 border-slate-100 text-slate-600 rounded-[32px] font-black uppercase tracking-wider text-[11px] active:scale-95 transition-all"
+                        >
+                            Back to Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Custom Navbar (Mobile Style) */}
+            {/* Custom Navbar */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100 flex items-center px-4 py-4 gap-4">
                 <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-xl">
                     <FiChevronLeft className="w-6 h-6 text-slate-600" />
                 </button>
                 <div className="flex-1">
                     <h1 className="text-xl font-black text-slate-800 leading-tight">My Agri-Store</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Equipments & Farm Supplies</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seeds & Fertilizers Inventory</p>
                 </div>
             </div>
 
-            <div className="p-6 space-y-6 pb-24">
-                {/* Stats Section */}
+            <div className="p-6 space-y-6 pb-32">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100">
                         <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center mb-3">
-                            <FaTractor className="text-teal-600 text-xl" />
+                            <FiPackage className="text-teal-600 text-xl" />
                         </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Items</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Products</p>
                         <p className="text-2xl font-black text-slate-800">{products.length}</p>
                     </div>
                     <div className="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100">
                         <div className="w-10 h-10 rounded-2xl bg-amber-50 flex items-center justify-center mb-3">
                             <FiTrendingUp className="text-amber-600 text-xl" />
                         </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Inventory Value</p>
-                        <p className="text-2xl font-black text-slate-800">₹{products.reduce((acc, p) => acc + (p.price * p.stock), 0).toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Live Status</p>
+                        <p className="text-2xl font-black text-slate-800">{products.filter(p => p.approvalStatus === 'approved').length}</p>
                     </div>
                 </div>
 
-                {/* Add Item Button */}
-                <button
-                    onClick={() => {
-                        setEditMode(false);
-                        setFormData({ 
-                            title: '', categoryId: '', brandName: '', description: '', price: '', discountPrice: '', unit: 'Per Day', stock: 1, 
-                            imageUrl: '', images: [], specifications: [],
-                            hasDriver: false,
-                            driverDetails: { name: '', phone: '', photo: '', licenseNumber: '' }
-                        });
-                        setShowModal(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-3 py-5 rounded-[32px] font-black text-white shadow-xl shadow-green-900/20 active:scale-95 transition-all outline-none"
-                    style={{ backgroundColor: themeColors.button || '#2E7D32' }}
-                >
-                    <FiPlus className="w-6 h-6" /> Add Product/Equipment
-                </button>
+                <div className="grid grid-cols-2 gap-4">
+                    <button
+                        onClick={() => {
+                            setEditMode(false);
+                            setFormData({ 
+                                title: '', categoryId: '', brandName: '', description: '', price: '', unit: 'bag', bagWeight: 50, stock: 1, 
+                                imageUrl: '', images: [], specifications: []
+                            });
+                            setShowModal(true);
+                        }}
+                        className="flex items-center justify-center gap-2 py-5 rounded-[32px] font-black text-white shadow-xl shadow-green-900/10 active:scale-95 transition-all text-[11px] uppercase tracking-wider"
+                        style={{ backgroundColor: themeColors.button || '#2E7D32' }}
+                    >
+                        <FiPlus className="w-4 h-4" /> Add Product
+                    </button>
+                    <button
+                        onClick={() => navigate('/vendor/store/orders')}
+                        className="flex items-center justify-center gap-2 py-5 rounded-[32px] font-black text-[#2E7D32] bg-white border-2 border-[#2E7D32]/20 shadow-xl shadow-green-900/5 active:scale-95 transition-all text-[11px] uppercase tracking-wider"
+                    >
+                        <FiPackage className="w-4 h-4" /> Shop Orders
+                    </button>
+                </div>
 
-                {/* Products List */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-2">
-                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">My Shop Inventory</h2>
+                        <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">Inventory List</h2>
                         <FiSearch className="text-slate-400" />
                     </div>
 
                     {loading ? (
                         <div className="py-20 flex flex-col items-center justify-center gap-4">
                             <div className="w-10 h-10 border-4 border-slate-200 border-t-teal-600 rounded-full animate-spin"></div>
-                            <p className="font-bold text-slate-400">Loading your machines...</p>
                         </div>
                     ) : products.length === 0 ? (
-                        <div className="bg-white p-12 rounded-[40px] border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
-                            <FaTractor className="w-12 h-12 text-slate-300 mb-4" />
-                            <p className="font-black text-slate-800 text-lg">No Items Added Yet</p>
-                            <p className="text-sm text-slate-400 font-medium">Add your tractors, seeds, fertilizers, or tools to start selling and renting!</p>
+                        <div className="bg-white p-12 rounded-[40px] border-2 border-dashed border-slate-200 text-center">
+                            <FiPackage className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                            <p className="font-black text-slate-800">No products added</p>
+                            <p className="text-xs text-slate-400">Add fertilizers or seeds to start selling</p>
                         </div>
                     ) : (
                         products.map(product => (
@@ -278,21 +277,8 @@ const MyStore = () => {
                                     {product.imageUrl ? (
                                         <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <FaTractor className="text-slate-300 text-2xl" />
-                                        </div>
-                                    )}
-                                    
-                                    {/* Maintenance Overlay */}
-                                    {maintenanceSchedules.some(m => 
-                                        String(m.equipmentId?._id || m.equipmentId) === String(product._id) &&
-                                        isWithinInterval(new Date(), {
-                                            start: parseISO(m.startDate),
-                                            end: parseISO(m.endDate)
-                                        })
-                                    ) && (
-                                        <div className="absolute inset-0 bg-rose-500/60 flex items-center justify-center">
-                                            <span className="text-[8px] font-black text-white uppercase tracking-tighter -rotate-12 bg-rose-600 px-1 py-0.5 rounded shadow-sm">Maintenance</span>
+                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                            <FiImage className="text-2xl" />
                                         </div>
                                     )}
                                 </div>
@@ -300,45 +286,37 @@ const MyStore = () => {
                                     <div className="flex items-start justify-between">
                                         <div>
                                             <h3 className="font-black text-slate-800 text-base leading-tight truncate">{product.title}</h3>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{product.brandName || Array.isArray(categories) && categories.find(c => (c.id || c._id) === (product.categoryId?._id || product.categoryId))?.title || 'Machine'}</p>
+                                            <p className="text-[10px] font-black text-teal-600 uppercase mt-0.5">{product.brandName || 'Local Brand'}</p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            <p className="font-black text-teal-600 text-base">₹{product.price}</p>
+                                            <p className="font-black text-slate-800 text-base">₹{product.price}</p>
                                             <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter border ${
                                                 product.approvalStatus === 'approved' ? 'bg-green-50 text-green-600 border-green-100' :
                                                 product.approvalStatus === 'rejected' ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                                 'bg-amber-50 text-amber-600 border-amber-100'
                                             }`}>
-                                                {product.approvalStatus === 'pending_approval' ? 'Review Me Hai' : 
-                                                 product.approvalStatus === 'approved' ? 'Live' : 'Rejected'}
+                                                {product.approvalStatus === 'approved' ? 'Live' : product.approvalStatus === 'rejected' ? 'Rejected' : 'Pending'}
                                             </span>
                                         </div>
                                     </div>
-                                    {product.approvalStatus === 'rejected' && product.rejectionReason && (
-                                        <p className="text-[9px] text-rose-500 font-bold mt-1 bg-rose-50 p-2 rounded-xl border border-rose-100">
-                                            Reason: {product.rejectionReason}
-                                        </p>
-                                    )}
+                                    
                                     <div className="flex items-center justify-between mt-3">
-                                        <div className="flex flex-wrap gap-2">
-                                            <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-tight">
-                                                Qty: {product.stock} | {product.unit}
-                                            </span>
-                                            {product.specifications?.slice(0, 2).map((spec, i) => (
-                                                <span key={i} className="px-3 py-1 bg-teal-50 text-teal-600 rounded-lg text-[10px] font-black uppercase tracking-tight">
-                                                    {spec.name}: {spec.value}
-                                                </span>
-                                            ))}
+                                        <div className="flex flex-wrap gap-2 text-[9px] font-black uppercase text-slate-400 tracking-tighter">
+                                            <span className="bg-slate-50 px-2 py-1 rounded-lg">Stock: {product.stock} {product.unit}s</span>
+                                            <span className="bg-slate-50 px-2 py-1 rounded-lg">Weight: {product.bagWeight} KG</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => openEdit(product)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-800 hover:bg-slate-200 transition-colors">
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => openEdit(product)} className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-800 transition-colors">
                                                 <FiEdit2 className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(product._id)} className="p-2 bg-rose-50 text-rose-400 rounded-xl hover:text-rose-600 hover:bg-rose-100 transition-colors">
+                                            <button onClick={() => handleDelete(product._id)} className="p-2 bg-rose-50 text-rose-400 rounded-xl hover:text-rose-600 transition-colors">
                                                 <FiTrash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
+                                    {product.approvalStatus === 'rejected' && (
+                                        <p className="mt-2 text-[10px] text-rose-500 font-bold bg-rose-50/50 p-2 rounded-xl">Reason: {product.rejectionReason}</p>
+                                    )}
                                 </div>
                             </div>
                         ))
@@ -349,62 +327,39 @@ const MyStore = () => {
             {/* Add/Edit Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-end justify-center pt-10">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                            className="relative bg-white w-full max-h-[92vh] rounded-t-[48px] shadow-2xl overflow-y-auto"
+                    <div className="fixed inset-0 z-50 flex items-end justify-center pt-10 px-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                        <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="relative bg-white w-full max-w-xl max-h-[92vh] rounded-t-[48px] shadow-2xl overflow-hidden flex flex-col"
                         >
-                            <div className="p-8 pb-4 flex items-center justify-between sticky top-0 bg-white z-10">
+                            <div className="p-8 pb-4 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-slate-50">
                                 <div>
-                                    <h2 className="text-2xl font-black text-slate-800">{editMode ? 'Edit Item' : 'Add New Item'}</h2>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Product / Equipment ki details bharein</p>
+                                    <h2 className="text-2xl font-black text-slate-800">{editMode ? 'Edit Product' : 'Add New Product'}</h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Seeds & Fertilizers details</p>
                                 </div>
-                                <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold">✕</button>
+                                <button onClick={() => setShowModal(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center font-bold">✕</button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-8 space-y-6 pb-24">
+                            <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto pb-32">
                                 {/* Image Upload */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Photos (You can upload multiple)</label>
-                                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-slate-400">Product Photos</label>
+                                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                                         {(formData.images || []).map((img, idx) => (
-                                            <div key={idx} className="relative w-32 h-32 flex-shrink-0 rounded-[32px] bg-slate-50 border border-slate-200 overflow-hidden group snap-start">
-                                                <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover" />
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const newImages = formData.images.filter((_, i) => i !== idx);
-                                                        setFormData({...formData, images: newImages, imageUrl: newImages[0] || ''});
-                                                    }}
-                                                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 text-rose-500 shadow-sm flex items-center justify-center opacity-0 xl:opacity-100 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <FiTrash2 className="w-4 h-4" />
+                                            <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-[28px] bg-slate-50 border border-slate-100 overflow-hidden group">
+                                                <img src={img} alt="" className="w-full h-full object-cover" />
+                                                <button type="button" onClick={() => setFormData({...formData, images: formData.images.filter((_, i) => i !== idx)})}
+                                                    className="absolute inset-0 bg-rose-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <FiTrash2 className="text-white w-5 h-5" />
                                                 </button>
                                             </div>
                                         ))}
-
-                                        <div className="w-32 h-32 flex-shrink-0 rounded-[32px] bg-slate-50 border-2 border-dashed border-slate-200 relative overflow-hidden group snap-start">
-                                            <div className="h-full flex flex-col items-center justify-center">
-                                                <FiImage className="w-8 h-8 text-slate-300" />
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1">Add Photos</p>
-                                            </div>
-                                            <input
-                                                type="file"
-                                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                                onChange={handleImageUpload}
-                                                accept="image/*"
-                                                multiple
-                                            />
-                                            {uploading && (
-                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                                                    <div className="w-6 h-6 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-                                                </div>
+                                        <div className="w-24 h-24 flex-shrink-0 rounded-[28px] bg-slate-50 border-2 border-dashed border-slate-200 relative flex flex-col items-center justify-center">
+                                            <FiImage className="w-6 h-6 text-slate-300" />
+                                            {uploading ? (
+                                                <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin"></div></div>
+                                            ) : (
+                                                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageUpload} accept="image/*" multiple />
                                             )}
                                         </div>
                                     </div>
@@ -412,199 +367,57 @@ const MyStore = () => {
 
                                 <div className="space-y-4">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product/Machine Name</label>
-                                        <input required type="text" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" placeholder="e.g. Urea Fertilizer, Mahindra Tractor" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Title</label>
+                                        <input required type="text" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" placeholder="e.g. Zinc Phosphide, Wheat Seeds" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
-                                            <select required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.categoryId} onChange={e => setFormData({ ...formData, categoryId: e.target.value })}>
-                                                <option value="">Select Category</option>
-                                                {categories && categories.length > 0 ? categories.map(cat => <option key={cat.id || cat._id} value={cat.id || cat._id}>{cat.title}</option>) : null}
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Brand/Make</label>
-                                            <input type="text" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" placeholder="e.g. IFFCO, Mahindra, Bayer" value={formData.brandName} onChange={e => setFormData({ ...formData, brandName: e.target.value })} />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-1 md:col-span-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Brand Name</label>
+                                            <input type="text" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" placeholder="e.g. IFFCO, Bayer" value={formData.brandName} onChange={e => setFormData({ ...formData, brandName: e.target.value })} />
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Price / Rent (₹)</label>
-                                            <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Base Price (₹)</label>
+                                            <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none font-sans" value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })} />
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit Type</label>
                                             <select required className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })}>
-                                                <option value="Per KG (Fertilizers/Seeds)">Per KG (Fertilizers/Seeds)</option>
-                                                <option value="Per Packet">Per Packet</option>
-                                                <option value="Per Hour (Machinery)">Per Hour (Machinery)</option>
-                                                <option value="Per Day">Per Day</option>
-                                                <option value="Per Acre">Per Acre</option>
-                                                <option value="Per Order">Per Order</option>
+                                                <option value="bag">Bag</option>
+                                                <option value="packet">Packet</option>
+                                                <option value="kg">KG</option>
+                                                <option value="litre">Litre</option>
                                             </select>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Stock Quantity (Items/Machines)</label>
-                                        <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.stock} onChange={e => setFormData({ ...formData, stock: e.target.value })} />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Details</label>
-                                        <textarea rows="3" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-medium outline-none" placeholder="Is product/machine ke baare mein likhein (e.g., 40HP tractor, or 100% organic fertilizer...)" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                                    </div>
-
-                                    {/* Agri-Specifications (Dynamic) */}
-                                    <div className="space-y-3 pt-2">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-slate-400">Technical Specs (Agri-Specs)</label>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setFormData({...formData, specifications: [...(formData.specifications || []), {name: '', value: ''}]})}
-                                                className="text-[9px] font-black text-emerald-600 uppercase bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition-colors"
-                                            >
-                                                + Add Tech Spec
-                                            </button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bag Weight (KG)</label>
+                                            <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.bagWeight} onChange={e => setFormData({ ...formData, bagWeight: e.target.value })} />
                                         </div>
-                                        
-                                        {formData.specifications && formData.specifications.length > 0 ? (
-                                            <div className="space-y-2">
-                                                {formData.specifications.map((spec, idx) => (
-                                                    <div key={idx} className="flex gap-2 items-center">
-                                                        <input 
-                                                            type="text" 
-                                                            placeholder="Spec (HP, Weight)" 
-                                                            className="flex-1 bg-slate-50 border-none rounded-xl py-3 px-4 text-xs font-bold outline-none"
-                                                            value={spec.name}
-                                                            onChange={e => {
-                                                                const newSpecs = [...formData.specifications];
-                                                                newSpecs[idx].name = e.target.value;
-                                                                setFormData({...formData, specifications: newSpecs});
-                                                            }}
-                                                        />
-                                                        <input 
-                                                            type="text" 
-                                                            placeholder="Value" 
-                                                            className="flex-1 bg-slate-50 border-none rounded-xl py-3 px-4 text-xs font-bold outline-none"
-                                                            value={spec.value}
-                                                            onChange={e => {
-                                                                const newSpecs = [...formData.specifications];
-                                                                newSpecs[idx].value = e.target.value;
-                                                                setFormData({...formData, specifications: newSpecs});
-                                                            }}
-                                                        />
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => setFormData({...formData, specifications: formData.specifications.filter((_, i) => i !== idx)})}
-                                                            className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                                                        >
-                                                            <FiTrash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="py-4 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center bg-slate-50/50">
-                                                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No Specs Added</p>
-                                                <p className="text-[8px] text-slate-400 font-medium">Add HP, Weight, etc. for better ranking</p>
-                                            </div>
-                                        )}
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Available Stock (Bags)</label>
+                                            <input required type="number" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none" value={formData.stock} onChange={e => setFormData({ ...formData, stock: e.target.value })} />
+                                        </div>
                                     </div>
 
-                                    {/* Add Driver Logic */}
-                                    <div className="pt-4 border-t border-slate-100">
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <div className={`w-10 h-6 rounded-full p-1 transition-all ${formData.hasDriver ? 'bg-orange-500' : 'bg-slate-200'}`}>
-                                                <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${formData.hasDriver ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                                            </div>
-                                            <input 
-                                                type="checkbox" 
-                                                className="hidden" 
-                                                checked={formData.hasDriver}
-                                                onChange={e => setFormData({...formData, hasDriver: e.target.checked})}
-                                            />
-                                            <span className="text-xs font-black text-slate-600 uppercase tracking-tight">Include Driver with this Service?</span>
-                                        </label>
-
-                                        {formData.hasDriver && (
-                                            <div className="mt-4 p-5 bg-orange-50/50 rounded-3xl border border-orange-100 space-y-4 animate-in fade-in slide-in-from-top-2">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-16 h-16 rounded-2xl bg-white border-2 border-dashed border-orange-200 flex flex-col items-center justify-center relative overflow-hidden flex-shrink-0">
-                                                        {formData.driverDetails.photo ? (
-                                                            <img src={formData.driverDetails.photo} alt="driver" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <FiUser className="text-orange-300 w-6 h-6" />
-                                                        )}
-                                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleDriverPhotoUpload} accept="image/*" />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-1">Driver's Identity</p>
-                                                        <p className="text-[10px] text-orange-600 font-bold leading-tight">Add photo & details for trust</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Driver Name</label>
-                                                        <input 
-                                                            type="text" 
-                                                            className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
-                                                            placeholder="e.g. Ram Singh"
-                                                            value={formData.driverDetails.name}
-                                                            onChange={e => {
-                                                                const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-                                                                setFormData({...formData, driverDetails: {...formData.driverDetails, name: val}});
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Phone Number</label>
-                                                        <input 
-                                                            type="tel" 
-                                                            className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
-                                                            placeholder="10-digit number"
-                                                            value={formData.driverDetails.phone}
-                                                            maxLength={10}
-                                                            onChange={e => {
-                                                                const val = e.target.value.replace(/\D/g, '');
-                                                                if(val.length <= 10) {
-                                                                    setFormData({...formData, driverDetails: {...formData.driverDetails, phone: val}});
-                                                                }
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">DL Number (Driving License)</label>
-                                                    <input 
-                                                        type="text" 
-                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-xs font-bold outline-none" 
-                                                        placeholder="e.g. MP09 2023 00..."
-                                                        value={formData.driverDetails.licenseNumber}
-                                                        maxLength={16}
-                                                        onChange={e => {
-                                                            const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                                                            setFormData({...formData, driverDetails: {...formData.driverDetails, licenseNumber: val}});
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
+                                        <textarea rows="3" className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-medium outline-none" placeholder="Product details..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                                    </div>
+                                    
+                                    <div className="p-4 bg-teal-50/50 rounded-2xl flex gap-3 border border-teal-100/50">
+                                        <FiInfo className="text-teal-600 mt-1 flex-shrink-0" />
+                                        <p className="text-[10px] font-bold text-teal-800 leading-relaxed">Admin will add GST and Commission to your base price before making the product live for farmers.</p>
                                     </div>
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={uploading}
-                                    className="w-full py-5 rounded-[32px] font-black text-white shadow-xl shadow-green-900/20 active:scale-95 transition-all text-lg"
-                                    style={{ backgroundColor: themeColors.button || '#2E7D32' }}
-                                >
-                                    {editMode ? 'Update Item Details' : 'Add to My Store'}
+                                <button type="submit" className="w-full bg-[#2E7D32] py-5 rounded-[28px] font-black text-white shadow-xl shadow-green-900/20 active:scale-95 transition-all text-lg sticky bottom-0">
+                                    {editMode ? 'Update Product' : 'Add Product for Review'}
                                 </button>
                             </form>
                         </motion.div>

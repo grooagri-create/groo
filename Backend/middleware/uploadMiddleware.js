@@ -50,12 +50,45 @@ const documentFilter = (req, file, cb) => {
   }
 };
 
+// Configure Cloudinary Storage for shop licenses/docs
+const shopLicenseStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const isDoc = file.mimetype === 'application/pdf';
+    return {
+      folder: 'shop_licenses',
+      resource_type: isDoc ? 'raw' : 'image',
+      allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
+      public_id: `${file.originalname.split('.')[0]}-${Date.now()}`
+    };
+  }
+});
+
+// File filter - images and PDF
+const shopLicenseFilter = (req, file, cb) => {
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only images (JPG, PNG) and PDF files are allowed!'), false);
+  }
+};
+
 // Generic Image Upload (Cloudinary) - Expecting 'file' field
 const uploadImage = multer({
   storage: cloudinaryStorage,
   fileFilter: imageFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+}).single('file');
+
+// Shop License Upload (Cloudinary)
+const uploadShopLicense = multer({
+  storage: shopLicenseStorage,
+  fileFilter: shopLicenseFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit for docs
   }
 }).single('file');
 
@@ -111,6 +144,7 @@ const handleMulterError = (err, req, res, next) => {
 
 module.exports = {
   uploadImage,
+  uploadShopLicense,
   uploadProfilePhoto,
   uploadDocuments,
   handleMulterError
