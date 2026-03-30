@@ -2,11 +2,20 @@ const Product = require('../../models/Product');
 const EcommerceOrder = require('../../models/EcommerceOrder');
 
 /**
- * Admin: Get all products (Central Store)
+ * Admin: Get all products (Central Store + Approved Vendor Products)
+ * Includes both admin-added products and vendor products that have been approved
  */
 const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find({ vendorId: null }).populate('categoryId', 'title');
+        const products = await Product.find({
+            $or: [
+                { vendorId: null },                           // Admin/Central Store products
+                { vendorId: { $ne: null }, approvalStatus: 'approved' } // Approved Vendor products
+            ]
+        })
+        .populate('categoryId', 'title')
+        .populate('vendorId', 'name businessName phone profilePhoto')
+        .sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: products });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to fetch products' });

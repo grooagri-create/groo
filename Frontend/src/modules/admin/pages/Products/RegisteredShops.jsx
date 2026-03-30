@@ -63,6 +63,7 @@ const RegisteredShops = () => {
                                 <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Shop & Status</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Owner Details</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Location</th>
+                                <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Products & Stock</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[2px]">License</th>
                                 <th className="px-6 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[2px] text-right">Actions</th>
                             </tr>
@@ -117,6 +118,29 @@ const RegisteredShops = () => {
                                                         Google Maps <FiExternalLink className="w-2.5 h-2.5" />
                                                     </a>
                                                 )}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-6">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="text-center">
+                                                    <p className="text-base font-black text-slate-800">{vendor.productStats?.totalProducts ?? 0}</p>
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase">Total</p>
+                                                </div>
+                                                <div className="w-px h-8 bg-slate-100" />
+                                                <div className="text-center">
+                                                    <p className="text-base font-black text-emerald-600">{vendor.productStats?.approvedProducts ?? 0}</p>
+                                                    <p className="text-[9px] font-black text-emerald-400 uppercase">Live</p>
+                                                </div>
+                                                <div className="w-px h-8 bg-slate-100" />
+                                                <div className="text-center">
+                                                    <p className="text-base font-black text-amber-600">{vendor.productStats?.pendingProducts ?? 0}</p>
+                                                    <p className="text-[9px] font-black text-amber-400 uppercase">Pending</p>
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-50 px-3 py-1.5 rounded-xl">
+                                                <p className="text-[10px] text-slate-500 font-bold">Stock: <span className="text-slate-800 font-black">{vendor.productStats?.totalStock ?? 0} units</span></p>
                                             </div>
                                         </div>
                                     </td>

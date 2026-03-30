@@ -27,9 +27,13 @@ const ecommerceService = {
         return response.data;
     },
 
-    payPlatformFee: async (orderId) => {
-        // Currently handles wallet-based payment of admin fee
-        const response = await api.post(`/user/ecommerce/orders/${orderId}/pay-platform-fee`);
+    createPaymentOrder: async (orderId) => {
+        const response = await api.post(`/user/ecommerce/orders/${orderId}/create-payment-order`);
+        return response.data;
+    },
+
+    payPlatformFee: async (orderId, paymentData = {}) => {
+        const response = await api.post(`/user/ecommerce/orders/${orderId}/pay-platform-fee`, paymentData);
         return response.data;
     },
 
@@ -43,6 +47,11 @@ const ecommerceService = {
 
     getOrderById: async (orderId) => {
         const response = await api.get(`/user/ecommerce/orders/${orderId}`);
+        return response.data;
+    },
+
+    cancelOrder: async (orderId) => {
+        const response = await api.post(`/user/ecommerce/orders/${orderId}/cancel`);
         return response.data;
     }
 };

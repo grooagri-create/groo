@@ -108,7 +108,8 @@ const LocationPicker = ({ onLocationSelect, initialPosition = null }) => {
           onLocationSelect({
             lat: newPos.lat,
             lng: newPos.lng,
-            address: place.formatted_address
+            address: place.formatted_address,
+            components: place.address_components
           });
         }
       }
@@ -167,10 +168,10 @@ const LocationPicker = ({ onLocationSelect, initialPosition = null }) => {
   }
 
   return (
-    <div className="w-full">
-      <div className="relative h-64 bg-gray-200">
+    <div className="w-full relative shadow-sm rounded-3xl overflow-hidden border border-slate-200">
+      <div className="relative h-64 bg-slate-100">
         <GoogleMap
-          mapContainerStyle={mapContainerStyle}
+          mapContainerStyle={{ width: '100%', height: '100%' }}
           center={marker}
           zoom={15}
           onClick={onMapClick}
@@ -182,24 +183,38 @@ const LocationPicker = ({ onLocationSelect, initialPosition = null }) => {
             gestureHandling: 'greedy',
             rotateControl: true,
             tiltControl: true,
-            zoomControl: false
+            zoomControl: false,
+            disableDefaultUI: true // cleans up google logos somewhat
           }}
         >
           {marker && <Marker position={marker} />}
         </GoogleMap>
 
+        {/* Search Autocomplete */}
+        <div className="absolute top-4 left-4 right-4 z-10 drop-shadow-md">
+          <Autocomplete
+            onLoad={setAutocomplete}
+            onPlaceChanged={onPlaceChanged}
+          >
+            <input
+              type="text"
+              placeholder="Search area, street, or city..."
+              className="w-full px-4 py-3 bg-white rounded-2xl shadow-sm text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all border-none"
+            />
+          </Autocomplete>
+        </div>
+
         {/* Pin Instruction Overlay */}
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-10 w-max max-w-[90%] text-center">
-          {loading ? 'Fetching address...' : 'Place the pin accurately on map'}
+        <div className="absolute bottom-4 left-4 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl text-[9px] uppercase font-black tracking-widest z-10 shadow-lg backdrop-blur-sm">
+          {loading ? 'Fetching address...' : 'Map Pin Location'}
         </div>
 
         {/* Locate Me Button */}
-        {/* Locate Me Button - Now on right */}
         <button
           onClick={handleCurrentLocation}
-          className="absolute bottom-16 right-4 p-3 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all z-10"
+          className="absolute bottom-4 right-4 p-3.5 bg-white rounded-xl shadow-lg flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all z-10 border border-slate-100 text-teal-600"
         >
-          <FiCrosshair className="w-6 h-6 text-gray-700" />
+          <FiCrosshair className="w-5 h-5" />
         </button>
       </div>
     </div>

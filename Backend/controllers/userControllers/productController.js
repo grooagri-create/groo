@@ -2,6 +2,7 @@ const Product = require('../../models/Product');
 const EcommerceOrder = require('../../models/EcommerceOrder');
 const Transaction = require('../../models/Transaction');
 const User = require('../../models/User');
+const { createOrder, verifyPayment } = require('../../services/razorpayService');
 
 /**
  * User: Get all approved products (Marketplace)
@@ -83,6 +84,7 @@ const placeOrder = async (req, res) => {
                 vendorBalance
             },
             shippingAddress,
+            deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString(),
             paymentMethod: paymentMethod || 'wallet'
         });
 
@@ -100,19 +102,106 @@ const placeOrder = async (req, res) => {
 };
 
 /**
- * User: Pay Platform Fee (Admin portion) via Wallet
+ * User: Create Razorpay Order for Platform Fee
  */
-const payPlatformFee = async (req, res) => {
+const createPaymentOrder = async (req, res) => {
     try {
         const order = await EcommerceOrder.findById(req.params.id);
         if (!order || order.paymentStatus === 'paid') {
             return res.status(400).json({ success: false, message: 'Order already paid or not found' });
         }
 
-        const user = await User.findById(req.user._id);
         const amountToPay = order.pricing.platformFee;
 
-        if (user.walletBalance < amountToPay) {
+        // Create Razorpay order
+        const razorpayOrder = await createOrder(
+            amountToPay,
+            'INR',
+            `eco_${order._id.toString().substring(0, 8)}`,
+            {
+                orderId: order._id.toString(),
+                type: 'ecommerce_platform_fee'
+            }
+        );
+
+        if (!razorpayOrder.success) {
+            return res.status(500).json({ success: false, message: razorpayOrder.error || 'Failed to create payment order' });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                order_id: razorpayOrder.orderId,
+                amount: razorpayOrder.amount,
+                currency: razorpayOrder.currency,
+                key: process.env.RAZORPAY_KEY_ID
+            }
+        });
+    } catch (error) {
+        console.error('Create Ecommerce Payment Order error:', error);
+        res.status(500).json({ success: false, message: 'Failed to create payment order' });
+    }
+};
+
+/**
+ * User: Verify Razorpay Payment for Platform Fee
+ */
+const payPlatformFee = async (req, res) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const order = await EcommerceOrder.findById(req.params.id);
+        
+        if (!order || order.paymentStatus === 'paid') {
+            return res.status(400).json({ success: false, message: 'Order already paid or not found' });
+        }
+
+        const amountToPay = order.pricing.platformFee;
+
+        if (razorpay_order_id && razorpay_payment_id && razorpay_signature) {
+             // Verify Razorpay signature
+             const isValid = verifyPayment(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+             if (!isValid) {
+                 return res.status(400).json({ success: false, message: 'Payment verification failed' });
+             }
+
+             // Record Transaction
+             const transaction = new Transaction({
+                 userId: req.user._id,
+                 type: 'platform_fee',
+                 amount: amountToPay,
+                 status: 'completed',
+                 paymentMethod: 'razorpay',
+                 referenceId: razorpay_payment_id,
+                 description: `Platform fee (Comm+GST) for Ecommerce Order: ${order._id.toString().slice(-8)}`,
+                 metadata: { 
+                    orderId: order._id, 
+                    razorpay_order_id,
+                    razorpay_payment_id,
+                 }
+             });
+             await transaction.save();
+
+             // Update Order
+             order.paymentStatus = 'paid';
+             order.deliveryStatus = 'ordered'; 
+             order.adminTransactionId = transaction._id;
+             await order.save();
+
+             // Reduce Stock
+             for (const item of order.items) {
+                 await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } });
+             }
+
+             return res.status(200).json({ 
+                 success: true, 
+                 message: 'Order confirmed! Platform fee paid via Razorpay.', 
+                 data: order 
+             });
+        } 
+        
+        // Fallback for wallet (Optional, but Razorpay requested)
+        const user = await User.findById(req.user._id);
+        if (user.wallet.balance < amountToPay) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Insufficient balance in wallet',
@@ -120,11 +209,9 @@ const payPlatformFee = async (req, res) => {
             });
         }
 
-        // Deduct from User Wallet
-        user.walletBalance -= amountToPay;
+        user.wallet.balance -= amountToPay;
         await user.save();
 
-        // Create Transaction Record
         const transaction = new Transaction({
             userId: user._id,
             type: 'platform_fee',
@@ -136,20 +223,18 @@ const payPlatformFee = async (req, res) => {
         });
         await transaction.save();
 
-        // Update Order Status
         order.paymentStatus = 'paid';
-        order.deliveryStatus = 'ordered'; // Confirmation trigger
+        order.deliveryStatus = 'ordered';
         order.adminTransactionId = transaction._id;
         await order.save();
 
-        // Reduce Stock
         for (const item of order.items) {
             await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } });
         }
 
         res.status(200).json({ 
             success: true, 
-            message: 'Order confirmed! Platform fee paid.', 
+            message: 'Order confirmed! Platform fee paid from wallet.', 
             data: order 
         });
     } catch (error) {
@@ -183,11 +268,66 @@ const getOrderById = async (req, res) => {
     }
 };
 
+const cancelOrder = async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        const userId = req.user._id;
+
+        const order = await EcommerceOrder.findById(orderId);
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+        if (order.userId.toString() !== userId.toString()) {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
+        }
+
+        const nonCancellable = ['shipped', 'delivered', 'cancelled'];
+        if (nonCancellable.includes(order.deliveryStatus)) {
+            return res.status(400).json({ success: false, message: `Cannot cancel order in ${order.deliveryStatus} status` });
+        }
+
+        const oldStatus = order.deliveryStatus;
+        order.deliveryStatus = 'cancelled';
+        
+        // If it was already paid, refund the platform fee to the user's wallet
+        if (order.paymentStatus === 'paid') {
+            const user = await User.findById(userId);
+            const refundAmount = order.pricing.platformFee;
+            
+            user.wallet.balance += refundAmount;
+            await user.save();
+
+            const transaction = new Transaction({
+                userId: user._id,
+                type: 'refund',
+                amount: refundAmount,
+                status: 'completed',
+                paymentMethod: 'system',
+                description: `Refund for Cancelled Ecommerce Order: ${order._id.toString().slice(-8)}`,
+                metadata: { orderId: order._id, reason: 'user_cancelled' }
+            });
+            await transaction.save();
+
+            // Return items to stock
+            for (const item of order.items) {
+                await Product.findByIdAndUpdate(item.productId, { $inc: { stock: item.quantity } });
+            }
+        }
+
+        await order.save();
+        res.status(200).json({ success: true, message: 'Order cancelled successfully', data: order });
+    } catch (error) {
+        console.error('Cancel Order Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to cancel order: ' + error.message });
+    }
+};
+
 module.exports = {
     getApprovedProducts,
     getProductDetails,
     placeOrder,
+    createPaymentOrder,
     payPlatformFee,
     getMyOrders,
-    getOrderById
+    getOrderById,
+    cancelOrder
 };

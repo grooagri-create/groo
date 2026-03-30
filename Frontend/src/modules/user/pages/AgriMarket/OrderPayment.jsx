@@ -17,10 +17,24 @@ const OrderPayment = () => {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [paying, setPaying] = useState(false);
+    const [razorpayLoaded, setRazorpayLoaded] = useState(false);
 
     useEffect(() => {
         fetchOrder();
+        loadRazorpayScript();
     }, [id]);
+
+    const loadRazorpayScript = () => {
+        if (window.Razorpay) {
+            setRazorpayLoaded(true);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => setRazorpayLoaded(true);
+        script.onerror = () => toast.error('Failed to load Razorpay SDK');
+        document.body.appendChild(script);
+    };
 
     const fetchOrder = async () => {
         try {
@@ -37,15 +51,63 @@ const OrderPayment = () => {
     const handlePayment = async () => {
         try {
             setPaying(true);
-            const res = await ecommerceService.payPlatformFee(id);
-            if (res.success) {
-                toast.success("Payment Successful! Order Confirmed.");
-                navigate('/user/my-agri-orders');
+            
+            // 1. First create a Razorpay order from our backend
+            const orderRes = await ecommerceService.createPaymentOrder(id);
+            if (!orderRes.success) throw new Error(orderRes.message);
+            
+            const { order_id, amount, currency, key } = orderRes.data;
+
+            if (!razorpayLoaded) {
+                toast.error("Payment system not ready. Please refresh.");
+                return;
             }
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: key,
+                amount: amount,
+                currency: currency,
+                name: "GrooAgri",
+                description: "Platform Fee for Seeds & Fertilizers",
+                order_id: order_id,
+                theme: { color: "#0D9488" },
+                handler: async function (response) {
+                    try {
+                        // 3. Verify Payment
+                        const verifyRes = await ecommerceService.payPlatformFee(id, {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+                        
+                        if (verifyRes.success) {
+                            toast.success("Payment Successful! Order Confirmed.");
+                            navigate('/user/my-agri-orders');
+                        }
+                    } catch (verifyErr) {
+                        toast.error(verifyErr.response?.data?.message || "Payment verification failed");
+                        setPaying(false);
+                    }
+                },
+                modal: {
+                    ondismiss: function() {
+                        setPaying(false);
+                        toast.error("Payment cancelled");
+                    }
+                }
+            };
+            
+            const razorpay = new window.Razorpay(options);
+            razorpay.on('payment.failed', function (response) {
+                toast.error(`Payment failed: ${response.error.description}`);
+                setPaying(false);
+            });
+            razorpay.open();
+            
         } catch (err) {
-            toast.error(err.response?.data?.message || "Payment fail ho gaya");
-        } finally {
             setPaying(false);
+            toast.error(err.response?.data?.message || err.message || "Payment init failed");
         }
     };
 
@@ -65,7 +127,7 @@ const OrderPayment = () => {
                 </div>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-8 pb-40 space-y-6">
                 {/* Order Summary */}
                 <div className="bg-white rounded-[40px] p-6 shadow-sm border border-slate-100 space-y-4 overflow-hidden relative">
                     <div className="w-32 h-32 bg-slate-50 absolute -right-8 -top-8 rounded-full opacity-50" />
@@ -87,7 +149,7 @@ const OrderPayment = () => {
                         </div>
                         <div className="flex justify-between items-center px-1">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Total Value</p>
-                            <p className="font-black text-slate-800 font-sans">₹{order.pricing.totalPrice}</p>
+                            <p className="font-black text-slate-800 font-sans">₹{order.pricing.itemsTotal}</p>
                         </div>
                         <div className="p-4 bg-teal-50 rounded-3xl border border-teal-100/50 flex items-center justify-between">
                              <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest leading-none">Net Amount to Pay</p>

@@ -5,7 +5,6 @@ import { FiUser, FiBriefcase, FiUsers, FiShoppingBag, FiDollarSign, FiActivity }
 import RevenueLineChart from '../../components/dashboard/RevenueLineChart';
 import BookingsBarChart from '../../components/dashboard/BookingsBarChart';
 import BookingStatusPieChart from '../../components/dashboard/BookingStatusPieChart';
-import PaymentBreakdownPieChart from '../../components/dashboard/PaymentBreakdownPieChart';
 import RevenueVsBookingsChart from '../../components/dashboard/RevenueVsBookingsChart';
 import TimePeriodFilter from '../../components/dashboard/TimePeriodFilter';
 import { formatCurrency } from '../../utils/adminHelpers';
@@ -27,30 +26,14 @@ const AdminDashboard = () => {
     totalRevenue: 0,
     bookingRevenue: 0,
     soilTestRevenue: 0,
+    ecommerceRevenue: 0,
     todayRevenue: 0,
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch Stats & Recent Bookings
-        const statsRes = await getDashboardStats();
-        if (statsRes.success) {
-          const s = statsRes.data.stats;
-          setStats({
-            totalUsers: s.totalUsers,
-            totalVendors: s.totalVendors,
-            activeBookings: s.pendingBookings,
-            completedBookings: s.completedBookings,
-            totalRevenue: s.totalRevenue,
-            bookingRevenue: s.bookingRevenue,
-            soilTestRevenue: s.soilTestRevenue,
-            todayRevenue: 0,
-          });
-          setRecentBookingsList(statsRes.data.recentBookings || []);
-        }
-
-        // 2. Fetch Revenue Analytics based on Period
+        // 1. Calculate Date range based on Period
         let apiPeriod = 'monthly';
         let startDate = new Date();
         const endDate = new Date().toISOString();
@@ -64,14 +47,38 @@ const AdminDashboard = () => {
         } else if (period === 'month') {
           apiPeriod = 'daily';
           startDate.setDate(startDate.getDate() - 30);
+        } else if (period === 'today') {
+           apiPeriod = 'daily';
+           startDate.setHours(0, 0, 0, 0); 
         } else {
           apiPeriod = 'daily';
           startDate.setDate(startDate.getDate() - 1);
         }
 
+        const startISO = startDate.toISOString();
+
+        // 2. Fetch Stats & Recent Bookings (Filtered by Date)
+        const statsRes = await getDashboardStats({ startDate: startISO, endDate });
+        if (statsRes.success) {
+          const s = statsRes.data.stats;
+          setStats({
+            totalUsers: s.totalUsers,
+            totalVendors: s.totalVendors,
+            activeBookings: s.pendingBookings,
+            completedBookings: s.completedBookings,
+            totalRevenue: s.totalRevenue,
+            bookingRevenue: s.bookingRevenue,
+            soilTestRevenue: s.soilTestRevenue,
+            ecommerceRevenue: s.ecommerceRevenue || 0,
+            todayRevenue: 0,
+          });
+          setRecentBookingsList(statsRes.data.recentBookings || []);
+        }
+
+        // 3. Fetch Revenue Analytics based on Period
         const revRes = await getRevenueAnalytics({
           period: apiPeriod,
-          startDate: startDate.toISOString(),
+          startDate: startISO,
           endDate
         });
 
@@ -81,6 +88,7 @@ const AdminDashboard = () => {
             revenue: item.totalRevenue,
             bookingRevenue: item.bookingRevenue,
             soilTestRevenue: item.soilTestRevenue,
+            ecommerceRevenue: item.ecommerceRevenue || 0,
             orders: item.bookings || 0
           }));
           mapped.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -160,6 +168,17 @@ const AdminDashboard = () => {
       cardBg: 'bg-gradient-to-br from-emerald-50 to-teal-50',
       iconBg: 'bg-white/20',
       link: '/admin/reports/revenue'
+    },
+    {
+      title: 'E-commerce Revenue',
+      value: formatCurrency(stats.ecommerceRevenue || 0),
+      change: 0,
+      icon: FiDollarSign,
+      color: 'text-white',
+      bgColor: 'bg-gradient-to-br from-rose-500 to-pink-600',
+      cardBg: 'bg-gradient-to-br from-rose-50 to-pink-50',
+      iconBg: 'bg-white/20',
+      link: '/admin/products/orders'
     },
     {
       title: 'Active Operations',
@@ -268,9 +287,8 @@ const AdminDashboard = () => {
         <BookingsBarChart data={revenueData} period={period} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <BookingStatusPieChart bookings={recentBookingsList} />
-        <PaymentBreakdownPieChart bookings={recentBookingsList} />
       </div>
 
       <div className="grid grid-cols-1 gap-4">

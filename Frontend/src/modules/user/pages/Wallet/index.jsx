@@ -131,10 +131,14 @@ const Wallet = () => {
               </div>
               <p className="text-gray-500 text-xs font-medium">Total Spent</p>
               <p className="text-lg font-bold text-gray-900">
-                ₹{transactions
-                  .filter(t => ['payment', 'withdrawal', 'platform_fee', 'convenience_fee', 'gst', 'worker_payment', 'cash_collected'].includes(t.type))
-                  .reduce((sum, t) => sum + t.amount, 0)
-                  .toLocaleString('en-IN')}
+                ₹{(
+                  transactions
+                    .filter(t => ['payment', 'withdrawal', 'platform_fee', 'convenience_fee', 'gst', 'worker_payment', 'cash_collected'].includes(t.type))
+                    .reduce((sum, t) => sum + t.amount, 0) -
+                  transactions
+                    .filter(t => ['refund', 'cashback'].includes(t.type))
+                    .reduce((sum, t) => sum + t.amount, 0)
+                ).toLocaleString('en-IN')}
               </p>
             </div>
 

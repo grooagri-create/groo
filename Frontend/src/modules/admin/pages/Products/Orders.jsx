@@ -18,6 +18,12 @@ const EcommerceOrders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     useEffect(() => {
         fetchOrders();
@@ -37,9 +43,12 @@ const EcommerceOrders = () => {
 
     const filteredOrders = orders.filter(o => 
         o._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.vendor?.shopName?.toLowerCase().includes(searchTerm.toLowerCase())
+        o.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        o.vendorId?.businessName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+    const currentOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <div className="p-6 bg-slate-50 min-h-screen">
@@ -88,23 +97,29 @@ const EcommerceOrders = () => {
                         <tbody className="divide-y divide-slate-50">
                             {loading ? (
                                 [1, 2, 3].map(i => <tr key={i} className="animate-pulse"><td colSpan="5" className="px-6 py-10 bg-slate-50/30"></td></tr>)
-                            ) : filteredOrders.map(order => (
+                            ) : currentOrders.map(order => (
                                 <tr key={order._id} className="hover:bg-slate-50/50 transition-colors">
                                     <td className="px-6 py-5">
                                         <p className="font-black text-slate-800 text-sm">#{order._id.slice(-6).toUpperCase()}</p>
                                         <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">{format(new Date(order.createdAt), 'dd MMM yyyy')}</p>
                                     </td>
                                     <td className="px-6 py-5">
-                                        <p className="font-black text-slate-800 text-sm">{order.user?.name || 'Unknown'}</p>
-                                        <p className="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[200px] mt-1">{order.shippingAddress}</p>
+                                        <p className="font-black text-slate-800 text-sm">{order.userId?.name || 'Unknown'}</p>
+                                        <p className="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[200px] mt-1">
+                                            {typeof order.shippingAddress === 'object' && order.shippingAddress ? (() => {
+                                                const a = order.shippingAddress;
+                                                const parts = [a.addressLine1, a.city, a.state, a.pincode].filter(Boolean);
+                                                return parts.length > 0 ? parts.join(', ') : 'No Address';
+                                            })() : (order.shippingAddress || 'No Address')}
+                                        </p>
                                     </td>
                                     <td className="px-6 py-5">
-                                        <p className="font-black text-slate-800 text-sm">{order.vendor?.shopName || 'N/A'}</p>
-                                        <p className="text-[10px] font-bold text-teal-600 mt-1 uppercase tracking-tighter">V: {order.vendor?.name}</p>
+                                        <p className="font-black text-slate-800 text-sm">{order.vendorId?.businessName || 'N/A'}</p>
+                                        <p className="text-[10px] font-bold text-teal-600 mt-1 uppercase tracking-tighter">V: {order.vendorId?.name}</p>
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="space-y-1">
-                                            <p className="text-[11px] font-black text-slate-800">Total: ₹{order.pricing?.totalPrice}</p>
+                                            <p className="text-[11px] font-black text-slate-800">Total: ₹{order.pricing?.itemsTotal}</p>
                                             <div className="flex gap-2">
                                                 <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${
                                                     order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
@@ -125,9 +140,9 @@ const EcommerceOrders = () => {
                                             }`} />
                                             <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{order.deliveryStatus}</p>
                                         </div>
-                                        {order.trackingInfo?.courierName && (
+                                        {order.trackingDetails?.courierName && (
                                             <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
-                                                {order.trackingInfo.courierName}
+                                                {order.trackingDetails.courierName}
                                             </p>
                                         )}
                                     </td>
@@ -136,6 +151,47 @@ const EcommerceOrders = () => {
                         </tbody>
                     </table>
                 </div>
+                {!loading && filteredOrders.length > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-zinc-50/50">
+                        <div className="flex items-center gap-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length}
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows per page:</label>
+                                <select 
+                                    className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded-lg outline-none cursor-pointer py-1 px-2"
+                                    value={itemsPerPage}
+                                    onChange={(e) => {
+                                        setItemsPerPage(Number(e.target.value));
+                                        setCurrentPage(1); // Reset to first page when changing size
+                                    }}
+                                >
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 disabled:opacity-50 transition-all"
+                            >
+                                Prev
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 disabled:opacity-50 transition-all"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

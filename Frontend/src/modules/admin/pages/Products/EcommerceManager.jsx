@@ -57,7 +57,9 @@ const EcommerceManager = () => {
                 adminProductService.getVendorSubmissions('pending', 'physical_good'),
                 publicCatalogService.getCategories()
             ]);
+            // getAllProducts now returns both admin + approved vendor products
             if (prodRes.success) setProducts((prodRes.data || []).filter(p => p.type === 'physical_good'));
+            // Pending tab: Only pending vendor submissions (not yet approved)
             if (pendingRes.success) setPendingProducts(pendingRes.data);
             if (catRes.success) {
                 setCategories(catRes.categories || catRes.data || []);
@@ -329,6 +331,7 @@ const EcommerceManager = () => {
                             <tr className="bg-slate-50/50 border-b border-slate-100">
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor / Shop</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Stock</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
@@ -368,13 +371,33 @@ const EcommerceManager = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
+                                        {product.vendorId ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                                                    <FiUser className="w-3 h-3 text-teal-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-black text-slate-700 text-xs leading-tight">{product.vendorId?.businessName || product.vendorId?.name || 'Vendor'}</p>
+                                                    <p className="text-[9px] text-teal-600 font-bold uppercase">Shop</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase">Admin Store</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
                                          <p className="font-black text-emerald-600 text-sm">₹{product.discountPrice || product.price}</p>
                                          {product.discountPrice && (
                                             <p className="text-[10px] text-slate-300 line-through font-bold">₹{product.price}</p>
                                          )}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <p className="font-black text-slate-700 text-sm">{product.stock} {product.unit}</p>
+                                        <p className={`font-black text-sm ${product.stock > 10 ? 'text-slate-700' : product.stock > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                            {product.stock} {product.unit}
+                                        </p>
+                                        {product.stock === 0 && (
+                                            <p className="text-[9px] text-rose-500 font-black uppercase">Out of Stock</p>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
@@ -386,7 +409,9 @@ const EcommerceManager = () => {
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button onClick={() => openEdit(product)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"><FiEdit2 className="w-4 h-4" /></button>
+                                                    {!product.vendorId && (
+                                                        <button onClick={() => openEdit(product)} className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"><FiEdit2 className="w-4 h-4" /></button>
+                                                    )}
                                                     <button onClick={() => handleDelete(product._id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><FiTrash2 className="w-4 h-4" /></button>
                                                 </>
                                             )}

@@ -112,6 +112,12 @@ const StoreOrders = () => {
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">#{order._id.slice(-6)}</p>
                                             <p className="font-bold text-slate-800 text-sm">{order.items[0]?.name || 'Item'} {order.items.length > 1 && `(+${order.items.length - 1})`}</p>
                                             <p className="text-[10px] text-teal-600 font-bold">{format(new Date(order.createdAt), 'dd MMM, hh:mm a')}</p>
+                                            {order.trackingDetails?.courierName && (
+                                                <div className="mt-2 bg-slate-50 border border-slate-100 p-2 rounded-lg inline-block text-[9px]">
+                                                    <p className="font-black text-slate-800 uppercase">{order.trackingDetails.courierName}</p>
+                                                    <p className="font-bold text-slate-500 tracking-widest font-mono">{order.trackingDetails.trackingNumber}</p>
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="space-y-1">
@@ -126,12 +132,17 @@ const StoreOrders = () => {
                                         <td className="px-6 py-5 max-w-[250px]">
                                             <div className="flex items-start gap-1.5 text-xs font-bold text-slate-600">
                                                 <FiMapPin className="text-slate-400 w-3 h-3 mt-0.5 flex-shrink-0" />
-                                                <span className="line-clamp-2">
-                                                    {typeof order.shippingAddress === 'object' ? (
-                                                        `${order.shippingAddress.addressLine1 || ''}, ${order.shippingAddress.city || ''}`
-                                                    ) : (
-                                                        order.shippingAddress || 'No Address'
-                                                    )}
+                                                <span className="line-clamp-3">
+                                                    {typeof order.shippingAddress === 'object' && order.shippingAddress ? (() => {
+                                                        const a = order.shippingAddress;
+                                                        const parts = [
+                                                            a.addressLine1,
+                                                            a.city,
+                                                            a.state,
+                                                            a.pincode
+                                                        ].filter(Boolean);
+                                                        return parts.length > 0 ? parts.join(', ') : 'No Address';
+                                                    })() : (order.shippingAddress || 'No Address')}
                                                 </span>
                                             </div>
                                         </td>
@@ -152,12 +163,7 @@ const StoreOrders = () => {
                                                 <ShippingModal onConfirm={(data) => handleUpdateStatus(order._id, 'shipped', data)} />
                                             )}
                                             {order.deliveryStatus === 'shipped' && (
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(order._id, 'delivered')}
-                                                    className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-95 transition-all"
-                                                >
-                                                    Delivered
-                                                </button>
+                                                <DeliveryOtpModal onConfirm={(otpData) => handleUpdateStatus(order._id, 'delivered', otpData)} />
                                             )}
                                             {order.deliveryStatus === 'delivered' && (
                                                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-lg font-black text-[9px] uppercase tracking-widest border border-green-100">
@@ -211,6 +217,54 @@ const ShippingModal = ({ onConfirm }) => {
                                     className="w-full py-5 bg-[#2E7D32] text-white rounded-[28px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all mt-4"
                                 >
                                     Confirm Shipment
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </>
+    );
+}
+
+// Helper component for Delivery OTP
+const DeliveryOtpModal = ({ onConfirm }) => {
+    const [show, setShow] = useState(false);
+    const [otp, setOtp] = useState('');
+
+    return (
+        <>
+            <button 
+                onClick={() => setShow(true)}
+                className="px-6 py-2.5 bg-green-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-green-600/20 active:scale-95 transition-all w-full mt-2"
+            >
+                Confirm Delivery
+            </button>
+            <AnimatePresence>
+                {show && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShow(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl">
+                            <h2 className="text-xl font-black text-slate-800">Delivery verification</h2>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Ask buyer for OTP</p>
+                            
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase ml-1">4-Digit Code</label>
+                                    <input type="text" maxLength={4} className="w-full bg-slate-50 border-none rounded-xl py-4 px-5 font-bold outline-none text-center tracking-[1em] text-lg" placeholder="1234" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} />
+                                </div>
+                                <button 
+                                    onClick={() => { 
+                                        if(otp.length === 4) {
+                                            onConfirm({ deliveryOtp: otp }); 
+                                            setShow(false); 
+                                        } else {
+                                            toast.error("Please enter a valid 4-digit OTP");
+                                        }
+                                    }}
+                                    className="w-full py-5 bg-green-600 text-white rounded-[28px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all mt-4 disabled:opacity-50"
+                                >
+                                    Verify & Mark Delivered
                                 </button>
                             </div>
                         </motion.div>

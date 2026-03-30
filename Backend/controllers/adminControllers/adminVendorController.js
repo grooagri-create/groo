@@ -1,6 +1,7 @@
 const Vendor = require('../../models/Vendor');
 const Booking = require('../../models/Booking');
 const VendorBill = require('../../models/VendorBill');
+const Product = require('../../models/Product');
 const { validationResult } = require('express-validator');
 const { VENDOR_STATUS, BOOKING_STATUS, PAYMENT_STATUS } = require('../../utils/constants');
 const { createNotification } = require('../notificationControllers/notificationController');
@@ -609,7 +610,44 @@ module.exports = {
       const vendors = await Vendor.find({
         'shopDetails.storeApprovalStatus': 'approved'
       }).select('name businessName phone shopDetails email profilePhoto');
-      res.status(200).json({ success: true, data: vendors });
+
+      // For each shop, get their product count and total stock
+      const vendorIds = vendors.map(v => v._id);
+      const productStats = await Product.aggregate([
+        {
+          $match: {
+            vendorId: { $in: vendorIds },
+            type: 'physical_good'
+          }
+        },
+        {
+          $group: {
+            _id: '$vendorId',
+            totalProducts: { $sum: 1 },
+            approvedProducts: { $sum: { $cond: [{ $eq: ['$approvalStatus', 'approved'] }, 1, 0] } },
+            pendingProducts: { $sum: { $cond: [{ $eq: ['$approvalStatus', 'pending'] }, 1, 0] } },
+            totalStock: { $sum: '$stock' }
+          }
+        }
+      ]);
+
+      // Map stats to each vendor
+      const statsMap = {};
+      productStats.forEach(stat => {
+        statsMap[stat._id.toString()] = stat;
+      });
+
+      const vendorsWithStats = vendors.map(v => ({
+        ...v.toObject(),
+        productStats: statsMap[v._id.toString()] || {
+          totalProducts: 0,
+          approvedProducts: 0,
+          pendingProducts: 0,
+          totalStock: 0
+        }
+      }));
+
+      res.status(200).json({ success: true, data: vendorsWithStats });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

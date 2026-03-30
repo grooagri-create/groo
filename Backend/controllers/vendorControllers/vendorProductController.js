@@ -94,35 +94,50 @@ const getMyOrders = async (req, res) => {
 /**
  * Vendor: Update order tracking status
  */
-const updateOrderStatus = async (req, res) => {
-    try {
-        const { status, trackingNumber, courierName } = req.body;
-        const allowedStatuses = ['packed', 'shipped', 'delivered', 'cancelled'];
-        
-        if (!allowedStatuses.includes(status)) {
-            return res.status(400).json({ success: false, message: 'Invalid status' });
-        }
+    const updateOrderStatus = async (req, res) => {
+        try {
+            const { status, trackingNumber, courierName, deliveryOtp } = req.body;
+            const allowedStatuses = ['packed', 'shipped', 'delivered', 'cancelled'];
+            
+            if (!allowedStatuses.includes(status)) {
+                return res.status(400).json({ success: false, message: 'Invalid status' });
+            }
 
-        const updateData = { deliveryStatus: status };
-        
-        // Add timestamps
-        if (status === 'packed') updateData['trackingDetails.packedAt'] = new Date();
-        if (status === 'shipped') {
-            updateData['trackingDetails.shippedAt'] = new Date();
-            updateData['trackingDetails.trackingNumber'] = trackingNumber;
-            updateData['trackingDetails.courierName'] = courierName;
-        }
-        if (status === 'delivered') updateData['trackingDetails.deliveredAt'] = new Date();
-        if (status === 'cancelled') updateData['trackingDetails.cancelledAt'] = new Date();
+            const order = await EcommerceOrder.findOne({ _id: req.params.id, vendorId: req.user._id });
+            if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
-        const order = await EcommerceOrder.findOneAndUpdate(
-            { _id: req.params.id, vendorId: req.user._id },
-            updateData,
-            { new: true }
-        );
+            if (status === 'delivered') {
+                if (order.deliveryOtp && order.deliveryOtp !== deliveryOtp) {
+                    return res.status(400).json({ success: false, message: 'Invalid Verification OTP' });
+                }
+            }
 
-        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-        res.status(200).json({ success: true, message: `Order marked as ${status}`, data: order });
+            const updateData = { deliveryStatus: status };
+            
+            // Add timestamps
+            if (status === 'packed') updateData['trackingDetails.packedAt'] = new Date();
+            if (status === 'shipped') {
+                updateData['trackingDetails.shippedAt'] = new Date();
+                updateData['trackingDetails.trackingNumber'] = trackingNumber;
+                updateData['trackingDetails.courierName'] = courierName;
+            }
+            if (status === 'delivered') updateData['trackingDetails.deliveredAt'] = new Date();
+            if (status === 'cancelled') updateData['trackingDetails.cancelledAt'] = new Date();
+
+            Object.assign(order, updateData);
+            if(status === 'shipped') {
+                if(!order.trackingDetails) order.trackingDetails = {};
+                order.trackingDetails.shippedAt = updateData['trackingDetails.shippedAt'];
+                order.trackingDetails.trackingNumber = updateData['trackingDetails.trackingNumber'];
+                order.trackingDetails.courierName = updateData['trackingDetails.courierName'];
+            }
+            if(status === 'packed' && !order.trackingDetails) order.trackingDetails = { packedAt: new Date() };
+            if(status === 'delivered' && order.trackingDetails) order.trackingDetails.deliveredAt = new Date();
+            if(status === 'cancelled' && order.trackingDetails) order.trackingDetails.cancelledAt = new Date();
+            
+            await order.save();
+
+            res.status(200).json({ success: true, message: `Order marked as ${status}`, data: order });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Failed to update order status' });
     }

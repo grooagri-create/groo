@@ -5,6 +5,7 @@ const Booking = require('../../models/Booking');
 const Withdrawal = require('../../models/Withdrawal');
 const Settlement = require('../../models/Settlement');
 const SoilTestRequest = require('../../models/SoilTestRequest');
+const EcommerceOrder = require('../../models/EcommerceOrder');
 
 const { BOOKING_STATUS, PAYMENT_STATUS, VENDOR_STATUS } = require('../../utils/constants');
 
@@ -13,27 +14,49 @@ const { BOOKING_STATUS, PAYMENT_STATUS, VENDOR_STATUS } = require('../../utils/c
  */
 const getDashboardStats = async (req, res) => {
   try {
-    // Total counts
+    const { startDate, endDate } = req.query;
+
+    const dateFilter = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+    }
+
+    // Special match for booking completions (using completedAt for revenue)
+    const bookingMatch = {
+      status: BOOKING_STATUS.COMPLETED,
+      paymentStatus: { $in: [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.COLLECTED_BY_VENDOR, 'success', 'collected_by_vendor', 'collected_by_worker', 'paid'] }
+    };
+    if (startDate || endDate) {
+      bookingMatch.completedAt = {};
+      if (startDate) bookingMatch.completedAt.$gte = new Date(startDate);
+      if (endDate) bookingMatch.completedAt.$lte = new Date(endDate);
+    }
+
+    // Total counts (Users and Vendors are usually kept total/lifetime, or we can show "new" counts)
     const totalUsers = await User.countDocuments({ isActive: true });
     const totalVendors = await Vendor.countDocuments({ isActive: true });
     const totalWorkers = await Worker.countDocuments({ isActive: true });
-    const totalBookings = await Booking.countDocuments();
+    const totalBookings = await Booking.countDocuments(dateFilter);
 
     // Booking stats
     const pendingBookings = await Booking.countDocuments({
+      ...dateFilter,
       status: { $nin: [BOOKING_STATUS.COMPLETED, BOOKING_STATUS.CANCELLED] }
     });
-    const completedBookings = await Booking.countDocuments({ status: BOOKING_STATUS.COMPLETED });
-    const cancelledBookings = await Booking.countDocuments({ status: BOOKING_STATUS.CANCELLED });
+    const completedBookings = await Booking.countDocuments({ 
+      ...dateFilter,
+      status: BOOKING_STATUS.COMPLETED 
+    });
+    const cancelledBookings = await Booking.countDocuments({ 
+      ...dateFilter,
+      status: BOOKING_STATUS.CANCELLED 
+    });
 
-    // Revenue stats
+    // Booking Revenue stats (using bookingMatch based on completion date)
     const revenueResult = await Booking.aggregate([
-      {
-        $match: {
-          status: BOOKING_STATUS.COMPLETED,
-          paymentStatus: { $in: [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.COLLECTED_BY_VENDOR, 'success', 'collected_by_vendor', 'collected_by_worker', 'paid'] }
-        }
-      },
+      { $match: bookingMatch },
       {
         $group: {
           _id: null,
@@ -51,7 +74,13 @@ const getDashboardStats = async (req, res) => {
     const soilTestRevenueResult = await SoilTestRequest.aggregate([
       {
         $match: {
-          paymentStatus: 'paid'
+          paymentStatus: 'paid',
+          ...(startDate || endDate ? { 
+            updatedAt: { 
+              ...(startDate ? { $gte: new Date(startDate) } : {}), 
+              ...(endDate ? { $lte: new Date(endDate) } : {}) 
+            } 
+          } : {})
         }
       },
       {
@@ -67,7 +96,33 @@ const getDashboardStats = async (req, res) => {
     const soilTestRevData = soilTestRevenueResult[0] || { totalAmount: 0, totalCommission: 0, count: 0 };
     const soilTestCommission = soilTestRevData.totalCommission;
 
-    const totalRevenue = bookingCommission + soilTestCommission;
+    // Ecommerce Revenue
+    const ecommerceRevenueResult = await EcommerceOrder.aggregate([
+      {
+        $match: {
+          paymentStatus: 'paid',
+          deliveryStatus: { $ne: 'cancelled' },
+          ...(startDate || endDate ? { 
+            createdAt: { 
+              ...(startDate ? { $gte: new Date(startDate) } : {}), 
+              ...(endDate ? { $lte: new Date(endDate) } : {}) 
+            } 
+          } : {})
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalCommission: { $sum: '$pricing.platformFee' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const ecommerceRevData = ecommerceRevenueResult[0] || { totalCommission: 0, count: 0 };
+    const ecommerceCommission = ecommerceRevData.totalCommission;
+
+    const totalRevenue = bookingCommission + soilTestCommission + ecommerceCommission;
 
     // Vendor approval stats
     const pendingVendors = await Vendor.countDocuments({ approvalStatus: VENDOR_STATUS.PENDING });
@@ -114,9 +169,11 @@ const getDashboardStats = async (req, res) => {
           totalRevenue: totalRevenue,
           bookingRevenue: bookingCommission,
           soilTestRevenue: soilTestCommission,
+          ecommerceRevenue: ecommerceCommission,
           platformCommission: totalRevenue,
           bookingCommission: bookingCommission,
           soilTestCommission: soilTestCommission,
+          ecommerceCommission: ecommerceCommission,
           pendingVendors,
           approvedVendors,
           pendingWithdrawals,
@@ -236,6 +293,7 @@ const getRevenueAnalytics = async (req, res) => {
           bookingCommission: 0,
           soilTestRevenue: commission,
           soilTestCommission: commission,
+          ecommerceRevenue: 0,
           totalRevenue: commission,
           totalCommission: commission
         };
@@ -244,6 +302,55 @@ const getRevenueAnalytics = async (req, res) => {
         mergedData[item._id].soilTestCommission = commission;
         mergedData[item._id].totalRevenue += commission;
         mergedData[item._id].totalCommission += commission;
+      }
+    });
+
+    // 4. Ecommerce Order Revenue Analytics
+    const ecommerceDateFilter = {};
+    if (startDate || endDate) {
+      ecommerceDateFilter.createdAt = {};
+      if (startDate) ecommerceDateFilter.createdAt.$gte = new Date(startDate);
+      if (endDate) ecommerceDateFilter.createdAt.$lte = new Date(endDate);
+    }
+
+    const ecommerceData = await EcommerceOrder.aggregate([
+      {
+        $match: {
+          paymentStatus: 'paid',
+          deliveryStatus: { $ne: 'cancelled' },
+          ...ecommerceDateFilter
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: groupFormat,
+              date: '$createdAt'
+            }
+          },
+          revenue: { $sum: '$pricing.platformFee' }
+        }
+      }
+    ]);
+
+    ecommerceData.forEach(item => {
+      const revenue = item.revenue || 0;
+      if (!mergedData[item._id]) {
+        mergedData[item._id] = {
+          date: item._id,
+          bookingRevenue: 0,
+          bookingCommission: 0,
+          soilTestRevenue: 0,
+          soilTestCommission: 0,
+          ecommerceRevenue: revenue,
+          totalRevenue: revenue,
+          totalCommission: revenue
+        };
+      } else {
+        mergedData[item._id].ecommerceRevenue = revenue;
+        mergedData[item._id].totalRevenue += revenue;
+        mergedData[item._id].totalCommission += revenue;
       }
     });
 

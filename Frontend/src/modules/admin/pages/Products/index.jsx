@@ -62,7 +62,9 @@ const ManageProducts = () => {
                 adminProductService.getVendorSubmissions('pending', 'machinery'),
                 publicCatalogService.getCategories()
             ]);
-            if (prodRes.success) setProducts((prodRes.data || []).filter(p => p.type === 'machinery' || !p.type));
+            // getAllProducts now returns both admin + approved vendor products
+            if (prodRes.success) setProducts((prodRes.data || []).filter(p => p.type === 'machinery'));
+            // Pending: Only pending vendor submissions for machinery
             if (pendingRes.success) setPendingProducts(pendingRes.data);
             if (catRes.success) setCategories(catRes.categories || catRes.data || []);
         } catch (err) {
@@ -252,6 +254,7 @@ const ManageProducts = () => {
                         <tr className="bg-slate-50/50 border-b border-slate-100">
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Machine</th>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Owner / Shop</th>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                         </tr>
@@ -279,6 +282,21 @@ const ManageProducts = () => {
                                         {p.categoryId?.title || 'Machine'}
                                     </span>
                                 </td>
+                                <td className="px-6 py-4">
+                                    {p.vendorId ? (
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                                                <FiUser className="w-3 h-3 text-orange-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-slate-700 text-xs leading-tight">{p.vendorId?.businessName || p.vendorId?.name || 'Vendor'}</p>
+                                                <p className="text-[9px] text-orange-600 font-bold uppercase">Owner</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase">Admin</span>
+                                    )}
+                                </td>
                                 <td className="px-6 py-4 font-black text-slate-800 text-sm">₹{p.price}/{p.unit}</td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex gap-2 justify-end">
@@ -290,7 +308,9 @@ const ManageProducts = () => {
                                             </>
                                         ) : (
                                             <>
-                                                <button onClick={() => openEdit(p)} className="p-2 text-slate-400 hover:text-slate-800 transition-all"><FiEdit2 /></button>
+                                                {!p.vendorId && (
+                                                    <button onClick={() => openEdit(p)} className="p-2 text-slate-400 hover:text-slate-800 transition-all"><FiEdit2 /></button>
+                                                )}
                                                 <button onClick={() => adminProductService.delete(p._id).then(fetchData)} className="p-2 text-slate-400 hover:text-rose-600 transition-all"><FiTrash2 /></button>
                                             </>
                                         )}

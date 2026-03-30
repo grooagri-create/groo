@@ -35,6 +35,22 @@ const MyAgriOrders = () => {
         }
     };
 
+    const handleCancelOrder = async (orderId) => {
+        if (!window.confirm("Are you sure you want to cancel this order? If paid, your platform fee will be refunded to your wallet.")) return;
+        
+        try {
+            const res = await ecommerceService.cancelOrder(orderId);
+            if (res.success) {
+                toast.success("Order cancelled successfully");
+                fetchOrders(); // Refresh
+            } else {
+                toast.error(res.message || "Failed to cancel order");
+            }
+        } catch (err) {
+            toast.error("Internal error. Please try again.");
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
             {/* Header */}
@@ -64,17 +80,19 @@ const MyAgriOrders = () => {
                                     <div className="flex items-center gap-2">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Order ID: #{order._id.slice(-6)}</p>
                                         <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${
+                                            order.deliveryStatus === 'cancelled' ? 'bg-red-50 text-red-600' :
                                             order.paymentStatus === 'paid' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
                                         }`}>
-                                            {order.paymentStatus === 'paid' ? 'Confirmed' : 'Payment Pending'}
+                                            {order.deliveryStatus === 'cancelled' ? 'Cancelled' : 
+                                             order.paymentStatus === 'paid' ? 'Confirmed' : 'Payment Pending'}
                                         </span>
                                     </div>
                                     <h3 className="font-black text-slate-800 mt-1">{order.items[0].name}</h3>
                                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">{format(new Date(order.createdAt), 'dd MMM, hh:mm a')}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-black text-slate-800">₹{order.pricing.totalPrice}</p>
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Total Value</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Value</p>
+                                    <p className="font-black text-slate-800">₹{order.pricing.itemsTotal}</p>
                                 </div>
                             </div>
 
@@ -108,9 +126,9 @@ const MyAgriOrders = () => {
                                         }`} />
                                         <div className="flex-1">
                                             <p className={`text-[10px] font-black uppercase tracking-widest ${order.deliveryStatus === 'shipped' ? 'text-teal-600' : 'text-slate-400'}`}>On the way</p>
-                                            {order.trackingInfo?.courierName && (
+                                            {order.trackingDetails?.courierName && (
                                                 <p className="text-[8px] font-black text-slate-800 mt-1 p-2 bg-slate-50 rounded-xl inline-block border border-slate-100">
-                                                    {order.trackingInfo.courierName}: {order.trackingInfo.trackingNumber}
+                                                    {order.trackingDetails.courierName}: {order.trackingDetails.trackingNumber}
                                                 </p>
                                             )}
                                         </div>
@@ -128,14 +146,33 @@ const MyAgriOrders = () => {
                                         Pay Confirm Fee (₹{order.pricing.platformFee})
                                     </button>
                                 </div>
-                            ) : order.deliveryStatus !== 'delivered' && (
+                            ) : order.deliveryStatus !== 'delivered' && order.deliveryStatus !== 'cancelled' && (
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
                                     <FiAlertCircle className="text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Direct Settlement</p>
-                                        <p className="text-[8px] font-bold text-slate-500 leading-relaxed uppercase tracking-tighter">
-                                            Keep ₹{order.pricing.vendorBalance} ready to pay the vendor when items arrive.
-                                        </p>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Direct Settlement</p>
+                                                <p className="text-[8px] font-bold text-slate-500 leading-relaxed uppercase tracking-widest mb-2">
+                                                    Keep ₹{order.pricing.vendorBalance} ready to pay the vendor when items arrive.
+                                                </p>
+                                            </div>
+                                            {/* Cancel Button */}
+                                            {['pending', 'ordered', 'packed'].includes(order.deliveryStatus) && (
+                                                <button 
+                                                    onClick={() => handleCancelOrder(order._id)}
+                                                    className="px-3 py-2 bg-red-50 text-red-600 rounded-xl text-[8px] font-black uppercase tracking-widest border border-red-100 active:scale-95 transition-all"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            )}
+                                        </div>
+                                        {order.deliveryStatus !== 'ordered' && order.deliveryStatus !== 'packed' && order.deliveryOtp && (
+                                            <div className="inline-block px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-lg">
+                                                <p className="text-[8px] font-black tracking-widest text-teal-600 uppercase">Delivery OTP</p>
+                                                <p className="text-sm font-black text-teal-800 font-mono tracking-widest">{order.deliveryOtp}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

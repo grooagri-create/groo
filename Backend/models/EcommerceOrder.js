@@ -57,6 +57,10 @@ const ecommerceOrderSchema = new mongoose.Schema({
         lat: Number,
         lng: Number
     },
+    deliveryOtp: {
+        type: String,
+        default: null
+    },
     adminTransactionId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Transaction',

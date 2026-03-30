@@ -2,6 +2,7 @@ const Booking = require('../../models/Booking');
 const VendorBill = require('../../models/VendorBill');
 const Worker = require('../../models/Worker');
 const Service = require('../../models/Service');
+const EcommerceOrder = require('../../models/EcommerceOrder');
 const { BOOKING_STATUS, PAYMENT_STATUS, WORKER_STATUS } = require('../../utils/constants');
 
 /**
@@ -145,6 +146,23 @@ const getDashboardStats = async (req, res) => {
       .limit(20) // Increased limit to ensure alerts are visible
       .lean();
 
+    // NEW: E-commerce Earnings (Net vendor balance from delivered orders)
+    const ecommerceEarningsResult = await EcommerceOrder.aggregate([
+      {
+        $match: {
+          vendorId: vendor._id,
+          deliveryStatus: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalEcommerceEarnings: { $sum: '$pricing.vendorBalance' }
+        }
+      }
+    ]);
+    const ecommerceEarnings = ecommerceEarningsResult[0]?.totalEcommerceEarnings || 0;
+
     res.status(200).json({
       success: true,
       data: {
@@ -155,6 +173,7 @@ const getDashboardStats = async (req, res) => {
           inProgressBookings,
           totalRevenue,
           vendorEarnings,
+          ecommerceEarnings, // NEW
           workersOnline,
           rating,
           complianceAlerts // Add this

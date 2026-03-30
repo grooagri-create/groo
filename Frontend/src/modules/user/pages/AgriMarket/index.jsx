@@ -4,8 +4,7 @@ import {
     FiFilter, 
     FiChevronLeft,
     FiPackage,
-    FiArrowRight,
-    FiCheckCircle
+    FiArrowRight
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import ecommerceService from '../../../../services/ecommerceService';
@@ -38,9 +37,9 @@ const AgriMarket = () => {
             hasError = true;
         }
 
-        // Load categories independently (public, always works)
+        // Load categories independently (filter strictly for products)
         try {
-            const catRes = await publicCatalogService.getCategories();
+            const catRes = await publicCatalogService.getCategories({ type: 'product' });
             if (catRes.success) setCategories(catRes.categories || catRes.data || []);
         } catch (err) {
             console.error('Categories fetch error:', err.message);
@@ -154,10 +153,31 @@ const AgriMarket = () => {
                                         <p className="text-sm font-black text-slate-800">₹{product.calculatorPrice?.totalPrice || product.price}</p>
                                         <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">/ {product.unit}</p>
                                     </div>
-                                    
-                                    <div className="mt-1 flex items-center gap-1">
-                                        <FiCheckCircle className="text-green-500 text-[10px]" />
-                                        <p className="text-[8px] font-bold text-green-600 uppercase tracking-tighter">Admin Approved</p>
+
+                                    {/* Stock Badge */}
+                                    <div className={`mt-1 inline-flex items-center gap-1 px-2 py-1 rounded-lg w-fit ${
+                                        product.stock > 10 
+                                            ? 'bg-green-50' 
+                                            : product.stock > 0 
+                                                ? 'bg-amber-50' 
+                                                : 'bg-red-50'
+                                    }`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${
+                                            product.stock > 10 
+                                                ? 'bg-green-500' 
+                                                : product.stock > 0 
+                                                    ? 'bg-amber-500' 
+                                                    : 'bg-red-500'
+                                        }`} />
+                                        <p className={`text-[8px] font-black uppercase tracking-tighter ${
+                                            product.stock > 10 
+                                                ? 'text-green-600' 
+                                                : product.stock > 0 
+                                                    ? 'text-amber-600' 
+                                                    : 'text-red-600'
+                                        }`}>
+                                            {product.stock > 0 ? `${product.stock} ${product.unit}s` : 'Out of Stock'}
+                                        </p>
                                     </div>
                                 </div>
                             </motion.div>

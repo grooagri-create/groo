@@ -22,7 +22,7 @@ const ProductDetail = () => {
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [showCheckout, setShowCheckout] = useState(false);
-    const [address, setAddress] = useState('');
+    const [address, setAddress] = useState(null); // Will hold {addressLine1, lat, lng}
 
     useEffect(() => {
         fetchProduct();
@@ -41,7 +41,7 @@ const ProductDetail = () => {
     };
 
     const handlePlaceOrder = async () => {
-        if (!address) return toast.error("Please enter shipping address");
+        if (!address || !address.addressLine1) return toast.error("Please pin your location on the map");
         try {
             const res = await ecommerceService.placeOrder({
                 productId: product._id,
@@ -218,29 +218,52 @@ const ProductDetail = () => {
             {/* Checkout Modal */}
             <AnimatePresence>
                 {showCheckout && (
-                    <div className="fixed inset-0 z-[100] flex items-end justify-center p-6">
+                    <div className="fixed inset-0 z-[100] flex flex-col justify-end sm:p-6 sm:items-center">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCheckout(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" />
-                        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="relative bg-white w-full max-w-sm rounded-t-[48px] p-8 pb-10 shadow-2xl">
-                            <h2 className="text-xl font-black text-slate-800">Confirm Order</h2>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Seeds & Fertilizers Delivery</p>
+                        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="relative bg-white w-full max-w-md mx-auto rounded-t-[48px] sm:rounded-[48px] p-6 pb-8 shadow-2xl flex flex-col max-h-[90dvh]">
+                            <div className="shrink-0 pb-4">
+                                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6" />
+                                <h2 className="text-xl font-black text-slate-800 text-center">Confirm Order</h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center mt-1">Seeds & Fertilizers Delivery</p>
+                            </div>
                             
-                            <div className="space-y-6 max-h-[80vh] overflow-y-auto overflow-x-hidden p-1 scrollbar-hide">
+                            <div className="space-y-6 overflow-y-auto overflow-x-hidden p-2 pb-4 scrollbar-hide flex-1 shrink">
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pin Location on Map</label>
                                     <div className="w-full rounded-3xl overflow-hidden border border-slate-100 shadow-sm relative isolate" style={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-                                        <LocationPicker onLocationSelect={(loc) => setAddress(loc.address)} />
+                                        <LocationPicker onLocationSelect={(loc) => {
+                                            // Parse city/state from Google address_components if available
+                                            let city = '', state = '', pincode = '';
+                                            if (loc.components && Array.isArray(loc.components)) {
+                                                loc.components.forEach(comp => {
+                                                    if (comp.types.includes('locality')) city = comp.long_name;
+                                                    if (comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+                                                    if (comp.types.includes('postal_code')) pincode = comp.long_name;
+                                                });
+                                            }
+                                            setAddress({
+                                                addressLine1: loc.address || '',
+                                                city,
+                                                state,
+                                                pincode,
+                                                lat: loc.lat || null,
+                                                lng: loc.lng || null
+                                            });
+                                        }} />
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Complete Address Details</label>
-                                    <textarea 
-                                        rows="3"
-                                        className="w-full bg-slate-50 border-none rounded-3xl py-4 px-5 font-bold outline-none text-sm focus:ring-2 focus:ring-teal-500/20 transition-all" 
-                                        placeholder="Add house no, street, landmark to the pinned location..." 
-                                        value={address} 
-                                        onChange={e => setAddress(e.target.value)}
-                                    />
+                                    <div className="relative">
+                                        <textarea 
+                                            rows="3"
+                                            className="w-full bg-white border border-slate-200 rounded-3xl py-4 px-5 font-bold outline-none text-sm text-slate-800 placeholder:text-slate-400 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-all resize-none shadow-sm" 
+                                            placeholder="Add house no, street, landmark..." 
+                                            value={address?.addressLine1 || ''} 
+                                            onChange={e => setAddress(prev => ({ ...(prev || {}), addressLine1: e.target.value }))}
+                                        />
+                                    </div>
                                 </div>
                                 
                                 <div className="p-4 bg-orange-50 rounded-3xl border border-orange-100 flex items-start gap-3">

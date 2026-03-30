@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiBriefcase, FiUsers, FiBell, FiArrowRight, FiUser, FiClock, FiMapPin, FiCheckCircle, FiTrendingUp, FiChevronRight, FiAlertTriangle, FiCalendar, FiBarChart2, FiActivity } from 'react-icons/fi';
+import { FiBriefcase, FiUsers, FiBell, FiArrowRight, FiUser, FiClock, FiMapPin, FiCheckCircle, FiTrendingUp, FiChevronRight, FiAlertTriangle, FiCalendar, FiBarChart2, FiActivity, FiShoppingBag } from 'react-icons/fi';
 import { FaWallet } from 'react-icons/fa';
 import { vendorTheme as themeColors } from '../../../../theme';
 import Header from '../../components/layout/Header';
@@ -39,7 +39,8 @@ const Dashboard = memo(() => {
     completedJobs: 0,
     rating: 0,
     complianceAlerts: [],
-    machinesInMaintenance: 0
+    machinesInMaintenance: 0,
+    ecommerceEarnings: 0
   });
   const [vendorProfile, setVendorProfile] = useState({
     name: 'Vendor Name',
@@ -169,7 +170,8 @@ const Dashboard = memo(() => {
       completedJobs: apiStats.completedBookings || 0,
       rating: apiStats.rating || 0,
       complianceAlerts: apiStats.complianceAlerts || [],
-      machinesInMaintenance: stats.machinesInMaintenance || 0 // Keep previous or wait for fetch
+      machinesInMaintenance: stats.machinesInMaintenance || 0, // Keep previous or wait for fetch
+      ecommerceEarnings: apiStats.ecommerceEarnings || 0
     });
 
     // Recent jobs (non-requested)
@@ -330,7 +332,14 @@ const Dashboard = memo(() => {
       path: '/vendor/soil-tests',
       subtitle: 'Manage Tests',
     },
-  ], [stats.activeJobs, stats.workersOnline, stats.totalEarnings, stats.machinesInMaintenance]);
+    {
+      title: 'Agri Market',
+      icon: FiShoppingBag,
+      color: '#E11D48',
+      path: '/vendor/store/orders',
+      subtitle: `₹${(stats.ecommerceEarnings || 0).toLocaleString()} Earnings`,
+    },
+  ], [stats.activeJobs, stats.workersOnline, stats.totalEarnings, stats.machinesInMaintenance, stats.ecommerceEarnings]);
 
   const getStatusColor = (status) => {
     const s = String(status).toLowerCase();
