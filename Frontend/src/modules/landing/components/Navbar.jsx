@@ -11,6 +11,19 @@ const Navbar = () => {
   const location = useLocation();
   const isLightPage = location.pathname !== '/';
   const { language, languages, changeLanguage, isChangingLanguage } = useLanguage();
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const dropdownRef = React.useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowLanguageDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,29 +72,49 @@ const Navbar = () => {
 
             <div className="flex items-center space-x-3">
               {/* Language Selector */}
-              <div className="relative group mr-2">
+              <div className="relative group mr-2" ref={dropdownRef}>
                 <button
+                  onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
                   className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${(isScrolled || isLightPage)
                     ? 'border-gray-200 text-gray-700 hover:bg-gray-50'
                     : 'border-white/30 text-white hover:bg-white/10'
-                    }`}
+                    } ${showLanguageDropdown ? 'bg-green-50/10' : ''}`}
                 >
                   <HiTranslate size={16} className={isChangingLanguage ? 'animate-spin' : ''} />
                   <span>{languages[language]?.flag} {language}</span>
                 </button>
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 border border-gray-100 py-2 z-50">
-                  {Object.keys(languages).map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => changeLanguage(lang)}
-                      className={`w-full text-left px-4 py-2 text-xs hover:bg-green-50 transition-colors flex items-center space-x-2 ${language === lang ? 'text-green-700 font-bold bg-green-50/50' : 'text-gray-700'
-                        }`}
+                
+                <AnimatePresence>
+                  {showLanguageDropdown && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-[100] overflow-hidden"
                     >
-                      <span>{languages[lang].flag}</span>
-                      <span>{lang}</span>
-                    </button>
-                  ))}
-                </div>
+                      <div className="px-4 py-2 text-[10px] uppercase tracking-wider text-gray-400 font-bold border-b border-gray-50 mb-1">
+                        Select Language
+                      </div>
+                      {Object.keys(languages).map((lang) => (
+                        <button
+                          key={lang}
+                          onClick={() => {
+                            changeLanguage(lang);
+                            setShowLanguageDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs hover:bg-green-50 transition-colors flex items-center justify-between ${language === lang ? 'text-green-700 font-bold bg-green-50/50' : 'text-gray-700'
+                            }`}
+                        >
+                          <div className="flex items-center space-x-2">
+                             <span className="text-base">{languages[lang].flag}</span>
+                             <span>{lang}</span>
+                          </div>
+                          {language === lang && <div className="w-1.5 h-1.5 rounded-full bg-green-600"></div>}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <Link
@@ -103,24 +136,38 @@ const Navbar = () => {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-4">
             {/* Mobile Language Icon */}
-            <div className="relative group">
+            <div className="relative" ref={dropdownRef}>
               <button
-                className={`p-2 rounded-full border ${(isScrolled || isLightPage) ? 'border-gray-200 text-gray-700' : 'border-white/30 text-white'}`}
+                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                className={`p-2 rounded-full border ${(isScrolled || isLightPage) ? 'border-gray-200 text-gray-700' : 'border-white/30 text-white'} ${showLanguageDropdown ? 'bg-white/20' : ''}`}
               >
-                <HiTranslate size={20} />
+                <HiTranslate size={20} className={isChangingLanguage ? 'animate-spin' : ''} />
               </button>
-              <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all py-1 z-50">
-                {Object.keys(languages).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => changeLanguage(lang)}
-                    className={`w-full text-left px-4 py-2 text-xs flex items-center space-x-2 transition-colors ${language === lang ? 'text-green-700 font-bold bg-green-50/50' : 'text-gray-700 hover:bg-green-50'}`}
+              
+              <AnimatePresence>
+                {showLanguageDropdown && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                    className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-[100]"
                   >
-                    <span>{languages[lang].flag}</span>
-                    <span>{lang}</span>
-                  </button>
-                ))}
-              </div>
+                    {Object.keys(languages).map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          changeLanguage(lang);
+                          setShowLanguageDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 text-xs flex items-center space-x-3 transition-colors ${language === lang ? 'text-green-700 font-bold bg-green-50' : 'text-gray-700 active:bg-gray-50'}`}
+                      >
+                        <span className="text-base">{languages[lang].flag}</span>
+                        <span>{lang}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <button

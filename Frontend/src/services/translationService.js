@@ -6,7 +6,7 @@
 import axios from 'axios';
 import { getFromCache, saveToCache } from '../utils/translationCache';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
 const TRANSLATE_URL = `${API_BASE_URL}/v1/translate`;
 
 // Batching & Queue Management
