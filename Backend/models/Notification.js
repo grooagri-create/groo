@@ -76,6 +76,7 @@ const notificationSchema = new mongoose.Schema({
       'soil_test_report_approved',
       'soil_test_payment_received',
       'soil_test_rejected_by_vendor',
+      'weather_update',
       'general'
     ],
     index: true
