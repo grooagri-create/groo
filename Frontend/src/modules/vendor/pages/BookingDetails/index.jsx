@@ -14,7 +14,9 @@ import {
   verifySelfVisit,
   completeSelfJob,
   startTrip,
-  endTrip
+  endTrip,
+  machineryStartWork,
+  machineryCompleteWork
 } from '../../services/bookingService';
 import vendorBillService from '../../../../services/vendorBillService';
 import { CashCollectionModal, ConfirmDialog, OperatorPaymentModal } from '../../components/common';
@@ -142,7 +144,8 @@ export default function BookingDetails() {
           workerResponseAt: apiData.workerResponseAt,
           paymentMethod: apiData.paymentMethod,
           paymentStatus: apiData.paymentStatus,
-          cashCollected: apiData.cashCollected || false
+          cashCollected: apiData.cashCollected || false,
+          categoryId: apiData.categoryId // Store whole object for trackingType/requiresDriver
         };
 
         setBooking(mappedBooking);
@@ -550,12 +553,31 @@ export default function BookingDetails() {
   };
 
   const handleTripSubmit = async (photoUrl, otp, workUnits, evidencePhoto) => {
+    // Detect if this is a machinery/equipment booking
+    const isMachinery = !!(booking?.rental_type ||
+      ['equipment', 'machinery', 'tractor', 'agriculture'].some(cat =>
+        (booking?.serviceCategory || booking?.serviceType || '').toLowerCase().includes(cat)
+      )
+    );
+
     if (tripMode === 'start') {
-      await startTrip(id, photoUrl, otp);
-      toast.success('🚜 Trip Started! KM Photo & OTP verified.');
+      if (isMachinery) {
+        // Machinery: vendor enters farmer's Start OTP + KM photo
+        await machineryStartWork(id, otp, photoUrl);
+        toast.success('🚜 Trip Started! OTP verified, work has begun.');
+      } else {
+        await startTrip(id, photoUrl, otp);
+        toast.success('🚜 Trip Started! KM Photo & OTP verified.');
+      }
     } else {
-      await endTrip(id, photoUrl, otp, workUnits, evidencePhoto);
-      toast.success('🏁 Trip Ended! Bill Generated & Wallet Settled.');
+      if (isMachinery) {
+        // Machinery end: only KM photo needed — system auto-generates End OTP for farmer
+        await machineryCompleteWork(id, photoUrl, workUnits, evidencePhoto);
+        toast.success('🏁 Work Completed! End OTP has been sent to the farmer.');
+      } else {
+        await endTrip(id, photoUrl, otp, workUnits, evidencePhoto);
+        toast.success('🏁 Trip Ended! Bill Generated & Wallet Settled.');
+      }
     }
     window.location.reload();
   };
@@ -608,7 +630,10 @@ export default function BookingDetails() {
   const bill = booking?.bill;
 
   // Base Logic (Services)
-  const originalBase = bill ? (bill.originalServiceBase || 0) : (parseFloat(booking?.basePrice) || 0);
+  // Use bill.originalServiceBase if available, else fallback to totalServiceBase (for older bookings), else booking.basePrice
+  const originalBase = bill 
+    ? (bill.originalServiceBase || bill.totalServiceBase || 0) 
+    : (parseFloat(booking?.basePrice) || 0);
 
   // Extra Services & Parts from vendor bill (if available)
   const allBillServices = bill?.services || [];
@@ -641,7 +666,8 @@ export default function BookingDetails() {
   });
 
   // Tax Logic
-  const originalGST = bill ? (bill.originalGST || 0) : (originalBase * 0.18);
+  // Use bill.originalGST if available, else fallback to totalGST
+  const originalGST = bill ? (bill.originalGST || bill.totalGST || 0) : (originalBase * 0.18);
   const totalGST = originalGST + extraServiceGST + partsGST;
 
   // Final Total from bill or booking
@@ -827,20 +853,37 @@ export default function BookingDetails() {
           >
             <p className="text-sm font-bold text-gray-700 mb-4">Order Summary</p>
 
-            {/* Service Category */}
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
-                style={{ backgroundColor: `${themeColors.button}15`, border: `1px solid ${themeColors.button}25` }}>
-                {booking.categoryIcon ? (
-                  <img src={booking.categoryIcon} alt="" className="w-5 h-5 object-contain" />
-                ) : (
-                  <FiTool className="w-4 h-4" style={{ color: themeColors.button }} />
-                )}
+            {/* Service Category & Request Configuration */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
+                  style={{ backgroundColor: `${themeColors.button}15`, border: `1px solid ${themeColors.button}25` }}>
+                  {booking.categoryIcon ? (
+                    <img src={booking.categoryIcon} alt="" className="w-5 h-5 object-contain" />
+                  ) : (
+                    <FiTool className="w-4 h-4" style={{ color: themeColors.button }} />
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Category</p>
+                  <p className="text-sm font-bold text-gray-800">{booking.serviceCategory || booking.serviceType || 'Service'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Service Category</p>
-                <p className="text-sm font-bold text-gray-800">{booking.serviceCategory || booking.serviceType || 'Service'}</p>
-              </div>
+
+              {/* Request Type (Agri Specific) */}
+              {(booking.rental_type || booking.landSize || booking.estimatedDuration) && (
+                <div className="flex items-center gap-2 border-l border-dashed border-gray-200 pl-3">
+                  <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center shrink-0 border border-orange-100">
+                    <FiClock className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Request</p>
+                    <p className="text-sm font-bold text-orange-700 capitalize">
+                      {booking.rental_type?.replace('_', ' ') || 'Usage'} : {booking.rental_type === 'land_based' ? `${booking.landSize || 0} Acres` : `${booking.estimatedDuration || 0} Hrs`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Brand */}
@@ -961,16 +1004,24 @@ export default function BookingDetails() {
                   </div>
                 ))}
 
+                {/* Service Discount (if any) */}
+                {booking.discount > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-medium">
+                    <span>Discount</span>
+                    <span className="font-mono">-₹{(booking.discount).toFixed(2)}</span>
+                  </div>
+                )}
+
                 {/* Service GST */}
                 <div className="flex justify-between text-xs text-gray-500 border-t border-dashed border-gray-100 pt-1 mt-1">
                   <span>Service GST (18%)</span>
-                  <span className="font-mono">₹{(originalGST + extraServiceGST).toFixed(2)}</span>
+                  <span className="font-mono">₹{(bill ? (originalGST + extraServiceGST) : (booking.tax || originalGST)).toFixed(2)}</span>
                 </div>
 
                 {/* Service Subtotal */}
                 <div className="flex justify-between font-bold text-gray-800 pt-1">
                   <span>Total Service</span>
-                  <span>₹{(originalBase + extraServiceBase + originalGST + extraServiceGST).toFixed(2)}</span>
+                  <span>₹{(bill ? (originalBase + extraServiceBase + originalGST + extraServiceGST) : (originalBase - (booking.discount || 0) + (booking.tax || originalGST))).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -1067,7 +1118,7 @@ export default function BookingDetails() {
 
               <div className="flex justify-between text-emerald-600/70 text-[10px] mt-2">
                 <span>Platform Commission</span>
-                <span>-₹{(booking.adminCommission || booking.platformCommission || 0).toFixed(2)}</span>
+                <span>-₹{(bill?.adminCommission || booking.adminCommission || booking.platformCommission || 0).toFixed(2)}</span>
               </div>
             </div>
           ) : (
@@ -1135,8 +1186,8 @@ export default function BookingDetails() {
           </div>
         )}
 
-        {/* Worker & Job Status Card (Enhanced) */}
-        {booking.assignedTo && booking.assignedTo?.name !== 'You (Self)' && (
+        {/* Worker & Job Status Card (Enhanced) - Hidden for Standalone */}
+        {booking.assignedTo && booking.assignedTo?.name !== 'You (Self)' && booking.categoryId?.requiresDriver !== false && (
           <div className="bg-white rounded-2xl p-5 mb-5 shadow-lg border border-gray-100">
             <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
@@ -1504,7 +1555,7 @@ export default function BookingDetails() {
         {/* ══════ EQUIPMENT TRIP FLOW (New - agriculture feature) ══════ */}
         {/* Show Start Trip button when booking is confirmed/in_progress and trip not started yet */}
         {!booking.start_kilometer_photo &&
-          ['confirmed', 'assigned', 'in_progress', 'journey_started'].includes(booking.status) && (
+          ['confirmed', 'accepted', 'assigned', 'in_progress', 'journey_started', 'visited'].includes(booking.status) && (
             <div className="bg-white rounded-2xl mb-4 overflow-hidden shadow-lg border-t-4 border-green-500">
               <div className="p-5">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Equipment Trip</p>
@@ -1513,7 +1564,7 @@ export default function BookingDetails() {
                   className="w-full py-4 rounded-xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-green-200"
                   style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
                 >
-                  🚜 Equipment Arrived (KM Photo + OTP)
+                  {booking.categoryId?.requiresDriver === false ? '📦 Handover Equipment' : '🚜 Equipment Arrived (KM Photo + OTP)'}
                 </button>
               </div>
             </div>
@@ -1533,7 +1584,7 @@ export default function BookingDetails() {
                   className="w-full py-4 rounded-xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-red-200"
                   style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)' }}
                 >
-                  🏁 End Trip (KM Photo + OTP)
+                  {booking.categoryId?.requiresDriver === false ? '✅ Collect Equipment' : '🏁 End Trip (KM Photo + OTP)'}
                 </button>
               </div>
             </div>
@@ -1658,6 +1709,9 @@ export default function BookingDetails() {
         onClose={() => setIsTripModalOpen(false)}
         mode={tripMode}
         rentalType={booking.rental_type}
+        requiresDriver={booking.categoryId?.requiresDriver}
+        trackingType={booking.categoryId?.trackingType}
+        isMachinery={!!(booking?.rental_type || ['equipment', 'machinery', 'tractor', 'agriculture'].some(cat => (booking?.serviceCategory || booking?.serviceType || '').toLowerCase().includes(cat)))}
         onSubmit={handleTripSubmit}
       />
 

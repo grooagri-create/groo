@@ -15,7 +15,7 @@ import { isWithinInterval, parseISO } from 'date-fns';
 import { registerFCMToken } from '../../../../services/pushNotificationService';
 import LogoLoader from '../../../../components/common/LogoLoader';
 import StatsCards from './components/StatsCards';
-import PendingBookings from './components/PendingBookings';
+// PendingBookings import removed
 
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
@@ -83,15 +83,14 @@ const Dashboard = memo(() => {
 
     const { stats: apiStats, recentBookings } = response.data;
 
-    // Separate requested/searching bookings from other bookings
+    // Include all bookings in the recent list, but keep the separate filter for stats if needed
     const requestedBookings = (recentBookings || []).filter(booking => {
       const status = booking.status?.toLowerCase();
       return status === 'requested' || status === 'searching';
     });
-    const otherBookings = (recentBookings || []).filter(booking => {
-      const status = booking.status?.toLowerCase();
-      return status !== 'requested' && status !== 'searching';
-    });
+    
+    // We will show ALL bookings in the recent jobs section now
+    const allBookings = recentBookings || [];
 
     // Build pending bookings map
     const mergedMap = new Map();
@@ -174,8 +173,8 @@ const Dashboard = memo(() => {
       ecommerceEarnings: apiStats.ecommerceEarnings || 0
     });
 
-    // Recent jobs (non-requested)
-    const recentJobsData = otherBookings.slice(0, 3).map(booking => ({
+    // Recent jobs (including requested ones now)
+    const recentJobsData = allBookings.slice(0, 5).map(booking => ({
       id: booking._id,
       serviceType: booking.serviceId?.title || 'Service',
       customerName: booking.userId?.name || 'Farmer',
@@ -572,17 +571,7 @@ const Dashboard = memo(() => {
 
         {/* Content Section (below gradient) */}
         <div className="px-4 py-4 space-y-4">
-          {/* Pending Booking Alerts - Optimized Component */}
-          <PendingBookings
-            bookings={pendingBookings}
-            setPendingBookings={setPendingBookings}
-            setActiveAlertBooking={(booking) => {
-              setActiveAlertBookings(prev => {
-                if (prev.find(b => String(b.id || b._id) === String(booking.id || booking._id))) return prev;
-                return [booking, ...prev];
-              });
-            }}
-          />
+          {/* Pending Booking Alerts - Removed as per user request, shown in Recent Bookings instead */}
 
           {/* Performance Metrics */}
           <div>
@@ -817,57 +806,7 @@ const Dashboard = memo(() => {
         </div>
       </main>
 
-      {/* Slick New Booking Alert Modal */}
-      <BookingAlertModal
-        isOpen={activeAlertBookings.length > 0}
-        bookings={activeAlertBookings}
-        onAccept={async (id) => {
-          try {
-            await acceptBooking(id);
-            await assignWorker(id, 'SELF');
-
-            const pendingJobs = JSON.parse(localStorage.getItem('vendorPendingJobs') || '[]');
-            const updated = pendingJobs.filter(b => String(b.id || b._id) !== String(id));
-            localStorage.setItem('vendorPendingJobs', JSON.stringify(updated));
-
-            window.dispatchEvent(new CustomEvent('removeVendorBooking', { detail: { id } }));
-            setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
-            window.dispatchEvent(new Event('vendorStatsUpdated'));
-            toast.success('Job claimed successfully! Assigned to you.');
-          } catch (e) {
-            toast.error('Failed to claim job');
-          }
-        }}
-        onAssign={async (id) => {
-          try {
-            await acceptBooking(id);
-            const pendingJobs = JSON.parse(localStorage.getItem('vendorPendingJobs') || '[]');
-            const updated = pendingJobs.filter(b => String(b.id || b._id) !== String(id));
-            localStorage.setItem('vendorPendingJobs', JSON.stringify(updated));
-            window.dispatchEvent(new CustomEvent('removeVendorBooking', { detail: { id } }));
-            setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
-            window.dispatchEvent(new Event('vendorJobsUpdated'));
-            toast.success('Job claimed! Redirecting to assign...');
-            navigate(`/vendor/booking/${id}/assign-worker`);
-          } catch (e) {
-            toast.error('Failed to claim job');
-          }
-        }}
-        onReject={async (id) => {
-          try {
-            await rejectBooking(id, 'Vendor Declined');
-            const pendingJobs = JSON.parse(localStorage.getItem('vendorPendingJobs') || '[]');
-            const updated = pendingJobs.filter(b => String(b.id || b._id) !== String(id));
-            localStorage.setItem('vendorPendingJobs', JSON.stringify(updated));
-            window.dispatchEvent(new CustomEvent('removeVendorBooking', { detail: { id } }));
-            setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
-            setPendingBookings(prev => prev.filter(b => b.id !== id));
-          } catch (e) {
-            setActiveAlertBookings(prev => prev.filter(b => String(b.id || b._id) !== String(id)));
-          }
-        }}
-        onMinimize={() => setActiveAlertBookings([])}
-      />
+      {/* BookingAlertModal removed to keep dashboard clean as per user request */}
     </div>
   );
 });

@@ -15,7 +15,7 @@ const generateInvoicePDF = (bill, booking, res) => {
     // --- Header ---
     doc.fillColor('#444444')
         .fontSize(20)
-        .text('GROOAGRI', 50, 45)
+        .text('GROO', 50, 45)
         .fontSize(10)
         .text('Agri-Services & Equipment Rental', 50, 65)
         .fillColor('#000000')
@@ -74,9 +74,9 @@ const generateInvoicePDF = (bill, booking, res) => {
         doc.font('Helvetica').fontSize(9)
             .text(item.name, 50, y, { width: 220 })
             .text(item.quantity, 280, y)
-            .text(`₹${item.price}`, 330, y)
+            .text(`Rs. ${item.price}`, 330, y)
             .text(`${item.gstPercentage}%`, 400, y)
-            .text(`₹${item.total}`, 480, y, { align: 'right' });
+            .text(`Rs. ${item.total}`, 480, y, { align: 'right' });
         y += 20;
     });
 
@@ -84,9 +84,9 @@ const generateInvoicePDF = (bill, booking, res) => {
     bill.parts.forEach(item => {
         doc.text(item.name, 50, y, { width: 220 })
             .text(item.quantity, 280, y)
-            .text(`₹${item.price}`, 330, y)
+            .text(`Rs. ${item.price}`, 330, y)
             .text(`${item.gstPercentage}%`, 400, y)
-            .text(`₹${item.total}`, 480, y, { align: 'right' });
+            .text(`Rs. ${item.total}`, 480, y, { align: 'right' });
         y += 20;
     });
 
@@ -94,9 +94,9 @@ const generateInvoicePDF = (bill, booking, res) => {
     bill.customItems.forEach(item => {
         doc.text(item.name, 50, y, { width: 220 })
             .text(item.quantity, 280, y)
-            .text(`₹${item.price}`, 330, y)
+            .text(`Rs. ${item.price}`, 330, y)
             .text(`${item.gstPercentage}%`, 400, y)
-            .text(`₹${item.total}`, 480, y, { align: 'right' });
+            .text(`Rs. ${item.total}`, 480, y, { align: 'right' });
         y += 20;
     });
 
@@ -104,18 +104,18 @@ const generateInvoicePDF = (bill, booking, res) => {
     if (bill.visitingCharges > 0) {
         doc.text('Visiting/Service Charges', 50, y)
             .text('1', 280, y)
-            .text(`₹${bill.visitingCharges}`, 330, y)
+            .text(`Rs. ${bill.visitingCharges}`, 330, y)
             .text('0%', 400, y)
-            .text(`₹${bill.visitingCharges}`, 480, y, { align: 'right' });
+            .text(`Rs. ${bill.visitingCharges}`, 480, y, { align: 'right' });
         y += 20;
     }
 
     if (bill.transportCharges > 0) {
         doc.text('Transport Charges', 50, y)
             .text('1', 280, y)
-            .text(`₹${bill.transportCharges}`, 330, y)
+            .text(`Rs. ${bill.transportCharges}`, 330, y)
             .text('0%', 400, y)
-            .text(`₹${bill.transportCharges}`, 480, y, { align: 'right' });
+            .text(`Rs. ${bill.transportCharges}`, 480, y, { align: 'right' });
         y += 20;
     }
 
@@ -125,21 +125,21 @@ const generateInvoicePDF = (bill, booking, res) => {
 
     doc.font('Helvetica-Bold').fontSize(10)
         .text('Subtotal:', 350, subtotalOver + 15)
-        .font('Helvetica').text(`₹${(bill.totalServiceBase + bill.totalPartsBase + bill.visitingCharges + bill.transportCharges).toFixed(2)}`, 480, subtotalOver + 15, { align: 'right' })
+        .font('Helvetica').text(`Rs. ${(bill.totalServiceBase + bill.totalPartsBase + bill.visitingCharges + bill.transportCharges).toFixed(2)}`, 480, subtotalOver + 15, { align: 'right' })
 
         .font('Helvetica-Bold').text('Total GST:', 350, subtotalOver + 30)
-        .font('Helvetica').text(`₹${bill.totalGST.toFixed(2)}`, 480, subtotalOver + 30, { align: 'right' })
+        .font('Helvetica').text(`Rs. ${bill.totalGST.toFixed(2)}`, 480, subtotalOver + 30, { align: 'right' })
 
         .fontSize(12)
         .font('Helvetica-Bold').text('Grand Total:', 350, subtotalOver + 50)
         .fillColor('#00a6a6')
-        .text(`₹${bill.grandTotal.toFixed(2)}`, 480, subtotalOver + 50, { align: 'right' });
+        .text(`Rs. ${bill.grandTotal.toFixed(2)}`, 480, subtotalOver + 50, { align: 'right' });
 
     // --- Footer ---
     doc.fillColor('#888888')
         .fontSize(8)
         .text('This is a computer generated invoice and does not require a physical signature.', 50, 700, { align: 'center', width: 500 })
-        .text('Thank you for choosing GrooAgri for your farming needs!', 50, 715, { align: 'center', width: 500 });
+        .text('Thank you for choosing GROO for your farming needs!', 50, 715, { align: 'center', width: 500 });
 
     doc.end();
 };

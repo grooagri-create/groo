@@ -10,10 +10,14 @@ import { z } from "zod";
 // Schema for Service Entity (Child of Brand)
 const serviceSchema = z.object({
   title: z.string().min(2, "Title is required"),
-  basePrice: z.number().min(0, "Price must be non-negative"),
+  basePrice: z.number().optional(),
   gstPercentage: z.number().min(0).max(100).default(18),
-  discountPrice: z.number().optional(),
-  categoryId: z.string().min(1, "Category is required")
+  categoryId: z.string().min(1, "Category is required"),
+  hourly_price: z.number().optional(),
+  land_price: z.number().optional(),
+  daily_price: z.number().optional(),
+  pricing_context: z.enum(['standalone', 'sub-category', 'any']).default('any'),
+  parentSourceId: z.string().nullable().optional()
 });
 
 const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
@@ -88,10 +92,19 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
 
         if (servicesRes.success) {
           mappedBrands = servicesRes.brands.map((svc) => {
-            // Handle potential MongoDB extended JSON format from raw dumps or different endpoints
-            const safeId = svc.id || svc._id?.$oid || svc._id;
-            const safeCategoryId = svc.categoryId?.$oid || svc.categoryId;
-            const safeCategoryIds = (svc.categoryIds || []).map(cid => cid?.$oid || cid);
+            // Helper to extract string ID from various formats
+            const getStrId = (item) => {
+              if (!item) return null;
+              if (typeof item === 'string') return item.trim();
+              if (item.$oid) return item.$oid.trim();
+              if (item._id) return typeof item._id === 'object' && item._id.$oid ? item._id.$oid.trim() : item._id.toString().trim();
+              if (item.id) return item.id.toString().trim();
+              return String(item).trim();
+            };
+
+            const safeId = getStrId(svc.id || svc._id);
+            const safeCategoryId = getStrId(svc.categoryId);
+            const safeCategoryIds = (svc.categoryIds || []).map(cid => getStrId(cid)).filter(Boolean);
 
             return {
               id: safeId,
@@ -113,7 +126,9 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
           mappedCategories = categoriesRes.categories.map(cat => ({
             id: (cat.id || cat._id?.$oid || cat._id)?.toString() || "",
             title: cat.title,
-            slug: cat.slug
+            slug: cat.slug,
+            parentCategories: Array.isArray(cat.parentCategories) ? cat.parentCategories.map(p => (p._id || p.id || p).toString()) : [],
+            parentCategory: (cat.parentCategory?._id || cat.parentCategory?.id || cat.parentCategory)?.toString() || ""
           }));
         }
 
@@ -177,10 +192,13 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
-    basePrice: "",
     gstPercentage: 18,
-    discountPrice: "",
-    categoryId: ""
+    categoryId: "",
+    hourly_price: "",
+    land_price: "",
+    daily_price: "",
+    pricing_context: "any",
+    parentSourceId: ""
   });
   const [saving, setSaving] = useState(false);
 
@@ -200,20 +218,28 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
       title: "",
       basePrice: "",
       gstPercentage: 18,
-      discountPrice: "",
-      categoryId: defaultCat
+      categoryId: String(defaultCat?.$oid || defaultCat),
+      hourly_price: "",
+      land_price: "",
+      daily_price: "",
+      pricing_context: "any",
+      parentSourceId: ""
     });
     setIsModalOpen(false);
   };
 
-  const handleEdit = (service) => {
-    setEditingId(service.id || service._id);
+  const handleEdit = (s) => {
+    setEditingId(s.id || s._id);
     setForm({
-      title: service.title,
-      basePrice: service.basePrice,
-      gstPercentage: service.gstPercentage || 18,
-      discountPrice: service.discountPrice || "",
-      categoryId: service.categoryId?._id || service.categoryId || ""
+      title: s.title,
+      basePrice: s.basePrice || "",
+      gstPercentage: s.gstPercentage || 18,
+      categoryId: String(s.categoryId?._id || s.categoryId),
+      hourly_price: s.hourly_price || "",
+      land_price: s.land_price || "",
+      daily_price: s.daily_price || "",
+      pricing_context: s.pricing_context || "any",
+      parentSourceId: s.parentSourceId || ""
     });
     setIsModalOpen(true);
   };
@@ -223,11 +249,16 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
     if (!activeBrandId) return;
 
     const data = {
+      brandId: activeBrandId,
       title: form.title,
-      basePrice: Number(form.basePrice),
-      gstPercentage: Number(form.gstPercentage),
-      discountPrice: form.discountPrice ? Number(form.discountPrice) : undefined,
-      categoryId: form.categoryId
+      basePrice: parseFloat(form.hourly_price) || parseFloat(form.daily_price) || parseFloat(form.land_price) || 0,
+      gstPercentage: parseFloat(form.gstPercentage) || 18,
+      categoryId: form.categoryId,
+      hourly_price: parseFloat(form.hourly_price) || 0,
+      land_price: parseFloat(form.land_price) || 0,
+      daily_price: parseFloat(form.daily_price) || 0,
+      pricing_context: form.pricing_context,
+      parentSourceId: form.parentSourceId || null
     };
 
     const result = serviceSchema.safeParse(data);
@@ -448,38 +479,71 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
                     const catTitle = service.categoryId?.title || cat?.title || "Uncategorized";
 
                     return (
-                      <div key={service.id || service._id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow relative group">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h4 className="font-bold text-gray-900 pr-6">{service.title}</h4>
-                            <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded mr-2 mt-1 inline-block">
-                              {catTitle}
+                      <div key={service.id || service._id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all relative group overflow-hidden border-b-4 border-b-primary-500/10">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h4 className="font-extrabold text-gray-900 truncate text-base" title={service.title}>{service.title}</h4>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              <span className="text-[10px] font-bold text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded uppercase tracking-tight">
+                                {catTitle}
+                              </span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight ${
+                                service.pricing_context === 'standalone' ? 'bg-blue-100 text-blue-700' :
+                                service.pricing_context === 'sub-category' ? 'bg-purple-100 text-purple-700' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {service.pricing_context || 'any'}
+                              </span>
+                              {service.parentSourceId && (
+                                <span className="text-[10px] bg-yellow-50 text-yellow-700 border border-yellow-100 px-1.5 py-0.5 rounded uppercase">
+                                  Parent: {categories.find(c => String(c.id) === String(service.parentSourceId))?.title || 'Unknown'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-1 rounded-full font-black border border-blue-100 shadow-sm whitespace-nowrap">
+                              {service.gstPercentage}% GST
                             </span>
                           </div>
-                          <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold border border-green-100 whitespace-nowrap">
-                            {service.gstPercentage}% GST
-                          </span>
                         </div>
 
-                        <div className="space-y-1 mt-2">
-                          <div className="flex justify-between items-baseline">
-                            <span className="text-xs text-gray-500">Base Price</span>
-                            <span className="font-semibold text-gray-900">₹{service.basePrice}</span>
+                        {/* Guideline Rates Grid */}
+                        <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-gray-50">
+                          <div className="text-center px-1">
+                            <div className="text-[9px] text-gray-400 font-bold uppercase mb-1">Hourly</div>
+                            <div className="text-sm font-black text-gray-900">₹{service.hourly_price || 0}</div>
                           </div>
-                          {service.discountPrice && (
-                            <div className="flex justify-between items-baseline">
-                              <span className="text-xs text-gray-500">Discounted</span>
-                              <span className="font-bold text-primary-600">₹{service.discountPrice}</span>
-                            </div>
-                          )}
+                          <div className="text-center px-1 border-x border-gray-100">
+                            <div className="text-[9px] text-gray-400 font-bold uppercase mb-1">Land</div>
+                            <div className="text-sm font-black text-gray-900">₹{service.land_price || 0}</div>
+                          </div>
+                          <div className="text-center px-1">
+                            <div className="text-[9px] text-gray-400 font-bold uppercase mb-1">Daily</div>
+                            <div className="text-sm font-black text-gray-900">₹{service.daily_price || 0}</div>
+                          </div>
                         </div>
 
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1 rounded-lg backdrop-blur-sm shadow-sm">
-                          <button onClick={() => handleEdit(service)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
-                            <FiEdit2 className="w-3.5 h-3.5" />
+                        <div className="mt-4 flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                          <span>Base Unit Highlight</span>
+                          <span className="text-gray-900 font-bold">₹{service.basePrice || service.hourly_price || 0}</span>
+                        </div>
+
+                        {/* Action Buttons (Repositioned to avoid overlap) */}
+                        <div className="absolute bottom-2 right-2 flex gap-1.5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
+                          <button 
+                            onClick={() => handleEdit(service)} 
+                            className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors"
+                            title="Edit"
+                          >
+                            <FiEdit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDelete(service.id || service._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
-                            <FiTrash2 className="w-3.5 h-3.5" />
+                          <button 
+                            onClick={() => handleDelete(service.id || service._id)} 
+                            className="w-8 h-8 flex items-center justify-center bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition-colors"
+                            title="Delete"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -512,8 +576,22 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
             >
               <option value="">Select Category</option>
               {(() => {
-                const uniqueIds = new Set(activeBrand?.categoryIds || []);
-                if (activeBrand?.categoryId) uniqueIds.add(activeBrand.categoryId);
+                const getStrId = (item) => {
+                  if (!item) return null;
+                  if (typeof item === 'string') return item.trim();
+                  if (item.$oid) return item.$oid.trim();
+                  if (item._id) return typeof item._id === 'object' && item._id.$oid ? item._id.$oid.trim() : item._id.toString().trim();
+                  if (item.id) return item.id.toString().trim();
+                  return String(item).trim();
+                };
+
+                const uniqueIds = new Set();
+                (activeBrand?.categoryIds || []).forEach(cid => {
+                  const sid = getStrId(cid);
+                  if (sid) uniqueIds.add(sid);
+                });
+                const mainCatId = getStrId(activeBrand?.categoryId);
+                if (mainCatId) uniqueIds.add(mainCatId);
 
                 const validOptions = Array.from(uniqueIds).map(catId => {
                   const category = categories.find(c => String(c.id) === String(catId));
@@ -543,42 +621,107 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Base Price (₹)</label>
-              <input
-                type="number"
-                value={form.basePrice}
-                onChange={e => setForm({ ...form, basePrice: e.target.value })}
-                placeholder="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                required
-                min="0"
-              />
+              <label className="block text-sm font-bold text-gray-700 mb-1">Pricing Context</label>
+              <select
+                value={form.pricing_context}
+                onChange={e => setForm({ ...form, pricing_context: e.target.value })}
+                className="w-full px-4 py-2 border border-blue-200 bg-blue-50/20 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-medium"
+              >
+                <option value="any">Global (Applies everywhere)</option>
+                <option value="standalone">Standalone Rental (Direct Booking)</option>
+                <option value="sub-category">Sub-category (As an Implement)</option>
+              </select>
             </div>
+            
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">GST (%)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Parent Category <span className="text-xs font-normal text-gray-400">(Optional)</span></label>
+              <select
+                value={form.parentSourceId || ""}
+                onChange={e => setForm({ ...form, parentSourceId: e.target.value })}
+                className="w-full px-4 py-2 border border-purple-200 bg-purple-50/20 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm font-medium"
+                disabled={form.pricing_context === 'standalone' || form.pricing_context === 'any'}
+              >
+                <option value="">None (Global)</option>
+                {(() => {
+                  const selectedCatId = form.categoryId || "";
+                  const selectedCategoryObj = categories.find(c => String(c.id) === String(selectedCatId));
+                  let allowedParents = [];
+                  
+                  if (selectedCategoryObj) {
+                    // Collect all mapped parent IDs
+                    const pIds = [...(selectedCategoryObj.parentCategories || [])];
+                    if (selectedCategoryObj.parentCategory && !pIds.includes(selectedCategoryObj.parentCategory)) {
+                      pIds.push(selectedCategoryObj.parentCategory);
+                    }
+                    
+                    allowedParents = categories.filter(c => pIds.includes(String(c.id)));
+                  }
+
+                  return allowedParents.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.title}</option>
+                  ));
+                })()}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-bold text-gray-700 mb-1 text-blue-600">GST Percentage (%)</label>
               <input
                 type="number"
                 value={form.gstPercentage}
                 onChange={e => setForm({ ...form, gstPercentage: e.target.value })}
                 placeholder="18"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-blue-50/20 font-bold"
                 min="0"
                 max="100"
               />
             </div>
+            <div className="flex-1 invisible">
+              {/* Spacer */}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Discount Price (Optional)</label>
-            <input
-              type="number"
-              value={form.discountPrice}
-              onChange={e => setForm({ ...form, discountPrice: e.target.value })}
-              placeholder="Leave empty if none"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
+          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-black text-blue-600 uppercase tracking-wider">Equipment Rental Pricing (Guidelines)</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hourly (₹)</label>
+                <input
+                  type="number"
+                  value={form.hourly_price}
+                  onChange={e => setForm({ ...form, hourly_price: e.target.value })}
+                  placeholder="e.g. 500"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white text-sm font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Land (₹/Acre)</label>
+                <input
+                  type="number"
+                  value={form.land_price}
+                  onChange={e => setForm({ ...form, land_price: e.target.value })}
+                  placeholder="e.g. 1200"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white text-sm font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Daily (₹)</label>
+                <input
+                  type="number"
+                  value={form.daily_price}
+                  onChange={e => setForm({ ...form, daily_price: e.target.value })}
+                  placeholder="e.g. 2500"
+                  className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white text-sm font-bold"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-blue-500 leading-tight"> These values will be used to show <strong>estimated totals</strong> to farmers based on their selected rental type (Daily rate x 30 for Monthly). </p>
           </div>
 
           <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">

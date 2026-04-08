@@ -26,6 +26,7 @@ import CategoryModal from './components/CategoryModal';
 import SearchOverlay from './components/SearchOverlay';
 import WeatherWidget from './components/WeatherWidget';
 import AgriMarketplaceSection from './components/AgriMarketplaceSection';
+import MachineryDiscoverySection from './components/MachineryDiscoverySection';
 import LogoLoader from '../../../../components/common/LogoLoader';
 import AddressSelectionModal from '../Checkout/components/AddressSelectionModal';
 
@@ -719,6 +720,11 @@ const Home = () => {
                 </motion.div>
               )}
 
+
+              {/* Machinery Discovery Section */}
+              <motion.div variants={itemVariants}>
+                <MachineryDiscoverySection />
+              </motion.div>
 
               {/* Agriculture Marketplace */}
               <motion.div variants={itemVariants}>

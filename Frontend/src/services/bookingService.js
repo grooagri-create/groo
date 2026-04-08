@@ -59,7 +59,7 @@ export const bookingService = {
   // ── Agriculture Feature: Check equipment availability for a date+time slot ──
   // Calls the backend API we built in Step 2 (checkEquipmentAvailability controller)
   checkEquipmentAvailability: async (equipmentId, date, time) => {
-    const response = await api.get('/u/booking/check-availability', {
+    const response = await api.get('/users/bookings/check-availability', {
       params: { equipmentId, date, time }
     });
     return response.data;

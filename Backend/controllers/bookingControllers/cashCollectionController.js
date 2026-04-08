@@ -62,7 +62,10 @@ exports.initiateCashCollection = async (req, res) => {
     }
 
     // For backwards compatibility and future use, we can still generate it but not force it
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    let otp = booking.driver_end_otp;
+    if (!otp) {
+      otp = Math.floor(1000 + Math.random() * 9000).toString();
+    }
     booking.customerConfirmationOTP = otp;
     booking.paymentOtp = otp;
     await booking.save();

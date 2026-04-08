@@ -20,6 +20,7 @@ import {
   FiActivity,
   FiAlertTriangle,
   FiGlobe,
+  FiTruck,
 } from "react-icons/fi";
 import adminMenu from "../../config/adminMenu.json";
 import dashboardService from "../../services/dashboardService";
@@ -44,6 +45,7 @@ const iconMap = {
   "Equipment Catalog": FiGrid,
   "Machinery Management": FiPackage,
   "Manage Website": FiGlobe,
+  "Machinery Approvals": FiTruck
 };
 
 // Helper function to convert child name to route path
@@ -69,6 +71,7 @@ const getChildRoute = (parentRoute, childName) => {
       "Manage Categories": "/admin/equipment-catalog/categories",
       "Manage Brands": "/admin/equipment-catalog/brands",
       "Manage Equipment Types": "/admin/equipment-catalog/sections",
+      "Machinery Approvals": "/admin/equipment-approvals"
     },
     "/admin/payments": {
       "Payment Overview": "/admin/payments/overview",

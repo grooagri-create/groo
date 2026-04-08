@@ -168,6 +168,36 @@ export const endTrip = async (bookingId, kmPhotoUrl, otp, workUnits, workEvidenc
 };
 
 /**
+ * Machinery Start Work — Vendor/Driver verifies farmer's Start OTP + uploads KM photo
+ * Calls the correct equipment-specific backend route
+ * @param {string} bookingId
+ * @param {string} otp - 4-digit OTP provided by farmer
+ * @param {string} startKmPhoto - Cloudinary URL of starting meter photo
+ */
+export const machineryStartWork = async (bookingId, otp, startKmPhoto) => {
+  const response = await api.post(`/vendor/equipment/bookings/${bookingId}/start`, {
+    otp,
+    startKmPhoto
+  });
+  return response.data;
+};
+
+/**
+ * Machinery Complete Work — Vendor/Driver submits end KM photo and evidence to mark work done
+ * System will automatically generate and send End OTP to farmer
+ * @param {string} bookingId
+ * @param {string} endKmPhoto - Cloudinary URL of ending meter photo
+ * @param {number} workUnits - Amount of work done (e.g., acres) if land based
+ * @param {string} evidencePhoto - Cloudinary URL of evidence of work
+ */
+export const machineryCompleteWork = async (bookingId, endKmPhoto, workUnits, evidencePhoto) => {
+  const response = await api.post(`/vendor/equipment/bookings/${bookingId}/complete`, {
+    endKmPhoto, workUnits, evidencePhoto
+  });
+  return response.data;
+};
+
+/**
  * Collect Self Cash (Vendor)
  */
 export const collectSelfCash = async (bookingId, otp, amount) => {

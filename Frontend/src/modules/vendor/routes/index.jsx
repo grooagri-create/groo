@@ -60,7 +60,7 @@ const Notifications = lazyLoad(() => import('../pages/Notifications'));
 const SettlementRequest = lazyLoad(() => import('../pages/Wallet/SettlementRequest'));
 const SettlementHistory = lazyLoad(() => import('../pages/Wallet/SettlementHistory'));
 const MyRatings = lazyLoad(() => import('../pages/MyRatings'));
-const AboutHomster = lazyLoad(() => import('../pages/AboutHomster'));
+const AboutGroo = lazyLoad(() => import('../pages/AboutHomster'));
 const BillingPage = lazyLoad(() => import('../pages/BillingPage'));
 const Maintenance = lazyLoad(() => import('../pages/Maintenance'));
 const Compliance = lazyLoad(() => import('../pages/Compliance'));
@@ -70,6 +70,8 @@ const StoreRegistration = lazyLoad(() => import('../pages/MyStore/StoreRegistrat
 const StoreOrders = lazyLoad(() => import('../pages/MyStore/Orders'));
 const SoilTesting = lazyLoad(() => import('../pages/SoilTesting'));
 const BusinessDetails = lazyLoad(() => import('../pages/BusinessDetails'));
+const EquipmentInventory = lazyLoad(() => import('../pages/Equipment/EquipmentInventory'));
+const AddEquipment = lazyLoad(() => import('../pages/Equipment/AddEquipment'));
 
 // Loading fallback component
 import LogoLoader from '../../../components/common/LogoLoader';
@@ -127,7 +129,7 @@ const VendorRoutes = () => {
               <Route path="/address-management" element={<ProtectedRoute userType="vendor"><AddressManagement /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute userType="vendor"><Notifications /></ProtectedRoute>} />
               <Route path="/my-ratings" element={<ProtectedRoute userType="vendor"><MyRatings /></ProtectedRoute>} />
-              <Route path="/about-homster" element={<ProtectedRoute userType="vendor"><AboutHomster /></ProtectedRoute>} />
+              <Route path="/about-groo" element={<ProtectedRoute userType="vendor"><AboutGroo /></ProtectedRoute>} />
               <Route path="/maintenance" element={<ProtectedRoute userType="vendor"><Maintenance /></ProtectedRoute>} />
               <Route path="/compliance" element={<ProtectedRoute userType="vendor"><Compliance /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute userType="vendor"><Analytics /></ProtectedRoute>} />
@@ -136,6 +138,9 @@ const VendorRoutes = () => {
               <Route path="/store/orders" element={<ProtectedRoute userType="vendor"><StoreOrders /></ProtectedRoute>} />
               <Route path="/soil-tests" element={<ProtectedRoute userType="vendor"><SoilTesting /></ProtectedRoute>} />
               <Route path="/business-details" element={<ProtectedRoute userType="vendor"><BusinessDetails /></ProtectedRoute>} />
+              <Route path="/equipment" element={<ProtectedRoute userType="vendor"><EquipmentInventory /></ProtectedRoute>} />
+              <Route path="/equipment/add" element={<ProtectedRoute userType="vendor"><AddEquipment /></ProtectedRoute>} />
+              <Route path="/equipment/edit/:id" element={<ProtectedRoute userType="vendor"><AddEquipment /></ProtectedRoute>} />
             </Routes>
           </PageTransition>
         </Suspense>

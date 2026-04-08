@@ -35,6 +35,21 @@ const settingsSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
+  // ==========================================
+  // AGRICULTURE / MACHINE RENTING SPECIFIC
+  // ==========================================
+  rentalGstPercentage: {
+    type: Number,
+    default: 5, // Agriculture GST is 5% (NOT 18% like normal services)
+    min: 0,
+    max: 100
+  },
+  rentalPayoutPercentage: {
+    type: Number,
+    default: 90, // Equipment Owner keeps 90% of rental charges
+    min: 0,
+    max: 100
+  },
   tdsPercentage: {
     type: Number,
     default: 1, // 1% default TDS u/s 194-O

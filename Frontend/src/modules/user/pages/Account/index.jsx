@@ -424,9 +424,9 @@ const Account = () => {
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-50 transition-colors group-hover:bg-opacity-80"
                   style={{ color: themeColors.brand.teal }}>
-                  <span className="font-bold">H</span>
+                  <span className="font-bold">G</span>
                 </div>
-                <span className="font-semibold text-gray-900">About Homster</span>
+                <span className="font-semibold text-gray-900">About GrooAgri</span>
               </div>
               <FiChevronRight className="w-5 h-5 text-gray-300 group-hover:text-teal-500 transition-colors" />
             </motion.button>

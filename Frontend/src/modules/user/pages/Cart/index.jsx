@@ -15,7 +15,7 @@ import NotificationBell from '../../components/common/NotificationBell';
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { cartItems, isLoading: loading, removeItem, removeCategoryItems, updateItem } = useCart();
+  const { cartItems, isLoading: loading, removeItem, removeCategoryItems, updateItem, updateItemLocally } = useCart();
 
   // Category icon mapping
   const getCategoryIcon = (category) => {
@@ -33,6 +33,26 @@ const Cart = () => {
       'AC & Appliance Repair': acApplianceRepairIcon,
     };
     return iconMap[category] || electricianIcon; // Default icon
+  };
+
+  const isMachinery = (item) => {
+    return !!(item.hourly_price || item.land_price || item.daily_price || item.category === 'Agriculture' || item.categoryTitle === 'Agriculture');
+  };
+
+  const handleRentalTypeChange = (item, type) => {
+    const itemId = item._id || item.id;
+    let newPrice;
+    if (type === 'hourly') newPrice = item.hourly_price || item.unitPrice || item.price;
+    else if (type === 'land') newPrice = item.land_price || 0;
+    else if (type === 'day') newPrice = item.daily_price || 0;
+    else newPrice = item.price;
+
+    // Only update local state — no server call needed for rental type preference
+    updateItemLocally(itemId, {
+      rentalType: type,
+      price: newPrice,
+      unitPrice: item.unitPrice || item.hourly_price || item.price, // preserve original unit price
+    });
   };
 
   // Group items by category
@@ -110,7 +130,27 @@ const Cart = () => {
   };
 
   const handleCategoryCheckout = (category) => {
-    navigate('/user/checkout', { state: { category: category } });
+    // Pass the selected rentalType from the first machinery item in this category
+    const itemsInCategory = groupedItems[category] || [];
+    const firstItem = itemsInCategory[0];
+    const cartRentalType = firstItem?.rentalType || 'hourly';
+
+    // Map Cart codes → Checkout codes
+    const rentalTypeMap = {
+      'hourly':  'hourly',
+      'land':    'land_based',
+      'day':     'daily',
+      'daily':   'daily',
+      'monthly': 'monthly',
+    };
+    const checkoutRentalType = rentalTypeMap[cartRentalType] || 'hourly';
+
+    navigate('/user/checkout', {
+      state: {
+        category,
+        rentalType: checkoutRentalType,
+      }
+    });
   };
 
   const handleCartClick = () => {
@@ -273,30 +313,74 @@ const Cart = () => {
                     </div>
 
                     {/* Services List */}
-                    <div className="mb-4 space-y-2">
-                      {items.map((item) => (
-                        <div key={item._id || item.id} className="flex items-start justify-between py-2 border-b border-gray-100 last:border-0">
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-800 font-medium">
-                              {item.title} X {item.serviceCount || 1}
-                            </p>
-                            {item.description && (
-                              <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                    <div className="mb-4 space-y-3">
+                      {items.map((item) => {
+                        const isAgri = isMachinery(item);
+                        const currentType = item.rentalType || 'hourly';
+
+                        return (
+                          <div key={item._id || item.id} className="flex flex-col py-3 border-b border-gray-100 last:border-0 gap-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm text-gray-800 font-extrabold uppercase tracking-tight">
+                                  {item.title}
+                                </p>
+                                {item.description && (
+                                  <p className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">{item.description}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-col items-end">
+                                  <span className="text-sm font-black text-emerald-600">
+                                    ₹{(item.price || 0).toLocaleString('en-IN')}
+                                  </span>
+                                  {isAgri && (
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+                                      {currentType === 'hourly' ? 'per hour' : currentType === 'land' ? 'per acre' : 'per day'}
+                                    </span>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => handleDelete(item._id || item.id)}
+                                  className="p-1.5 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                >
+                                  <FiTrash2 className="w-4 h-4 text-red-500" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {isAgri && (
+                              <div className="flex flex-col gap-2 bg-gray-50/50 p-2 rounded-xl border border-gray-100">
+                                <p className="text-[9px] font-black text-gray-400 uppercase ml-1">Select Rental Type</p>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {[
+                                    { id: 'hourly', label: 'Hourly', price: item.hourly_price || item.unitPrice },
+                                    { id: 'land', label: 'Land', price: item.land_price },
+                                    { id: 'day', label: 'Daily', price: item.daily_price }
+                                  ].map((opt) => (
+                                    <button
+                                      key={opt.id}
+                                      onClick={() => handleRentalTypeChange(item, opt.id)}
+                                      className={`flex flex-col items-center py-1.5 rounded-lg border transition-all ${
+                                        currentType === opt.id 
+                                          ? 'bg-emerald-600 border-emerald-600 shadow-sm shadow-emerald-200' 
+                                          : 'bg-white border-gray-200 hover:border-emerald-300'
+                                      }`}
+                                    >
+                                      <span className={`text-[8px] font-black uppercase tracking-tighter ${currentType === opt.id ? 'text-emerald-50' : 'text-gray-400'}`}>
+                                        {opt.label}
+                                      </span>
+                                      <span className={`text-[11px] font-black ${currentType === opt.id ? 'text-white' : 'text-gray-800'}`}>
+                                        ₹{opt.price || 0}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm font-semibold text-black">
-                              ₹{(item.price || 0).toLocaleString('en-IN')}
-                            </span>
-                            <button
-                              onClick={() => handleDelete(item._id || item.id)}
-                              className="p-1 hover:bg-red-50 rounded transition-colors"
-                            >
-                              <FiTrash2 className="w-4 h-4 text-red-500" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Action Buttons */}

@@ -28,7 +28,7 @@ const SlotPicker = ({ serviceId, onSlotSelect }) => {
             setLoading(true);
             setError(null);
             try {
-                const res = await availabilityService.getAvailableSlots(selectedDate, serviceId);
+                const res = await availabilityService.getAvailableSlots(serviceId, selectedDate);
                 if (res.success) {
                     setSlots(res.data);
                     // Auto-select first available slot if nothing is selected or if previous selected is now unavailable

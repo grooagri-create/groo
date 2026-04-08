@@ -89,6 +89,15 @@
     ]
   },
   {
+    "title": "Machinery Approvals",
+    "route": "/admin/equipment-approvals",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
     "title": "Reports",
     "route": "/admin/reports",
     "allowedRoles": [

@@ -804,15 +804,115 @@ const respondToJob = async (req, res) => {
   }
 };
 
+/**
+ * Start Machinery Work (For Drivers)
+ * Requires Start OTP from Farmer + KM/Meter Photo
+ */
+const startMachineryWork = async (req, res) => {
+  try {
+    const workerId = req.user.id;
+    const { id } = req.params;
+    const { otp, startKmPhoto } = req.body;
+
+    const booking = await Booking.findOne({ _id: id, workerId }).select('+driver_start_otp');
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (booking.driver_start_otp !== otp) {
+      return res.status(400).json({ success: false, message: 'Invalid Start OTP. Please ask farmer for correct OTP.' });
+    }
+
+    if (!startKmPhoto) {
+      return res.status(400).json({ success: false, message: 'Starting KM/Meter photo is required' });
+    }
+
+    booking.status = BOOKING_STATUS.IN_PROGRESS;
+    booking.startedAt = new Date();
+    booking.start_kilometer_photo = startKmPhoto;
+    booking.driver_start_otp = undefined; // Clear OTP after use
+
+    await booking.save();
+
+    // Notify Farmer
+    const { createNotification } = require('../notificationControllers/notificationController');
+    await createNotification({
+      userId: booking.userId,
+      type: 'work_started',
+      title: 'Machinery Work Started',
+      message: `The driver has started the work for ${booking.serviceId?.title}. Track progress in your dashboard.`,
+      relatedId: booking._id,
+      relatedType: 'booking',
+      priority: 'high'
+    });
+
+    res.status(200).json({ success: true, message: 'Work started successfully', data: booking });
+  } catch (error) {
+    console.error('Start machinery work error:', error);
+    res.status(500).json({ success: false, message: 'Failed to start machinery work' });
+  }
+};
+
+/**
+ * Complete Machinery Work (For Drivers)
+ * Requires Finish KM/Meter Photo - Generates End OTP for Farmer
+ */
+const completeMachineryWork = async (req, res) => {
+  try {
+    const workerId = req.user.id;
+    const { id } = req.params;
+    const { endKmPhoto } = req.body;
+
+    const booking = await Booking.findOne({ _id: id, workerId });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (!endKmPhoto) {
+      return res.status(400).json({ success: false, message: 'Ending KM/Meter photo is required to calculate usage' });
+    }
+
+    // Generate End-Work OTP for Farmer to confirm completion
+    const endOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    booking.status = BOOKING_STATUS.WORK_DONE;
+    booking.end_kilometer_photo = endKmPhoto;
+    booking.driver_end_otp = endOtp;
+
+    await booking.save();
+
+    // Notify Farmer with End OTP
+    const { createNotification } = require('../notificationControllers/notificationController');
+    await createNotification({
+      userId: booking.userId,
+      type: 'work_completed',
+      title: 'Machinery Work Finished',
+      message: `Machinery work is done. Please verify and share the Finish OTP: ${endOtp} with the driver only if satisfied.`,
+      relatedId: booking._id,
+      relatedType: 'booking',
+      priority: 'high'
+    });
+
+    res.status(200).json({ success: true, message: 'Work marked as finished. Finish OTP sent to farmer.', data: booking });
+  } catch (error) {
+    console.error('Complete machinery work error:', error);
+    res.status(500).json({ success: false, message: 'Failed to complete machinery work' });
+  }
+};
+
 module.exports = {
   getAssignedJobs,
   getJobById,
   updateJobStatus,
   startJob,
-  completeJob,
-  addWorkerNotes,
-  verifyVisit,
   workerReachedLocation,
+  verifyVisit,
+  completeJob,
   collectCash,
-  respondToJob
+  addWorkerNotes,
+  respondToJob,
+  startMachineryWork,
+  completeMachineryWork
 };

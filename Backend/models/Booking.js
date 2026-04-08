@@ -69,6 +69,11 @@ const bookingSchema = new mongoose.Schema({
     required: false,
     index: true
   },
+  equipmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'VendorEquipment',
+    default: null
+  },
   serviceName: {
     type: String,
     required: true
@@ -104,6 +109,22 @@ const bookingSchema = new mongoose.Schema({
       features: [{ type: String }]
     },
     quantity: { type: Number, default: 1 }
+  }],
+
+  // ==========================================
+  // MACHINERY: SPECIFIC ATTACHMENTS (Implements)
+  // ==========================================
+  selectedImplements: [{
+    subCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category'
+    },
+    title: String,
+    pricing: {
+      hourly:     { price: Number, isEnabled: Boolean },
+      land_based: { price: Number, isEnabled: Boolean },
+      daily:      { price: Number, isEnabled: Boolean }
+    }
   }],
 
   // ==========================================
@@ -246,7 +267,15 @@ const bookingSchema = new mongoose.Schema({
   },
   rental_type: {
     type: String,
-    enum: ['hourly', 'land_based', 'monthly'],
+    enum: ['hourly', 'land_based', 'monthly', 'daily'],
+    default: null
+  },
+  endDate: {
+    type: Date,
+    default: null
+  },
+  estimatedDuration: {
+    type: Number, // for hourly: number of hours
     default: null
   },
   // Agriculture: Specific Fields

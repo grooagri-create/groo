@@ -16,34 +16,44 @@ const getPublicCategories = async (req, res) => {
   try {
     const { cityId, type } = req.query;
 
-    // Build query
+    // Build query - Keep it simple to ensure all active categories load
     const query = { status: 'active' };
     if (cityId) {
       query.cityIds = cityId;
     }
-    if (type) {
-      query.type = type;
-    }
+    // Note: We are NOT restricting by 'type' here to ensure equipment categories show up
+
 
     const categories = await Category.find(query)
-      .select('title slug homeIconUrl homeBadge hasSaleBadge homeOrder showOnHome')
+      .select('title slug homeIconUrl homeBadge hasSaleBadge homeOrder showOnHome parentCategory parentCategories isAlwaysMain trackingType requiresDriver')
+      .populate('parentCategories', 'title slug')
       .sort({ homeOrder: 1, createdAt: -1 })
       .lean();
 
-    // Prepare initial category list
     const initialCategories = categories.map(cat => ({
-      id: cat._id.toString(),
-      title: cat.title,
-      slug: cat.slug,
+      id: cat._id?.toString() || '',
+      title: cat.title || '',
+      slug: cat.slug || '',
       icon: cat.homeIconUrl || '',
       badge: cat.homeBadge || '',
-      hasSaleBadge: cat.hasSaleBadge || false,
-      showOnHome: cat.showOnHome || false,
-      homeOrder: cat.homeOrder || 0
+      hasSaleBadge: !!cat.hasSaleBadge,
+      showOnHome: !!cat.showOnHome,
+      homeOrder: cat.homeOrder || 0,
+      parentCategory: cat.parentCategory || null,
+      parentCategories: Array.isArray(cat.parentCategories)
+        ? cat.parentCategories.map(p => ({
+            id: p._id?.toString() || p.toString(),
+            title: p.title || '',
+            slug: p.slug || ''
+          }))
+        : [],
+      isAlwaysMain: !!cat.isAlwaysMain,
+      trackingType: cat.trackingType || 'none',
+      requiresDriver: cat.requiresDriver || false,
     }));
 
     // Fetch brands for these categories
-    const categoryIds = categories.map(c => c._id);
+    const categoryIds = categories.map(c => c._id).filter(id => id);
 
     const brandQuery = {
       categoryIds: { $in: categoryIds },
@@ -57,8 +67,8 @@ const getPublicCategories = async (req, res) => {
 
     // Map brands to categories
     const categoriesWithBrands = initialCategories.map(cat => {
-      const catBrands = brands.filter(b =>
-        b.categoryIds && b.categoryIds.some(id => id.toString() === cat.id)
+      const catBrands = brands.filter(b => 
+        b.categoryIds && Array.isArray(b.categoryIds) && b.categoryIds.some(id => id.toString() === cat.id)
       ).map(b => b.title);
       return { ...cat, subBrands: catBrands };
     });
@@ -198,6 +208,9 @@ const getPublicBrandBySlug = async (req, res) => {
         title: svc.title,
         subtitle: svc.description || '',
         price: svc.basePrice,
+        hourly_price: svc.hourly_price || svc.basePrice || 0,
+        land_price: svc.land_price || 0,
+        daily_price: svc.daily_price || 0,
         rating: "4.8", // Default rating
         reviews: "1k+", // Default reviews
         imageUrl: svc.iconUrl || brand.iconUrl || '',
@@ -251,7 +264,7 @@ const getPublicBrandBySlug = async (req, res) => {
  */
 const getPublicServices = async (req, res) => {
   try {
-    const { brandId, brandSlug, categoryId } = req.query;
+    const { brandId, brandSlug, categoryId, parentSourceId, pricing_context } = req.query;
 
     const query = { status: 'active' };
 
@@ -270,6 +283,15 @@ const getPublicServices = async (req, res) => {
       query.categoryId = categoryId;
     }
 
+    if (parentSourceId) {
+      query.parentSourceId = parentSourceId;
+    }
+
+    if (pricing_context) {
+      // Include services tagged with the specific context OR 'any' (which means valid for all contexts)
+      query.pricing_context = { $in: [pricing_context, 'any'] };
+    }
+
     const services = await Service.find(query).sort({ createdAt: 1 }).lean();
 
     res.status(200).json({
@@ -280,6 +302,11 @@ const getPublicServices = async (req, res) => {
         slug: svc.slug,
         icon: svc.iconUrl,
         basePrice: svc.basePrice,
+        hourly_price: svc.hourly_price || svc.basePrice || 0,
+        land_price: svc.land_price || 0,
+        daily_price: svc.daily_price || 0,
+        pricing_context: svc.pricing_context || 'any',
+        parentSourceId: svc.parentSourceId ? svc.parentSourceId.toString() : null,
         gstPercentage: svc.gstPercentage,
         description: svc.description
       }))

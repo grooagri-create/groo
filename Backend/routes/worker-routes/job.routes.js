@@ -13,7 +13,9 @@ const {
   verifyVisit,
   workerReachedLocation,
   collectCash,
-  respondToJob
+  respondToJob,
+  startMachineryWork,
+  completeMachineryWork
 } = require('../../controllers/bookingControllers/workerBookingController');
 
 // Validation rules
@@ -39,6 +41,8 @@ router.post('/jobs/:id/start', authenticate, isWorker, startJob);
 router.post('/jobs/:id/reached', authenticate, isWorker, workerReachedLocation);
 router.post('/jobs/:id/visit/verify', authenticate, isWorker, verifyVisit);
 router.post('/jobs/:id/complete', authenticate, isWorker, completeJob);
+router.post('/jobs/:id/machinery/start', authenticate, isWorker, startMachineryWork);
+router.post('/jobs/:id/machinery/complete', authenticate, isWorker, completeMachineryWork);
 router.post('/jobs/:id/payment/collect', authenticate, isWorker, collectCash);
 router.post('/jobs/:id/notes', authenticate, isWorker, addNotesValidation, addWorkerNotes);
 

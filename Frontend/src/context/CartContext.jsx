@@ -87,6 +87,17 @@ export const CartProvider = ({ children }) => {
     }
   }, []);
 
+  // Update item locally (UI-only, no server call) — used for rental type / price changes
+  const updateItemLocally = useCallback((itemId, fields) => {
+    setCartItems(prev =>
+      prev.map(item =>
+        (item._id === itemId || item.id === itemId)
+          ? { ...item, ...fields }
+          : item
+      )
+    );
+  }, []);
+
   // Update item quantity
   const updateItem = useCallback(async (itemId, serviceCount) => {
     // Optimistic update
@@ -190,6 +201,7 @@ export const CartProvider = ({ children }) => {
     fetchCart,
     addToCart,
     updateItem,
+    updateItemLocally,
     removeItem,
     removeCategoryItems,
     clearCart,

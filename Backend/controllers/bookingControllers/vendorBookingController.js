@@ -95,7 +95,7 @@ const getBookingById = async (req, res) => {
       .populate('userId', 'name phone email profilePhoto')
       .populate('vendorId', 'name businessName phone email')
       .populate('serviceId', 'title description iconUrl images')
-      .populate('categoryId', 'title slug')
+      .populate('categoryId', 'title slug trackingType requiresDriver')
       .populate('workerId', 'name phone rating totalJobs completedJobs');
 
     if (!booking) {
@@ -162,6 +162,43 @@ const acceptBooking = async (req, res) => {
 
     // Booking successfully accepted by THIS vendor
     const booking = updatedBooking;
+    
+    // --- LINK EQUIPMENT IF AGRI ---
+    if (booking.serviceCategory === 'Agriculture' || booking.categoryId?.title === 'Agriculture') {
+      const VendorEquipment = require('../../models/VendorEquipment');
+      const eq = await VendorEquipment.findOne({ vendorId: vendorId, categoryId: booking.categoryId });
+      if (eq) {
+        booking.equipmentId = eq._id;
+      }
+    }
+
+    // Automatically generate Handover OTP (driver_start_otp) for Standalone Machinery (ANY category)
+    // This is because we skip the "Assign Operator" step where OTP is normally generated.
+    let shouldGenOtp = false;
+    const Category = require('../../models/Category');
+    const cat = await Category.findById(booking.categoryId);
+    
+    if (cat) {
+      const title = cat.title?.toLowerCase() || '';
+      const slug = cat.slug?.toLowerCase() || '';
+      const serviceCat = (booking.serviceCategory || '').toLowerCase();
+      
+      // If category explicitly says no driver OR if it's one of the machinery/equipment keywords
+      if (cat.requiresDriver === false || 
+          title.includes('machinery') || title.includes('equipment') || 
+          slug.includes('machinery') || slug.includes('equipment') ||
+          serviceCat.includes('agriculture') || serviceCat.includes('machinery')) {
+        shouldGenOtp = true;
+      }
+    }
+
+    if (shouldGenOtp && !booking.driver_start_otp) {
+      console.log(`[AcceptBooking] Generating Handover OTP for booking ${booking.bookingNumber}`);
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+      booking.driver_start_otp = otp;
+    }
+
+    await booking.save();
 
     // Update vendor availability to ON_JOB
     const Vendor = require('../../models/Vendor');
@@ -717,10 +754,6 @@ const startSelfJob = async (req, res) => {
 
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
-    }
-
-    if (booking.rental_type || booking.serviceCategory === 'Agriculture') {
-      return res.status(400).json({ success: false, message: 'Use Equipment Trip flow for agricultural bookings.' });
     }
 
     // Ensure no worker is assigned (or self-assigned flag?) implementation assumes workerId null means unassigned or self?
@@ -1511,20 +1544,48 @@ const startTrip = async (req, res) => {
     const { id } = req.params;
     const { start_kilometer_photo, driver_start_otp } = req.body;
 
-    if (!start_kilometer_photo) {
-      return res.status(400).json({ success: false, message: 'Start kilometer photo is required to begin at farm.' });
-    }
-
-    const booking = await Booking.findOne({ _id: id, vendorId });
+    const booking = await Booking.findOne({ _id: id, vendorId }).populate('categoryId');
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
+    // --- 1. VERIFY OTP ---
+    if (booking.driver_start_otp && booking.driver_start_otp !== driver_start_otp) {
+      return res.status(400).json({ success: false, message: 'Invalid Start OTP. Please check with the farmer.' });
+    }
+
+    // --- 2. VALIDATE STATUS BASED ON TYPE ---
+    const requiresDriver = booking.requiresDriver !== undefined ? booking.requiresDriver : (booking.categoryId?.requiresDriver !== false);
+    
+    if (requiresDriver) {
+      // Driver-led machinery MUST reach location first
+      if (booking.status !== BOOKING_STATUS.VISITED && booking.status !== BOOKING_STATUS.ASSIGNED) {
+        return res.status(400).json({ success: false, message: 'You must mark "Reached Location" before starting the engine for this machinery.' });
+      }
+    } else {
+      // Standalone machinery can start from confirmed/accepted
+      const validInitialStatuses = [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ACCEPTED, BOOKING_STATUS.ASSIGNED, BOOKING_STATUS.VISITED];
+      if (!validInitialStatuses.includes(booking.status)) {
+        return res.status(400).json({ success: false, message: 'Invalid booking status for handover.' });
+      }
+    }
+
+    // --- 3. KILOMETER VALIDATION ---
+    const isMeterBased = booking.categoryId?.trackingType === 'odometer';
+    if (isMeterBased && !start_kilometer_photo) {
+      return res.status(400).json({ success: false, message: 'Start kilometer photo is required to begin for this equipment.' });
+    }
+
     booking.start_kilometer_photo = start_kilometer_photo;
-    booking.driver_start_otp = driver_start_otp;
+    // OTP already verified, we can save the provided one if needed but usually it stays the same
     booking.status = BOOKING_STATUS.IN_PROGRESS;
     booking.startedAt = new Date();
+    
+    // Auto-generate End/Return OTP once the trip starts (if not already exists)
+    if (!booking.driver_end_otp) {
+      booking.driver_end_otp = Math.floor(1000 + Math.random() * 9000).toString();
+    }
 
     await booking.save();
-    res.status(200).json({ success: true, message: 'Trip started successfully', data: booking });
+    res.status(200).json({ success: true, message: requiresDriver ? 'Engine started successfully' : 'Equipment handed over successfully', data: booking });
   } catch (error) {
     console.error('Start trip error:', error);
     res.status(500).json({ success: false, message: 'Failed to start trip' });
@@ -1538,43 +1599,54 @@ const endTrip = async (req, res) => {
   try {
     const vendorId = req.user.id;
     const { id } = req.params;
-    const { end_kilometer_photo, driver_end_otp, workUnits } = req.body; // workUnits = acres or manual override
+    const { end_kilometer_photo, driver_end_otp, workUnits } = req.body;
 
     const booking = await Booking.findOne({ _id: id, vendorId }).populate('serviceId');
     if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    // NEW: VERIFY END OTP before proceeding with billing or completion
+    // This ensures the farmer has approved the end of work and quantity
+    if (booking.driver_end_otp && booking.driver_end_otp !== driver_end_otp) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid End OTP. Please verify the code with the farmer.' 
+      });
+    }
 
     // 1. BILLING CALCULATION
     const service = booking.serviceId;
     let baseAmount = 0;
     const now = new Date();
+    
+    // Safety: ensure duration is at least 1 hour if started
     const durationMs = now - (booking.startedAt || now);
-    const durationHours = Math.ceil(durationMs / (1000 * 60 * 60)); // Round up to nearest hour
+    const durationHours = Math.max(1, Math.ceil(durationMs / (1000 * 60 * 60)));
 
     if (booking.rental_type === 'hourly') {
-      baseAmount = (service.hourly_price || 0) * durationHours;
+      baseAmount = (service?.hourly_price || booking.basePrice || 0) * durationHours;
     } else if (booking.rental_type === 'land_based') {
-      baseAmount = (service.land_price || 0) * (workUnits || 1); // Use provided units
+      baseAmount = (service?.land_price || booking.basePrice || 0) * (parseFloat(workUnits) || 1);
     } else if (booking.rental_type === 'monthly') {
-      baseAmount = service.monthly_price || 0;
+      baseAmount = service?.monthly_price || booking.basePrice || 0;
     } else {
-      baseAmount = booking.basePrice || 0; // Legacy fallback
+      baseAmount = booking.basePrice || 0;
     }
 
     // 2. FETCH SPLIT CONFIG
     const settings = await Settings.findOne({ type: 'global' });
-    const serviceSplitPct = settings?.servicePayoutPercentage ?? 90;
-    const gstPct = settings?.serviceGstPercentage ?? 18;
+    const serviceSplitPct = settings?.rentalPayoutPercentage ?? 90;
+    const gstPct = settings?.rentalGstPercentage ?? 5;
 
     const gstAmount = parseFloat(((baseAmount * gstPct) / 100).toFixed(2));
     const finalAmount = parseFloat((baseAmount + gstAmount).toFixed(2));
     const vendorEarning = parseFloat(((baseAmount * serviceSplitPct) / 100).toFixed(2));
 
-    // 3. GENERATE VENDOR BILL (Single source of truth)
-    const vendorBill = await VendorBill.create({
+    // 3. GENERATE VENDOR BILL (Idempotent: prevents E11000 duplicate error on retries)
+    const billData = {
       bookingId: booking._id,
       vendorId: vendorId,
       services: [{
-        name: `${service.title} (${booking.rental_type})`,
+        name: `${service?.title || booking.serviceName || 'Equipment Rental'} (${booking.rental_type})`,
         price: baseAmount,
         gstPercentage: gstPct,
         quantity: 1,
@@ -1582,6 +1654,8 @@ const endTrip = async (req, res) => {
         total: finalAmount,
         isOriginal: true
       }],
+      originalServiceBase: baseAmount,
+      originalGST: gstAmount,
       totalServiceBase: baseAmount,
       totalGST: gstAmount,
       grandTotal: finalAmount,
@@ -1593,7 +1667,14 @@ const endTrip = async (req, res) => {
       vendorTotalEarning: vendorEarning,
       companyRevenue: parseFloat((finalAmount - vendorEarning).toFixed(2)),
       status: BILL_STATUS.GENERATED
-    });
+    };
+
+    // Use findOneAndUpdate with upsert to avoid duplicate key errors on retry
+    const vendorBill = await VendorBill.findOneAndUpdate(
+      { bookingId: booking._id },
+      { $set: billData },
+      { upsert: true, new: true, runValidators: true }
+    );
 
     // 4. AUTOMATIC WALLET SETTLEMENT
     const Vendor = require('../../models/Vendor');
@@ -1602,12 +1683,9 @@ const endTrip = async (req, res) => {
 
     if (vendorDoc) {
       if (!vendorDoc.wallet) vendorDoc.wallet = {};
-
       const isCashPayment = booking.paymentMethod === 'cash' || booking.paymentMethod === 'pay_at_home';
 
       if (isCashPayment) {
-        // For cash payments, vendor takes money from customer
-        // dues += total, earnings += vendor share
         const currentDues = (vendorDoc.wallet.dues || 0) + finalAmount;
         const cashLimit = vendorDoc.wallet.cashLimit || 10000;
         const netOwed = currentDues - ((vendorDoc.wallet.earnings || 0) + vendorEarning);
@@ -1625,7 +1703,7 @@ const endTrip = async (req, res) => {
           updateQuery.$set = {
             'wallet.isBlocked': true,
             'wallet.blockedAt': new Date(),
-            'wallet.blockReason': `Cash limit exceeded in agriculture trip. Net owed: ₹${netOwed.toFixed(2)}, Limit: ₹${cashLimit}`
+            'wallet.blockReason': `Cash limit exceeded. Net owed: ₹${netOwed.toFixed(2)}`
           };
         }
 
@@ -1655,9 +1733,10 @@ const endTrip = async (req, res) => {
           metadata: { type: 'agriculture_trip', billId: vendorBill._id.toString() }
         });
       } else {
-        // For online/prepaid, only credit earnings
-        vendorDoc.wallet.earnings = (vendorDoc.wallet.earnings || 0) + vendorEarning;
-        await vendorDoc.save();
+        // For online/prepaid, credit earnings directly
+        await Vendor.findByIdAndUpdate(vendorId, {
+          $inc: { 'wallet.earnings': vendorEarning }
+        });
 
         await Transaction.create({
           vendorId,
@@ -1676,6 +1755,7 @@ const endTrip = async (req, res) => {
     booking.end_kilometer_photo = end_kilometer_photo;
     booking.driver_end_otp = driver_end_otp;
     booking.status = BOOKING_STATUS.COMPLETED;
+    const isCashPayment = booking.paymentMethod === 'cash' || booking.paymentMethod === 'pay_at_home';
     booking.paymentStatus = isCashPayment ? PAYMENT_STATUS.SUCCESS : booking.paymentStatus;
     booking.cashCollected = isCashPayment;
     booking.finalAmount = finalAmount;
@@ -1690,7 +1770,7 @@ const endTrip = async (req, res) => {
       userId: booking.userId,
       type: 'work_completed',
       title: 'Work Completed & Bill Generated',
-      message: `Your equipment trip for ${service.title} has ended. Total Bill: ₹${finalAmount}.`,
+      message: `Your equipment trip for ${service?.title || booking.serviceName} has ended. Total Bill: ₹${finalAmount}.`,
       relatedId: booking._id,
       relatedType: 'booking',
       pushData: {
@@ -1703,15 +1783,15 @@ const endTrip = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Trip ended and settled successfully',
-      data: {
-        finalAmount,
-        vendorEarning,
-        billId: vendorBill._id
-      }
+      data: { finalAmount, vendorEarning, billId: vendorBill._id }
     });
   } catch (error) {
-    console.error('End trip billing error:', error);
-    res.status(500).json({ success: false, message: 'Failed to complete trip and billing' });
+    console.error('End trip billing error EXTREME LOG:', {
+      error: error.message,
+      stack: error.stack,
+      bookingId: req.params.id
+    });
+    res.status(500).json({ success: false, message: error.message || 'Failed to complete trip and billing' });
   }
 };
 

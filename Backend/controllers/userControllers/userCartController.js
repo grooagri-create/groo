@@ -9,7 +9,7 @@ const getUserCart = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    let cart = await Cart.findOne({ userId }).populate('items.serviceId', 'title iconUrl slug').populate('items.categoryId', 'title slug');
+    let cart = await Cart.findOne({ userId }).populate('items.serviceId', 'title iconUrl slug hourly_price land_price daily_price').populate('items.categoryId', 'title slug');
 
     if (!cart) {
       // Create empty cart if doesn't exist
@@ -58,9 +58,12 @@ const addToCart = async (req, res) => {
       rating,
       reviews,
       vendorId,
-      sectionTitle, // Brand name
-      sectionIcon,  // Brand logo URL
-      card          // Card details snapshot
+      sectionTitle,
+      sectionIcon,
+      card,
+      hourly_price,
+      land_price,
+      daily_price
     } = req.body;
 
     console.log(`[AddToCart] Request details - Title: ${title}, Section: ${sectionTitle}`);
@@ -116,7 +119,11 @@ const addToCart = async (req, res) => {
         vendorId: vendorId || null,
         sectionTitle: sectionTitle || '',
         sectionIcon: sectionIcon || null,
-        card: card || null
+        card: card || null,
+        // Agriculture rental guideline prices
+        hourly_price: hourly_price || 0,
+        land_price:   land_price || 0,
+        daily_price:  daily_price || 0,
       };
 
       // Only add serviceId and categoryId if they are provided

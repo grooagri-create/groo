@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiCheck, FiClock, FiUser, FiMapPin, FiTool, FiDollarSign, FiFileText, FiCheckCircle, FiX } from 'react-icons/fi';
+import { FiCheck, FiClock, FiUser, FiUsers, FiMapPin, FiTool, FiDollarSign, FiFileText, FiCheckCircle, FiX, FiNavigation } from 'react-icons/fi';
 import { vendorTheme as themeColors } from '../../../../theme';
 import Header from '../../components/layout/Header';
 import BottomNav from '../../components/layout/BottomNav';
-import { getBookingById, updateBookingStatus, startSelfJob, verifySelfVisit, completeSelfJob, collectSelfCash, payWorker } from '../../services/bookingService';
+import { 
+  getBookingById, 
+  updateBookingStatus, 
+  startSelfJob, 
+  verifySelfVisit, 
+  completeSelfJob, 
+  collectSelfCash, 
+  payWorker, 
+  startTrip, 
+  endTrip 
+} from '../../services/bookingService';
+import { uploadToCloudinary } from '../../../../utils/cloudinaryUpload';
 import { CashCollectionModal, ConfirmDialog } from '../../components/common';
+import TripFlowModal from '../../components/common/TripFlowModal';
 import { WorkCompletionModal } from '../../../worker/components/common';
 import vendorWalletService from '../../../../services/vendorWalletService';
 import { toast } from 'react-hot-toast';
@@ -28,6 +40,11 @@ const BookingTimeline = () => {
   const [workPhotos, setWorkPhotos] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isWorkApproved, setIsWorkApproved] = useState(false);
+  const [isTripModalOpen, setIsTripModalOpen] = useState(false);
+  const [tripModalMode, setTripModalMode] = useState('start');
+
+  const isAgriBooking = booking ? (!!booking.rental_type || booking.serviceCategory === 'Agriculture') : false;
+  const requiresDriver = booking?.categoryId?.requiresDriver !== false; // Default true if category missing
 
   useLayoutEffect(() => {
     const html = document.documentElement;
@@ -83,8 +100,8 @@ const BookingTimeline = () => {
           'confirmed': 2,
           'assigned': 3,
           'journey_started': 4,
-          'visited': 5,
-          'in_progress': 5,
+          'visited': 6,
+          'in_progress': 6,
           'work_done': 7,
           'completed': 8,
         };
@@ -94,6 +111,12 @@ const BookingTimeline = () => {
 
         // Custom logic for later stages
         let stage = statusMap[apiData.status] || 2;
+        
+        // Redirect logic for standalone: skip to stage 6 if status is confirmed/accepted
+        if (!requiresDriver && (apiData.status === 'confirmed' || apiData.status === 'accepted')) {
+          stage = 6; // Directly jump to Handover stage
+        }
+        
         if (apiData.status === 'completed') {
           if (isSettled) stage = 10; // Booking Complete
           else if (isActuallyPaid || isSelfJob) stage = 9; // Final Settlement (Skip Pay Worker for self)
@@ -246,6 +269,50 @@ const BookingTimeline = () => {
     }
   };
 
+  const handleTripSubmit = async (photoFile, otp, workUnits, evidenceFile) => {
+    try {
+      setActionLoading(true);
+      
+      let photoUrl = '';
+      let evidenceUrl = '';
+
+      // 1. Upload Photos if they are Files
+      if (photoFile instanceof File) {
+        toast.loading('Uploading photo...', { id: 'uploading-trip-photo' });
+        photoUrl = await uploadToCloudinary(photoFile, 'trips');
+        toast.success('Photo uploaded', { id: 'uploading-trip-photo' });
+      } else {
+        photoUrl = photoFile;
+      }
+
+      if (evidenceFile instanceof File) {
+        toast.loading('Uploading evidence...', { id: 'uploading-trip-evidence' });
+        evidenceUrl = await uploadToCloudinary(evidenceFile, 'evidence');
+        toast.success('Evidence uploaded', { id: 'uploading-trip-evidence' });
+      } else {
+        evidenceUrl = evidenceFile;
+      }
+
+      // 2. Call API with URLs
+      if (tripModalMode === 'start') {
+        await startTrip(id, photoUrl, otp);
+        toast.success(requiresDriver === false ? 'Equipment Handover Successful' : 'Engine started successfully');
+      } else {
+        await endTrip(id, photoUrl, otp, workUnits, evidenceUrl);
+        toast.success('Work ended and bill generated successfully');
+      }
+      
+      setIsTripModalOpen(false);
+      // Delay reload to let UI catch up
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (e) {
+      console.error('Trip Submit Error:', e);
+      toast.error(e?.response?.data?.message || e?.message || 'Failed to capture trip status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const timelineStages = [
     {
       id: 1,
@@ -263,10 +330,12 @@ const BookingTimeline = () => {
     },
     {
       id: 3,
-      title: 'Assigned',
-      icon: FiUser,
-      action: currentStage === 2 ? () => navigate(`/vendor/booking/${id}/assign-worker`) : null,
-      description: booking?.assignedTo ? `Assigned to ${booking.assignedTo.name}` : 'Assign operator or start yourself',
+      title: 'Assign Operator',
+      description: booking?.assignedTo ? `Assigned to ${booking.assignedTo.name}` : (requiresDriver === false ? 'Not required for this equipment' : 'Assign operator or start yourself'),
+      icon: FiUsers,
+      isCompleted: currentStage > 3,
+      isSkipped: requiresDriver === false,
+      action: currentStage === 2 && requiresDriver !== false ? () => navigate(`/vendor/booking/${id}/assign-worker`) : null,
     },
     {
       id: 4,
@@ -284,10 +353,32 @@ const BookingTimeline = () => {
     },
     {
       id: 6,
-      title: 'Work Done',
+      title: isAgriBooking 
+        ? (requiresDriver === false ? 'Handover Equipment' : 'Start Engine') 
+        : 'Work Done',
       icon: FiTool,
-      action: (currentStage === 5 && booking?.isSelfJob) ? () => setIsWorkDoneModalOpen(true) : null,
-      description: 'Service work completed',
+      action: (() => {
+          if (booking?.status === 'in_progress') {
+              return () => { setTripModalMode('end'); setIsTripModalOpen(true); };
+          }
+          if (['completed', 'work_done'].includes(booking?.status?.toLowerCase())) return null;
+
+          if (requiresDriver === false && isAgriBooking) {
+              if (['confirmed', 'accepted', 'visited', 'assigned'].includes(booking?.status?.toLowerCase())) {
+                  return () => { setTripModalMode('start'); setIsTripModalOpen(true); };
+              }
+          } else if (isAgriBooking) {
+              if (booking?.status === 'visited' && booking?.isSelfJob) {
+                  return () => { setTripModalMode('start'); setIsTripModalOpen(true); };
+              }
+          } else {
+              if (currentStage === 5 && booking?.isSelfJob) return () => setIsWorkDoneModalOpen(true);
+          }
+          return null;
+      })(),
+      description: isAgriBooking 
+        ? (requiresDriver === false ? 'Confirm delivery to farmer' : 'Tractor operating on field') 
+        : 'Service work completed',
     },
     {
       id: 7,
@@ -331,6 +422,10 @@ const BookingTimeline = () => {
   ].filter(stage => {
     // Hide worker-specific stages for self jobs
     if (booking?.isSelfJob && stage.id === 8) return false;
+    
+    // Standalone: Hide Assigned (3), Journey (4), and Visited (5)
+    if (!requiresDriver && [3, 4, 5].includes(stage.id)) return false;
+    
     return true;
   });
 
@@ -356,21 +451,19 @@ const BookingTimeline = () => {
 
     try {
       await updateBookingStatus(id, 'visited');
-      setCurrentStage(4);
       // Reload booking to get latest state
       const response = await getBookingById(id);
-      setBooking(prev => ({ ...prev, status: response.data.status }));
+      setBooking(prev => ({ ...prev, status: response.data?.status || response.status }));
+      setCurrentStage(6); // Visited moves us to Step 6 (Work)
     } catch (error) {
       console.error('Error updating status to visited:', error);
-      // alert('Failed to update status');
     }
   }
 
   async function handleWorkDone() {
     try {
-      // Try to mark as completed or work_done if backend supports it
       await updateBookingStatus(id, 'work_done');
-      setCurrentStage(5); // Update to stage 5
+      setCurrentStage(7); 
       window.location.reload();
     } catch (error) {
       console.error('Error updating status to work done:', error);
@@ -471,11 +564,11 @@ const BookingTimeline = () => {
                           {stage.id === 3 ? 'Assign Operator' :
                             stage.id === 4 ? 'Start Journey' :
                               stage.id === 5 ? 'Mark Arrived' :
-                                stage.id === 6 ? 'Mark workdone' :
+                                stage.id === 6 ? (isAgriBooking ? (booking?.status === 'in_progress' ? 'End Trip / Collection' : (requiresDriver === false ? 'Handover Equipment' : 'Start Engine')) : 'Mark Workdone') :
                                   stage.id === 7 ? (
                                     (booking?.paymentStatus === 'SUCCESS' || booking?.paymentStatus === 'paid')
                                       ? 'Online Payment Done'
-                                      : (booking?.isSelfJob ? 'Collect Cash' : 'Approve Work')
+                                      : (booking?.isSelfJob || (!requiresDriver && isAgriBooking) ? 'Collect Cash' : 'Approve Work')
                                   ) :
                                     stage.id === 8 ? 'Pay Operator' :
                                       stage.id === 9 ? 'Final Settlement' : 'Continue'}
@@ -542,6 +635,18 @@ const BookingTimeline = () => {
         title={confirmDialog.title}
         message={confirmDialog.message}
         type={confirmDialog.type}
+      />
+
+      {/* Machinery Trip Modal */}
+      <TripFlowModal
+        isOpen={isTripModalOpen}
+        onClose={() => setIsTripModalOpen(false)}
+        mode={tripModalMode}
+        onSubmit={handleTripSubmit}
+        rentalType={booking?.rental_type}
+        isMachinery={isAgriBooking}
+        requiresDriver={requiresDriver}
+        trackingType={requiresDriver ? 'odometer' : 'condition'}
       />
     </div>
   );

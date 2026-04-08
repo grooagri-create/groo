@@ -269,7 +269,8 @@ const BrandsPage = ({ catalog, setCatalog, selectedCity }) => {
       reset();
     } catch (error) {
       console.error('Upsert brand error:', error);
-      toast.error(error.message || 'Failed to save brand.');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to save brand.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
       isSubmitting.current = false;

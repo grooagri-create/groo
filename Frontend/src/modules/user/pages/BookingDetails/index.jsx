@@ -43,6 +43,7 @@ import api from '../../../../services/api';
 
 const toAssetUrl = (url) => {
   if (!url) return '';
+  if (url.startsWith('data:')) return url;
   const clean = url.replace('/api/upload', '/upload');
   if (clean.startsWith('http')) return clean;
   const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/api$/, '');
@@ -127,16 +128,17 @@ const BookingDetails = () => {
     }
   }, [id, navigate]);
 
-  // Auto-show rating modal ONLY when booking is fully completed AND paid
+  // Auto-show rating modal ONLY when booking is fully completed AND paid (or work_done for machinery)
   useEffect(() => {
     if (booking) {
       const isCompleted = ['completed', 'work_done'].includes(booking.status?.toLowerCase());
       const isPaid = ['success', 'paid', 'collected_by_vendor'].includes(booking.paymentStatus?.toLowerCase());
+      const isMachineryWorkDone = booking.status?.toLowerCase() === 'work_done';
       const isRated = !!booking.rating;
       const isDismissed = localStorage.getItem(`rating_dismissed_${id}`);
 
-      // Only show rating modal if work is done AND payment is verified
-      if (isCompleted && isPaid && !isRated && !isDismissed) {
+      // Show rating modal if: (completed + paid) OR (work_done for machinery) AND not yet rated or dismissed
+      if (isCompleted && (isPaid || isMachineryWorkDone) && !isRated && !isDismissed) {
         setShowRatingModal(true);
       }
     }
@@ -318,7 +320,7 @@ const BookingDetails = () => {
         amount: Math.round((booking.finalAmount || 0) * 100),
         currency: 'INR',
         order_id: booking.razorpayOrderId,
-        name: 'Homster',
+        name: 'Groo',
         description: `Payment for ${booking.serviceName}`,
         handler: async function (response) {
           toast.loading('Verifying payment...');
@@ -368,7 +370,7 @@ const BookingDetails = () => {
         amount: Math.round(orderResponse.data.amount * 100),
         currency: orderResponse.data.currency || 'INR',
         order_id: orderResponse.data.orderId,
-        name: 'Homster',
+        name: 'Groo',
         description: `Payment for ${booking.serviceName}`,
         handler: async function (response) {
           toast.loading('Verifying payment...');
@@ -541,8 +543,10 @@ const BookingDetails = () => {
   const bill = booking.bill;
 
   // Base Logic (Services)
-  // Use bill.originalServiceBase if available, else booking.basePrice
-  const originalBase = bill ? (bill.originalServiceBase || 0) : (parseFloat(booking.basePrice) || 0);
+  // Use bill.originalServiceBase if available, else fallback to totalServiceBase (for older bookings), else booking.basePrice
+  const originalBase = bill 
+    ? (bill.originalServiceBase || bill.totalServiceBase || 0) 
+    : (parseFloat(booking.basePrice) || 0);
 
   // Extra Services & Parts from vendor bill (if available)
   const allBillServices = bill?.services || [];
@@ -575,8 +579,8 @@ const BookingDetails = () => {
     partsGST += (parseFloat(c.gstAmount) || 0);
   });
 
-  // Use bill.originalGST if available
-  const originalGST = bill ? (bill.originalGST || 0) : (originalBase * 0.18);
+  // Use bill.originalGST if available, else fallback to totalGST
+  const originalGST = bill ? (bill.originalGST || bill.totalGST || 0) : (originalBase * 0.18);
   const totalGST = originalGST + extraServiceGST + partsGST;
 
   // Final Total
@@ -654,14 +658,19 @@ const BookingDetails = () => {
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide text-center">Booked</p>
                 </div>
 
-                {/* Step 2: Assigned */}
+                {/* Step 2: Assigned / Handover Prep */}
                 <div className="flex flex-col items-center gap-2 w-1/4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${['assigned', 'journey_started', 'visited', 'in_progress', 'work_done', 'completed'].includes(booking.status?.toLowerCase())
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                    ['assigned', 'journey_started', 'visited', 'in_progress', 'work_done', 'completed'].includes(booking.status?.toLowerCase()) ||
+                    ((booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) && ['confirmed', 'accepted'].includes(booking.status?.toLowerCase())) ||
+                    (['confirmed', 'accepted'].includes(booking.status?.toLowerCase()) && (booking.serviceCategory?.toLowerCase() === 'machinery' || booking.categoryTitle?.toLowerCase() === 'machinery'))
                     ? 'bg-teal-600 text-white shadow-lg shadow-teal-200' : 'bg-gray-100 text-gray-400'
                     }`}>
                     2
                   </div>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide text-center">Assigned</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide text-center">
+                    {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Handover' : 'Assigned'}
+                  </p>
                 </div>
 
                 {/* Step 3: In Progress */}
@@ -690,7 +699,7 @@ const BookingDetails = () => {
                   width:
                     ['work_done', 'completed'].includes(booking.status?.toLowerCase()) ? '100%' :
                       ['journey_started', 'visited', 'in_progress'].includes(booking.status?.toLowerCase()) ? '66%' :
-                        ['assigned'].includes(booking.status?.toLowerCase()) ? '33%' : '0%'
+                        (['assigned'].includes(booking.status?.toLowerCase()) || (['confirmed', 'accepted'].includes(booking.status?.toLowerCase()) && (booking.requiresDriver === false || booking.categoryId?.requiresDriver === false || booking.serviceCategory?.toLowerCase() === 'machinery'))) ? '33%' : '0%'
                 }}></div>
               </div>
             </div>
@@ -808,7 +817,7 @@ const BookingDetails = () => {
           )}
 
           {/* Arrival OTP Card - Show during early stages until verified */}
-          {(booking.arrivalOTP || booking.visitOtp) && ['confirmed', 'assigned', 'journey_started'].includes(booking.status?.toLowerCase()) && (
+          {(booking.arrivalOTP || booking.visitOtp || booking.driver_start_otp || (['confirmed', 'accepted'].includes(booking.status?.toLowerCase()) && (booking.requiresDriver === false || booking.categoryId?.requiresDriver === false))) && ['confirmed', 'accepted', 'assigned', 'journey_started'].includes(booking.status?.toLowerCase()) && (
             <div className="relative overflow-hidden rounded-3xl shadow-lg border border-blue-100 mb-6 active:scale-[0.99] transition-all">
               {/* Animated gradient background */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 opacity-95"></div>
@@ -816,8 +825,8 @@ const BookingDetails = () => {
 
               <div className="relative z-10 p-6 flex flex-col items-center">
                 {(() => {
-                  const isAgri = ['agriculture', 'equipment', 'tractor'].includes(booking.serviceCategory?.toLowerCase()) ||
-                    ['agriculture', 'equipment', 'tractor'].includes(booking.categoryTitle?.toLowerCase());
+                  const isAgri = ['agriculture', 'agri', 'equipment', 'machinery', 'tractor'].includes(booking.serviceCategory?.toLowerCase()) ||
+                    ['agriculture', 'agri', 'equipment', 'machinery', 'tractor'].includes(booking.categoryTitle?.toLowerCase());
 
                   return (
                     <>
@@ -827,10 +836,10 @@ const BookingDetails = () => {
                         </div>
                         <div>
                           <h3 className="text-lg font-bold text-white tracking-tight">
-                            {isAgri ? 'Start Trip OTP' : 'Verification OTP'}
+                            {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Handover OTP' : (isAgri ? 'Start Trip OTP' : 'Verification OTP')}
                           </h3>
                           <p className="text-xs text-blue-100 font-medium">
-                            {isAgri ? 'Share when equipment arrives' : 'Share when professional reaches'}
+                            {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Share for equipment handover' : (isAgri ? 'Share when equipment arrives' : 'Share when professional reaches')}
                           </p>
                         </div>
                       </div>
@@ -838,12 +847,14 @@ const BookingDetails = () => {
                       {/* OTP Display */}
                       <div className="flex justify-center gap-3 mb-5">
                         {(() => {
-                          // Priority: driver_start_otp if agri, else arrivalOTP, else visitOtp
-                          const otpValue = (isAgri && booking.driver_start_otp)
-                            ? booking.driver_start_otp
-                            : (booking.arrivalOTP || booking.visitOtp);
-
-                          if (!otpValue) return null;
+                          // Priority: driver_start_otp if it exists, else fallback to others
+                          const otpValue = booking.driver_start_otp || booking.arrivalOTP || booking.visitOtp;
+                          
+                          if (!otpValue) return (
+                            <div className="py-2 px-4 bg-white/10 rounded-xl border border-white/20">
+                              <p className="text-sm text-white font-bold animate-pulse">Generating code...</p>
+                            </div>
+                          );
 
                           return String(otpValue).split('').map((digit, idx) => (
                             <div
@@ -860,7 +871,9 @@ const BookingDetails = () => {
                         <div className="flex items-center justify-center gap-2 text-white text-sm">
                           <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></span>
                           <p className="font-medium">
-                            {isAgri ? 'Waiting for equipment to reach your farm' : 'Waiting for professional to reach your location'}
+                            {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) 
+                              ? 'Ready for equipment handover' 
+                              : (isAgri ? 'Waiting for equipment to reach your farm' : 'Waiting for professional to reach your location')}
                           </p>
                         </div>
                       </div>
@@ -945,7 +958,7 @@ const BookingDetails = () => {
             )}
 
           {/* Payment Card - Show when work is done AND bill is finalized (OTP exists) or paid */}
-          {(booking.customerConfirmationOTP || booking.paymentStatus === 'success') && ['work_done'].includes(booking.status?.toLowerCase()) && !booking.cashCollected && (
+          {(booking.customerConfirmationOTP || booking.paymentStatus === 'success' || booking.status?.toLowerCase() === 'completed') && ['work_done', 'completed'].includes(booking.status?.toLowerCase()) && !booking.cashCollected && (
             <div
               onClick={() => setShowPaymentModal(true)}
               className={`relative overflow-hidden rounded-3xl shadow-lg border cursor-pointer active:scale-[0.98] transition-all ${booking.paymentStatus === 'success' ? 'border-green-100' : 'border-orange-100'
@@ -988,22 +1001,24 @@ const BookingDetails = () => {
                       <FiChevronRight className="w-4 h-4" />
                     </button>
 
-                    <div className="flex flex-col items-center mb-6">
-                      <p className="text-[10px] font-bold text-orange-100 uppercase tracking-[0.2em] mb-3 opacity-90">Verification Code</p>
-                      <div className="flex justify-center gap-2">
-                        {String(booking.customerConfirmationOTP || booking.paymentOtp || '0000').split('').map((digit, idx) => (
-                          <div
-                            key={idx}
-                            className="w-12 h-14 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-lg"
-                          >
-                            <span className="text-2xl font-black text-white">{digit}</span>
-                          </div>
-                        ))}
+                    { booking.status?.toLowerCase() !== 'completed' && (
+                      <div className="flex flex-col items-center mb-6">
+                        <p className="text-[10px] font-bold text-orange-100 uppercase tracking-[0.2em] mb-3 opacity-90">Verification Code</p>
+                        <div className="flex justify-center gap-2">
+                          {String(booking.customerConfirmationOTP || booking.paymentOtp || '0000').split('').map((digit, idx) => (
+                            <div
+                              key={idx}
+                              className="w-12 h-14 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-lg"
+                            >
+                              <span className="text-2xl font-black text-white">{digit}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-orange-50 mt-3 font-medium bg-black/10 px-3 py-1 rounded-full backdrop-blur-sm">
+                          Share this code with the professional ONLY after your satisfaction
+                        </p>
                       </div>
-                      <p className="text-[10px] text-orange-50 mt-3 font-medium bg-black/10 px-3 py-1 rounded-full backdrop-blur-sm">
-                        Share this code with the professional ONLY after your satisfaction
-                      </p>
-                    </div>
+                    )}
                   </>
                 )}
 
@@ -1037,20 +1052,22 @@ const BookingDetails = () => {
             <section className="bg-white rounded-3xl p-6 shadow-[0_8px_30_rgb(0,0,0,0.04)] border border-gray-100 space-y-4">
               <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wider">
                 <FiCamera className="text-teal-600" />
-                Equipment Trip Evidence
+                {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Handover Evidence' : 'Equipment Trip Evidence'}
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Arrival KM Photo */}
+                {/* Arrival / Handover Photo */}
                 {booking.start_kilometer_photo && (
                   <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Arrival KM Photo</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">
+                      {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Handover Photo' : 'Arrival KM Photo'}
+                    </p>
                     <div className="aspect-square rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 group relative">
                       <img
-                        src={toAssetUrl(booking.start_kilometer_photo)}
-                        alt="Arrival KM"
+                        src={booking.start_kilometer_photo.startsWith('http') ? booking.start_kilometer_photo : toAssetUrl(booking.start_kilometer_photo)}
+                        alt="Start Photo"
                         className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                        onClick={() => window.open(toAssetUrl(booking.start_kilometer_photo), '_blank')}
+                        onClick={() => window.open(booking.start_kilometer_photo.startsWith('http') ? booking.start_kilometer_photo : toAssetUrl(booking.start_kilometer_photo), '_blank')}
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="text-white text-[10px] font-bold">View Full</span>
@@ -1059,16 +1076,18 @@ const BookingDetails = () => {
                   </div>
                 )}
 
-                {/* Completion KM Photo */}
+                {/* Completion / Return Photo */}
                 {booking.end_kilometer_photo && (
                   <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Completion KM Photo</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">
+                      {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Return Photo' : 'Completion KM Photo'}
+                    </p>
                     <div className="aspect-square rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 group relative">
                       <img
-                        src={toAssetUrl(booking.end_kilometer_photo)}
-                        alt="Completion KM"
+                        src={booking.end_kilometer_photo.startsWith('http') ? booking.end_kilometer_photo : toAssetUrl(booking.end_kilometer_photo)}
+                        alt="End Photo"
                         className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                        onClick={() => window.open(toAssetUrl(booking.end_kilometer_photo), '_blank')}
+                        onClick={() => window.open(booking.end_kilometer_photo.startsWith('http') ? booking.end_kilometer_photo : toAssetUrl(booking.end_kilometer_photo), '_blank')}
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="text-white text-[10px] font-bold">View Full</span>
@@ -1083,7 +1102,10 @@ const BookingDetails = () => {
                 <div className="bg-teal-50 rounded-xl p-3 flex items-center gap-3">
                   <FiCheckSquare className="text-teal-600 w-5 h-5 shrink-0" />
                   <p className="text-[11px] font-medium text-teal-800">
-                    The equipment's usage has been verified via KM photos. You can raise a dispute if you notice any discrepancy.
+                    {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) 
+                      ? "The equipment's handover and return have been documented with photos. Please verify the condition."
+                      : "The equipment's usage has been verified via KM photos. You can raise a dispute if you notice any discrepancy."
+                    }
                   </p>
                 </div>
               )}
@@ -1091,7 +1113,7 @@ const BookingDetails = () => {
           )}
 
           {/* Agriculture Completion OTP - Share only when work is done */}
-          {['work_done', 'completed'].includes(booking.status?.toLowerCase()) && booking.driver_end_otp && (
+          {['in_progress', 'work_done', 'completed'].includes(booking.status?.toLowerCase()) && booking.driver_end_otp && (
             <div className="bg-gradient-to-br from-teal-600 to-emerald-700 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
 
@@ -1101,8 +1123,12 @@ const BookingDetails = () => {
                     <FiKey className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-white font-bold">Completion Verification</h3>
-                    <p className="text-teal-50 text-[10px] font-medium opacity-80 uppercase tracking-widest">Agriculture OTP</p>
+                    <h3 className="text-white font-bold">
+                      {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Return Verification' : 'Completion Verification'}
+                    </h3>
+                    <p className="text-teal-50 text-[10px] font-medium opacity-80 uppercase tracking-widest">
+                      {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false) ? 'Return OTP' : 'Agriculture OTP'}
+                    </p>
                   </div>
                 </div>
 
@@ -1115,7 +1141,10 @@ const BookingDetails = () => {
                 </div>
 
                 <p className="text-center text-[10px] text-teal-100 font-medium bg-black/10 rounded-lg py-2 px-3 border border-white/5">
-                  Share this OTP with the driver ONLY after equipment has finished and you have verified the end KM.
+                  {(booking.requiresDriver === false || booking.categoryId?.requiresDriver === false)
+                    ? "Share this OTP with the professional ONLY after the equipment is returned and you have verified its condition."
+                    : "Share this OTP with the driver ONLY after equipment has finished and you have verified the end KM."
+                  }
                 </p>
               </div>
             </div>
@@ -1264,6 +1293,33 @@ const BookingDetails = () => {
                         </div>
                         {item.card?.subtitle && <p className="text-xs text-gray-400 mt-0.5 ml-8 line-clamp-1">{item.card.subtitle}</p>}
                         {item.card?.duration && <p className="text-xs text-gray-400 mt-0.5 ml-8">⏱ {item.card.duration}</p>}
+                        
+                        {/* Dynamic Agri & Rental Info */}
+                        {booking.rental_type && (
+                          <div className="ml-8 mt-2 space-y-1">
+                            <span className="text-[10px] font-black tracking-widest uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 inline-block mb-1">
+                              {booking.rental_type.replace('_', ' ')}
+                            </span>
+                            
+                            {booking.rental_type === 'land_based' && booking.landSize && (
+                              <p className="text-xs text-gray-500 font-medium">Area: <span className="text-gray-900 font-bold">{booking.landSize} Acres</span></p>
+                            )}
+                            
+                            {booking.rental_type === 'hourly' && booking.estimatedDuration && (
+                              <p className="text-xs text-gray-500 font-medium">Duration: <span className="text-gray-900 font-bold">{booking.estimatedDuration} Hours</span></p>
+                            )}
+                            
+                            {/* Days parameter is sometimes mapped to estimatedDuration logic based on the rentalt type */}
+                            {['daily', 'monthly'].includes(booking.rental_type) && booking.estimatedDuration && (
+                              <p className="text-xs text-gray-500 font-medium">Duration: <span className="text-gray-900 font-bold">{booking.estimatedDuration} Days</span></p>
+                            )}
+                            
+                            {booking.cropType && (
+                              <p className="text-xs text-gray-500 font-medium">Crop: <span className="text-gray-900">{booking.cropType}</span></p>
+                            )}
+                          </div>
+                        )}
+                        
                       </div>
                       <span className="text-sm font-bold text-gray-900 ml-3 shrink-0">₹{((item.card?.price || 0) * (item.quantity || 1)).toLocaleString('en-IN')}</span>
                     </div>
@@ -1562,7 +1618,7 @@ const BookingDetails = () => {
             </button>
             <button
               onClick={() => {
-                const email = supportInfo.email || 'help@homster.in';
+                const email = supportInfo.email || 'help@groo.in';
                 const link = document.createElement('a');
                 link.href = `mailto:${email}`;
                 document.body.appendChild(link);

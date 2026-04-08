@@ -767,8 +767,8 @@ const BookingTrack = () => {
           </div>
         </div>
 
-        {/* Arrival OTP - New Premium Display */}
-        {(booking.visitOtp || booking.arrivalOTP) && ['confirmed', 'assigned', 'journey_started'].includes(booking?.status?.toLowerCase()) && (
+        {/* Start OTP - Shown for both regular visits and machinery bookings */}
+        {(booking.visitOtp || booking.arrivalOTP || booking.driver_start_otp) && ['confirmed', 'assigned', 'journey_started'].includes(booking?.status?.toLowerCase()) && (
           <div className="mb-3 relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 p-3 shadow-lg">
             <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10 blur-xl"></div>
             <div className="relative z-10 flex items-center justify-between gap-3">
@@ -777,16 +777,40 @@ const BookingTrack = () => {
                   <FiKey className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-blue-100 uppercase tracking-wider">Start Code</p>
+                  <p className="text-[10px] font-bold text-blue-100 uppercase tracking-wider">{booking.driver_start_otp ? 'Machinery Start OTP' : 'Start Code'}</p>
                   <p className="text-2xl font-black text-white tracking-[0.2em] leading-none mt-0.5">
-                    {booking.visitOtp || booking.arrivalOTP}
+                    {booking.driver_start_otp || booking.visitOtp || booking.arrivalOTP}
                   </p>
                 </div>
               </div>
 
               <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex flex-col items-center justify-center min-w-[100px]">
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)] mb-1"></div>
-                <p className="text-[9px] text-blue-50 font-medium text-center leading-tight">Waiting for<br />arrival</p>
+                <p className="text-[9px] text-blue-50 font-medium text-center leading-tight">{booking.driver_start_otp ? 'Share with driver\nwhen they arrive' : 'Waiting for\narrival'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Machinery Finish OTP - shown to farmer when vendor marks work as done */}
+        {booking?.driver_end_otp && booking?.status?.toLowerCase() === 'work_done' && (
+          <div className="mb-3 relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 p-3 shadow-lg">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10 blur-xl"></div>
+            <div className="relative z-10 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shrink-0">
+                  <FiCheckCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-wider">Finish OTP</p>
+                  <p className="text-2xl font-black text-white tracking-[0.2em] leading-none mt-0.5">
+                    {booking.driver_end_otp}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex flex-col items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse mb-1"></div>
+                <p className="text-[9px] text-emerald-50 font-medium text-center leading-tight">Share only if<br />satisfied</p>
               </div>
             </div>
           </div>

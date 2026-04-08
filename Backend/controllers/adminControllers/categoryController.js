@@ -2,6 +2,43 @@ const Category = require('../../models/Category');
 const { validationResult } = require('express-validator');
 const { SERVICE_STATUS } = require('../../utils/constants');
 
+const formatCategory = (cat) => ({
+  id: cat._id,
+  title: cat.title,
+  slug: cat.slug,
+  homeIconUrl: cat.homeIconUrl,
+  homeBadge: cat.homeBadge,
+  hasSaleBadge: cat.hasSaleBadge,
+  showOnHome: cat.showOnHome,
+  homeOrder: cat.homeOrder,
+  description: cat.description,
+  imageUrl: cat.imageUrl,
+  status: cat.status,
+  isPopular: cat.isPopular,
+  parentCategory: cat.parentCategory
+    ? {
+        id: cat.parentCategory._id || cat.parentCategory.id || cat.parentCategory,
+        title: cat.parentCategory.title || '',
+        slug: cat.parentCategory.slug || ''
+      }
+    : null,
+  parentCategories: Array.isArray(cat.parentCategories)
+    ? cat.parentCategories.map((parent) => ({
+        id: parent._id || parent.id || parent,
+        title: parent.title || '',
+        slug: parent.slug || ''
+      }))
+    : [],
+  isAlwaysMain: cat.isAlwaysMain || false,
+  cityIds: cat.cityIds || [],
+  trackingType: cat.trackingType || 'none',
+  requiresDriver: cat.requiresDriver || false,
+  metaTitle: cat.metaTitle,
+  metaDescription: cat.metaDescription,
+  createdAt: cat.createdAt,
+  updatedAt: cat.updatedAt
+});
+
 /**
  * Get all categories
  * GET /api/admin/categories
@@ -18,6 +55,8 @@ const getAllCategories = async (req, res) => {
     if (cityId) query.cityIds = cityId;
 
     const categories = await Category.find(query)
+      .populate('parentCategory', 'title slug')
+      .populate('parentCategories', 'title slug')
       .select('-__v')
       .sort({ homeOrder: 1, createdAt: -1 })
       .lean();
@@ -25,25 +64,7 @@ const getAllCategories = async (req, res) => {
     res.status(200).json({
       success: true,
       count: categories.length,
-      categories: categories.map(cat => ({
-        id: cat._id,
-        title: cat.title,
-        slug: cat.slug,
-        homeIconUrl: cat.homeIconUrl,
-        homeBadge: cat.homeBadge,
-        hasSaleBadge: cat.hasSaleBadge,
-        showOnHome: cat.showOnHome,
-        homeOrder: cat.homeOrder,
-        description: cat.description,
-        imageUrl: cat.imageUrl,
-        status: cat.status,
-        isPopular: cat.isPopular,
-        cityIds: cat.cityIds || [],
-        metaTitle: cat.metaTitle,
-        metaDescription: cat.metaDescription,
-        createdAt: cat.createdAt,
-        updatedAt: cat.updatedAt
-      }))
+      categories: categories.map(formatCategory)
     });
   } catch (error) {
     console.error('Get all categories error:', error);
@@ -62,7 +83,11 @@ const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findById(id).select('-__v').lean();
+    const category = await Category.findById(id)
+      .populate('parentCategory', 'title slug')
+      .populate('parentCategories', 'title slug')
+      .select('-__v')
+      .lean();
 
     if (!category) {
       return res.status(404).json({
@@ -73,24 +98,7 @@ const getCategoryById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      category: {
-        id: category._id,
-        title: category.title,
-        slug: category.slug,
-        homeIconUrl: category.homeIconUrl,
-        homeBadge: category.homeBadge,
-        hasSaleBadge: category.hasSaleBadge,
-        showOnHome: category.showOnHome,
-        homeOrder: category.homeOrder,
-        description: category.description,
-        imageUrl: category.imageUrl,
-        status: category.status,
-        isPopular: category.isPopular,
-        metaTitle: category.metaTitle,
-        metaDescription: category.metaDescription,
-        createdAt: category.createdAt,
-        updatedAt: category.updatedAt
-      }
+      category: formatCategory(category)
     });
   } catch (error) {
     console.error('Get category by ID error:', error);
@@ -131,19 +139,18 @@ const createCategory = async (req, res) => {
       isPopular,
       metaTitle,
       metaDescription,
-      cityIds
+      cityIds,
+      parentCategory,
+      parentCategories,
+      isAlwaysMain,
+      trackingType,
+      requiresDriver
     } = req.body;
 
     console.log('Creating category with payload:', req.body);
 
-    // Check for duplicate slug ONLY within the same cities
-    // Logic:
-    // 1. If cityIds provided, check if any existing category with same slug has overlapping cityIds
-    // 2. If no cityIds (global), check if global category with same slug exists
-
     const slugToCheck = slug?.trim().toLowerCase() || title.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
-    // Build query for duplicate check
     const duplicateQuery = {
       $or: [
         { slug: slugToCheck }
@@ -154,25 +161,19 @@ const createCategory = async (req, res) => {
 
     let isDuplicate = false;
     if (existingCategory) {
-      // If found, check city overlap
       const existingCities = existingCategory.cityIds.map(id => id.toString());
       const newCities = (cityIds || []).map(id => id.toString());
 
       if (newCities.length === 0) {
-        // Trying to create Global. Duplicate if existing is also Global
         if (existingCities.length === 0) isDuplicate = true;
       } else {
-        // Trying to create City-specific. Duplicate if ANY overlap
         const hasOverlap = newCities.some(cityId => existingCities.includes(cityId));
         if (hasOverlap) isDuplicate = true;
-
-        // Also duplicate if existing is Global (Global covers all cities)
         if (existingCities.length === 0) isDuplicate = true;
       }
     }
 
     if (isDuplicate && existingCategory) {
-      console.log('Category with this title/slug already exists:', existingCategory.title, existingCategory.slug);
       return res.status(400).json({
         success: false,
         message: 'Category with this title or slug already exists'
@@ -181,7 +182,7 @@ const createCategory = async (req, res) => {
 
     const category = await Category.create({
       title: title.trim(),
-      slug: slug?.trim().toLowerCase() || undefined, // Will be auto-generated if not provided
+      slug: slug?.trim().toLowerCase() || undefined,
       homeIconUrl: homeIconUrl || null,
       homeBadge: homeBadge?.trim() || null,
       hasSaleBadge: Boolean(hasSaleBadge),
@@ -193,41 +194,34 @@ const createCategory = async (req, res) => {
       isPopular: Boolean(isPopular),
       metaTitle: metaTitle?.trim() || null,
       metaDescription: metaDescription?.trim() || null,
+      parentCategory: Array.isArray(parentCategories) && parentCategories.length > 0 ? parentCategories[0] : (parentCategory || null),
+      parentCategories: Array.isArray(parentCategories) ? parentCategories : (parentCategory ? [parentCategory] : []),
+      isAlwaysMain: Boolean(isAlwaysMain),
       cityIds: cityIds || [],
-      createdBy: req.user.id
+      trackingType: trackingType || 'none',
+      requiresDriver: Boolean(requiresDriver),
+      createdBy: req.user?._id || req.userId || null
     });
+
+    const createdCategory = await Category.findById(category._id)
+      .populate('parentCategory', 'title slug')
+      .populate('parentCategories', 'title slug')
+      .select('-__v')
+      .lean();
 
     res.status(201).json({
       success: true,
       message: 'Category created successfully',
-      category: {
-        id: category._id,
-        title: category.title,
-        slug: category.slug,
-        homeIconUrl: category.homeIconUrl,
-        homeBadge: category.homeBadge,
-        hasSaleBadge: category.hasSaleBadge,
-        showOnHome: category.showOnHome,
-        homeOrder: category.homeOrder,
-        description: category.description,
-        imageUrl: category.imageUrl,
-        status: category.status,
-        isPopular: category.isPopular,
-        createdAt: category.createdAt,
-        updatedAt: category.updatedAt
-      }
+      category: formatCategory(createdCategory)
     });
   } catch (error) {
     console.error('Create category error:', error);
-
-    // Handle duplicate key error
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
         message: 'Category with this title or slug already exists'
       });
     }
-
     res.status(500).json({
       success: false,
       message: 'Failed to create category. Please try again.'
@@ -263,12 +257,17 @@ const updateCategory = async (req, res) => {
       imageUrl,
       status,
       isPopular,
-      metaTitle,
       metaDescription,
-      cityIds: updateCityIds
+      cityIds: updateCityIds,
+      parentCategory,
+      parentCategories,
+      isAlwaysMain,
+      trackingType,
+      requiresDriver
     } = req.body;
 
     const category = await Category.findById(id);
+    console.log('[updateCategory] Request body parentCategories:', parentCategories, '| id:', id);
 
     if (!category) {
       return res.status(404).json({
@@ -277,28 +276,19 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    // Check for duplicate slug ONLY within the same cities
     if (title || slug || updateCityIds) {
       const slugToCheck = slug?.trim().toLowerCase() || (title ? title.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') : category.slug);
-
-      const duplicateQuery = {
-        _id: { $ne: id },
-        slug: slugToCheck
-      };
-
-      const existingCategory = await Category.findOne(duplicateQuery);
+      const existingCategory = await Category.findOne({ _id: { $ne: id }, slug: slugToCheck });
 
       if (existingCategory) {
         let isDuplicate = false;
-        const existingCities = existingCategory.cityIds.map(id => id.toString());
-        // For update, if updateCityIds provided use it, else use existing category.cityIds
-        const newCities = (updateCityIds ? updateCityIds : category.cityIds).map(id => id.toString());
+        const existingCities = existingCategory.cityIds.map(cityId => cityId.toString());
+        const newCities = (updateCityIds ? updateCityIds : category.cityIds).map(cityId => cityId.toString());
 
         if (newCities.length === 0) {
           if (existingCities.length === 0) isDuplicate = true;
         } else {
-          const hasOverlap = newCities.some(cityId => existingCities.includes(cityId));
-          if (hasOverlap) isDuplicate = true;
+          if (newCities.some(cityId => existingCities.includes(cityId))) isDuplicate = true;
           if (existingCities.length === 0) isDuplicate = true;
         }
 
@@ -311,7 +301,6 @@ const updateCategory = async (req, res) => {
       }
     }
 
-    // Update fields
     if (title !== undefined) category.title = title.trim();
     if (slug !== undefined) category.slug = slug.trim().toLowerCase();
     if (homeIconUrl !== undefined) category.homeIconUrl = homeIconUrl || null;
@@ -323,47 +312,57 @@ const updateCategory = async (req, res) => {
     if (imageUrl !== undefined) category.imageUrl = imageUrl || null;
     if (status !== undefined) category.status = status;
     if (isPopular !== undefined) category.isPopular = Boolean(isPopular);
-    if (metaTitle !== undefined) category.metaTitle = metaTitle?.trim() || null;
-    if (metaDescription !== undefined) category.metaDescription = metaDescription?.trim() || null;
+    
+    // Parent logic - Let Mongoose auto-cast ObjectIds, markModified ensures array change is tracked
+    if (parentCategories !== undefined) {
+      const pCats = Array.isArray(parentCategories) ? parentCategories : (parentCategories ? [parentCategories] : []);
+      category.parentCategories = pCats;
+      category.parentCategory = pCats.length > 0 ? pCats[0] : null;
+      category.markModified('parentCategories');
+      category.markModified('parentCategory');
+      console.log('[updateCategory] Setting parentCategories:', pCats, '| parentCategory:', category.parentCategory);
+    } else if (parentCategory !== undefined) {
+      if (parentCategory) {
+        category.parentCategory = parentCategory;
+        category.parentCategories = [parentCategory];
+      } else {
+        category.parentCategory = null;
+        category.parentCategories = [];
+      }
+      category.markModified('parentCategories');
+      category.markModified('parentCategory');
+    }
+
+    if (isAlwaysMain !== undefined) category.isAlwaysMain = Boolean(isAlwaysMain);
+    if (trackingType !== undefined) category.trackingType = trackingType;
+    if (requiresDriver !== undefined) category.requiresDriver = Boolean(requiresDriver);
 
     if (updateCityIds !== undefined) {
       category.cityIds = updateCityIds;
-      category.markModified('cityIds'); // Explicitly mark modified for array
+      category.markModified('cityIds');
     }
 
     await category.save();
 
+    const updatedCategory = await Category.findById(category._id)
+      .populate('parentCategory', 'title slug')
+      .populate('parentCategories', 'title slug')
+      .select('-__v')
+      .lean();
+
     res.status(200).json({
       success: true,
       message: 'Category updated successfully',
-      category: {
-        id: category._id,
-        title: category.title,
-        slug: category.slug,
-        homeIconUrl: category.homeIconUrl,
-        homeBadge: category.homeBadge,
-        hasSaleBadge: category.hasSaleBadge,
-        showOnHome: category.showOnHome,
-        homeOrder: category.homeOrder,
-        description: category.description,
-        imageUrl: category.imageUrl,
-        status: category.status,
-        isPopular: category.isPopular,
-        createdAt: category.createdAt,
-        updatedAt: category.updatedAt
-      }
+      category: formatCategory(updatedCategory)
     });
   } catch (error) {
     console.error('Update category error:', error);
-
-    // Handle duplicate key error
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
         message: 'Category with this title or slug already exists'
       });
     }
-
     res.status(500).json({
       success: false,
       message: 'Failed to update category. Please try again.'
@@ -372,14 +371,13 @@ const updateCategory = async (req, res) => {
 };
 
 /**
- * Delete category (soft delete - set status to deleted)
+ * Delete category
  * DELETE /api/admin/categories/:id
  */
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const category = await Category.findById(id);
+    const category = await Category.findByIdAndDelete(id);
 
     if (!category) {
       return res.status(404).json({
@@ -387,10 +385,6 @@ const deleteCategory = async (req, res) => {
         message: 'Category not found'
       });
     }
-
-    // Soft delete - set status to deleted
-    category.status = SERVICE_STATUS.DELETED;
-    await category.save();
 
     res.status(200).json({
       success: true,
@@ -400,7 +394,7 @@ const deleteCategory = async (req, res) => {
     console.error('Delete category error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete category. Please try again.'
+      message: 'Failed to delete category'
     });
   }
 };
@@ -414,15 +408,7 @@ const updateCategoryOrder = async (req, res) => {
     const { id } = req.params;
     const { homeOrder } = req.body;
 
-    if (homeOrder === undefined || isNaN(homeOrder)) {
-      return res.status(400).json({
-        success: false,
-        message: 'homeOrder is required and must be a number'
-      });
-    }
-
     const category = await Category.findById(id);
-
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -430,23 +416,17 @@ const updateCategoryOrder = async (req, res) => {
       });
     }
 
-    category.homeOrder = Number(homeOrder);
+    category.homeOrder = homeOrder;
     await category.save();
 
     res.status(200).json({
       success: true,
-      message: 'Category order updated successfully',
-      category: {
-        id: category._id,
-        title: category.title,
-        homeOrder: category.homeOrder
-      }
+      message: 'Order updated'
     });
   } catch (error) {
-    console.error('Update category order error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update category order. Please try again.'
+      message: 'Failed to update order'
     });
   }
 };
@@ -459,4 +439,3 @@ module.exports = {
   deleteCategory,
   updateCategoryOrder
 };
-

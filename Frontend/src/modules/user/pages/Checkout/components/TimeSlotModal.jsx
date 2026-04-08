@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiArrowLeft, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiX, FiClock, FiPlus, FiMinus, FiCalendar } from 'react-icons/fi';
 import { themeColors } from '../../../../../theme';
 
 const TimeSlotModal = ({
@@ -10,13 +10,19 @@ const TimeSlotModal = ({
   onDateSelect,
   onTimeSelect,
   onSave,
+  onQuantityChange,
   getDates,
   getTimeSlots,
   formatDate,
   isDateSelected,
-  isTimeSelected
+  isTimeSelected,
+  rentalType
 }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const [localEndDate, setLocalEndDate] = useState(null);
+  const [localHours, setLocalHours] = useState('');
+  const [localAcres, setLocalAcres] = useState('');
+  const [localDays, setLocalDays] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -99,8 +105,16 @@ const TimeSlotModal = ({
               overscrollBehavior: 'contain'
             }}
           >
-            <h2 className="text-xl font-bold text-black mb-1">When should the professional arrive?</h2>
-            <p className="text-sm text-gray-600 mb-4">Service will take approx. 45 mins</p>
+            <h2 className="text-xl font-bold text-black mb-1">
+              {rentalType === 'hourly'
+                ? 'When should the equipment arrive?'
+                : rentalType === 'land_based'
+                ? 'Select start date for land work'
+                : rentalType === 'daily'
+                ? 'Select equipment start date'
+                : 'When should the professional arrive?'}
+            </h2>
+            {rentalType === 'hourly' && <p className="text-sm text-gray-600 mb-4">Equipment will arrive at selected time</p>}
 
             {/* Date Selection */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -131,6 +145,106 @@ const TimeSlotModal = ({
               })}
             </div>
 
+            {/* Daily: Select Number of Days */}
+            {rentalType === 'daily' && (
+               <div className="mb-6">
+                 <h3 className="text-base font-semibold text-black mb-3">Select number of days</h3>
+                 <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                       <FiCalendar className="w-5 h-5" />
+                     </div>
+                     <div>
+                       <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Total Days</p>
+                       <p className="text-sm font-extrabold text-gray-900">{localDays || 0} Days</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-1.5 border border-gray-100">
+                     <button 
+                       onClick={() => { const n = Math.max(1, (Number(localDays)||0)-1); setLocalDays(n); onQuantityChange?.({ localDays: n }); }}
+                       className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                     >
+                       <FiMinus className="w-4 h-4" />
+                     </button>
+                     <span className="text-base font-black text-gray-900 min-w-[20px] text-center">{localDays || 0}</span>
+                     <button 
+                       onClick={() => { const n = (Number(localDays)||0)+1; setLocalDays(n); onQuantityChange?.({ localDays: n }); }}
+                       className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                     >
+                       <FiPlus className="w-4 h-4" />
+                     </button>
+                   </div>
+                 </div>
+               </div>
+            )}
+
+            {rentalType === 'hourly' && (
+               <div className="mb-6">
+                 <h3 className="text-base font-semibold text-black mb-3">Select duration</h3>
+                 <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                       <FiClock className="w-5 h-5" />
+                     </div>
+                     <div>
+                       <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Estimated Hours</p>
+                       <p className="text-sm font-extrabold text-gray-900">{localHours || 0} Hours</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-1.5 border border-gray-100">
+                     <button 
+                       onClick={() => { const n = Math.max(1, (Number(localHours)||0)-1); setLocalHours(n); onQuantityChange?.({ estimatedDuration: n }); }}
+                       className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                     >
+                       <FiMinus className="w-4 h-4" />
+                     </button>
+                     <span className="text-base font-black text-gray-900 min-w-[20px] text-center">{localHours || 0}</span>
+                     <button 
+                       onClick={() => { const n = (Number(localHours)||0)+1; setLocalHours(n); onQuantityChange?.({ estimatedDuration: n }); }}
+                       className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                     >
+                       <FiPlus className="w-4 h-4" />
+                     </button>
+                   </div>
+                 </div>
+               </div>
+            )}
+
+            {rentalType === 'land_based' && (
+               <div className="mb-6">
+                 <h3 className="text-base font-semibold text-black mb-3">Specify Land Area</h3>
+                 <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                   <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center shrink-0">
+                       <span className="text-xl">🗺️</span>
+                     </div>
+                     <div>
+                       <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Area in Acres</p>
+                       <p className="text-sm font-extrabold text-gray-900">{localAcres || 0} Acres</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-1.5 border border-gray-100">
+                     <button 
+                       onClick={() => { const n = Math.max(1, (Number(localAcres)||0)-1); setLocalAcres(n); onQuantityChange?.({ landSize: n }); }}
+                       className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                     >
+                       <FiMinus className="w-4 h-4" />
+                     </button>
+                     <span className="text-base font-black text-gray-900 min-w-[20px] text-center">{localAcres || 0}</span>
+                     <button 
+                       onClick={() => { const n = (Number(localAcres)||0)+1; setLocalAcres(n); onQuantityChange?.({ landSize: n }); }}
+                       className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 active:scale-90 transition-transform"
+                     >
+                       <FiPlus className="w-4 h-4" />
+                     </button>
+                   </div>
+                 </div>
+               </div>
+            )}
+
             {/* Payment Information */}
             <div className="flex items-center gap-2 mb-4 px-2">
               <div className="w-4 h-4 rounded border flex items-center justify-center shrink-0" style={{ borderColor: '#9ca3af' }}>
@@ -139,9 +253,10 @@ const TimeSlotModal = ({
               <p className="text-xs text-gray-600">Online payment only for selected date</p>
             </div>
 
-            {/* Time Selection */}
+            {/* Time Selection — only for Hourly rental */}
+            {rentalType === 'hourly' && (
             <div className="mb-4">
-              <h3 className="text-base font-semibold text-black mb-3">Select start time of service</h3>
+              <h3 className="text-base font-semibold text-black mb-3">Select equipment arrival time</h3>
               {getTimeSlots().length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
                   <p className="text-gray-500 font-medium mb-1">No time slots available</p>
@@ -191,13 +306,42 @@ const TimeSlotModal = ({
                 </div>
               )}
             </div>
+            )}
 
             {/* Proceed Button */}
             <button
-              onClick={() => onSave(selectedDate, selectedTime)}
-              disabled={!selectedDate || !selectedTime}
+              onClick={() => {
+                let extraArgs = {
+                  estimatedDuration: localHours,
+                  landSize: localAcres ? `${localAcres} Acres` : undefined,
+                  localDays: localDays
+                };
+
+                // Auto-calculate endDate for Daily if needed
+                if (rentalType === 'daily' && localDays && selectedDate) {
+                  const end = new Date(selectedDate);
+                  end.setDate(end.getDate() + (Number(localDays) - 1));
+                  extraArgs.endDate = end;
+                } else if (rentalType === 'monthly' && selectedDate) {
+                  const end = new Date(selectedDate);
+                  end.setMonth(end.getMonth() + 1);
+                  extraArgs.endDate = end;
+                }
+
+                onSave(selectedDate, rentalType === 'monthly' || rentalType === 'daily' || rentalType === 'land_based' ? '00:00' : selectedTime, extraArgs);
+              }}
+              disabled={
+                !selectedDate ||
+                (rentalType === 'daily' && (!selectedDate || !localDays)) ||
+                (rentalType === 'hourly' && (!selectedTime || !localHours)) ||
+                (rentalType === 'land_based' && (!selectedDate || !localAcres))
+              }
               className="w-full py-3.5 rounded-lg text-base font-semibold transition-colors mb-4"
-              style={selectedDate && selectedTime ? {
+              style={(selectedDate && (
+                (rentalType === 'daily' && localDays) ||
+                (rentalType === 'hourly' && selectedTime && localHours) ||
+                (rentalType === 'land_based' && localAcres)
+              )) ? {
                 backgroundColor: themeColors.button,
                 color: 'white'
               } : {
@@ -206,17 +350,27 @@ const TimeSlotModal = ({
                 cursor: 'not-allowed'
               }}
               onMouseEnter={(e) => {
-                if (selectedDate && selectedTime) {
+                const isValid = selectedDate && (
+                  (rentalType === 'daily' && localDays) ||
+                  (rentalType === 'hourly' && selectedTime && localHours) ||
+                  (rentalType === 'land_based' && localAcres)
+                );
+                if (isValid) {
                   e.target.style.backgroundColor = themeColors.button;
                 }
               }}
               onMouseLeave={(e) => {
-                if (selectedDate && selectedTime) {
+                const isValid = selectedDate && (
+                  (rentalType === 'daily' && localDays) ||
+                  (rentalType === 'hourly' && selectedTime && localHours) ||
+                  (rentalType === 'land_based' && localAcres)
+                );
+                if (isValid) {
                   e.target.style.backgroundColor = themeColors.button;
                 }
               }}
             >
-              Proceed to checkout
+              Confirm Slot
             </button>
           </div>
         </div>

@@ -20,7 +20,12 @@ const MyBookings = () => {
         setLoading(true);
         const params = {};
         if (filter !== 'all') {
-          params.status = filter;
+          if (filter === 'in_progress') {
+             // For Machinery/Farm orders, "In Progress" means anything from journey started to operation
+             params.status = 'journey_started,visited,in_progress';
+          } else {
+             params.status = filter;
+          }
         }
         const response = await bookingService.getUserBookings(params);
         if (response.success) {
@@ -199,7 +204,7 @@ const MyBookings = () => {
             {[
               { id: 'all', label: 'All Orders' },
               { id: 'confirmed', label: 'Confirmed' },
-              { id: 'in-progress', label: 'In Progress' },
+              { id: 'in_progress', label: 'In Progress' },
               { id: 'completed', label: 'Completed' },
               { id: 'cancelled', label: 'Cancelled' },
             ].map((tab) => (

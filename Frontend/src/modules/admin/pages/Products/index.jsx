@@ -9,10 +9,14 @@ import {
     FiFilter,
     FiMoreVertical,
     FiUploadCloud,
-    FiUser
+    FiUser,
+    FiCheck,
+    FiX,
+    FiClock
 } from 'react-icons/fi';
 import adminProductService from '../../../../services/adminProductService';
 import { publicCatalogService } from '../../../../services/catalogService';
+import { getSettings } from '../../services/settingsService';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,6 +31,10 @@ const ManageProducts = () => {
     const [editMode, setEditMode] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
     const [activeTab, setActiveTab] = useState('marketplace');
+    const [rentalGst, setRentalGst] = useState(5); // Default 5% for Agriculture
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectTarget, setRejectTarget] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
 
     const [formData, setFormData] = useState({
         title: '',
@@ -52,6 +60,12 @@ const ManageProducts = () => {
 
     useEffect(() => {
         fetchData();
+        // Load rental GST from admin settings
+        getSettings().then(res => {
+            if (res?.settings?.rentalGstPercentage !== undefined) {
+                setRentalGst(res.settings.rentalGstPercentage);
+            }
+        }).catch(() => {});
     }, []);
 
     const fetchData = async () => {
@@ -137,11 +151,12 @@ const ManageProducts = () => {
     };
 
     const handleApprove = async (id) => {
-        if (!window.confirm("Approve this machinery/equipment?")) return;
+        if (!window.confirm("Approve this machinery/equipment? It will go LIVE for farmers.")) return;
         try {
-            const res = await adminProductService.approveProduct(id, { commissionPercentage: 0, gstPercentage: 18 });
+            // Use admin-configured rental GST (not hardcoded 18%)
+            const res = await adminProductService.approveProduct(id, { commissionPercentage: 10, gstPercentage: rentalGst });
             if (res.success) {
-                toast.success("Machinery Approved!");
+                toast.success(`✅ Machinery Approved! GST set to ${rentalGst}%`);
                 fetchData();
                 setShowModal(false);
             }
@@ -150,13 +165,19 @@ const ManageProducts = () => {
         }
     };
 
-    const handleReject = async (id) => {
-        const reason = window.prompt("Enter rejection reason:");
-        if (reason === null) return;
+    const openRejectModal = (product) => {
+        setRejectTarget(product);
+        setRejectReason('');
+        setShowRejectModal(true);
+    };
+
+    const handleRejectConfirm = async () => {
+        if (!rejectReason.trim()) return toast.error('Please enter a rejection reason');
         try {
-            const res = await adminProductService.rejectProduct(id, reason);
+            const res = await adminProductService.rejectProduct(rejectTarget._id, rejectReason);
             if (res.success) {
-                toast.success("Rejected");
+                toast.success('Equipment rejected. Owner will be notified.');
+                setShowRejectModal(false);
                 fetchData();
             }
         } catch (err) {
@@ -255,15 +276,18 @@ const ManageProducts = () => {
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Machine</th>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Owner / Shop</th>
+                            {activeTab === 'pending' && <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Rental Type</th>}
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                         {loading ? (
-                            <tr><td colSpan="4" className="text-center py-20 text-slate-400 font-bold">Loading...</td></tr>
+                            <tr><td colSpan="6" className="text-center py-20 text-slate-400 font-bold">Loading...</td></tr>
                         ) : filteredProducts.length === 0 ? (
-                            <tr><td colSpan="4" className="text-center py-20 text-slate-400 font-bold">No machinery found</td></tr>
+                            <tr><td colSpan="6" className="text-center py-20 text-slate-400 font-bold">
+                                {activeTab === 'pending' ? '🎉 No pending approvals! All clear.' : 'No machinery found'}
+                            </td></tr>
                         ) : filteredProducts.map(p => (
                             <tr key={p._id} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-6 py-4">
@@ -290,21 +314,33 @@ const ManageProducts = () => {
                                             </div>
                                             <div>
                                                 <p className="font-black text-slate-700 text-xs leading-tight">{p.vendorId?.businessName || p.vendorId?.name || 'Vendor'}</p>
-                                                <p className="text-[9px] text-orange-600 font-bold uppercase">Owner</p>
+                                                <p className="text-[9px] text-orange-600 font-bold">{p.vendorId?.phone || 'No phone'}</p>
                                             </div>
                                         </div>
                                     ) : (
                                         <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase">Admin</span>
                                     )}
                                 </td>
+                                {activeTab === 'pending' && (
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase ${
+                                            p.rental_type === 'land_based' ? 'bg-green-50 text-green-700' :
+                                            p.rental_type === 'monthly' ? 'bg-purple-50 text-purple-700' :
+                                            'bg-blue-50 text-blue-700'
+                                        }`}>
+                                            {p.rental_type === 'land_based' ? '🌾 Acre-based' :
+                                             p.rental_type === 'monthly' ? '📅 Monthly' : '⏱ Hourly'}
+                                        </span>
+                                    </td>
+                                )}
                                 <td className="px-6 py-4 font-black text-slate-800 text-sm">₹{p.price}/{p.unit}</td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex gap-2 justify-end">
                                         {activeTab === 'pending' ? (
                                             <>
                                                 <button onClick={() => openEdit(p)} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs">Review</button>
-                                                <button onClick={() => handleApprove(p._id)} className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs">Approve</button>
-                                                <button onClick={() => handleReject(p._id)} className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs">Reject</button>
+                                                <button onClick={() => handleApprove(p._id)} className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl font-bold text-xs flex items-center gap-1"><FiCheck className="w-3 h-3" /> Approve</button>
+                                                <button onClick={() => openRejectModal(p)} className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs flex items-center gap-1"><FiX className="w-3 h-3" /> Reject</button>
                                             </>
                                         ) : (
                                             <>
@@ -384,9 +420,39 @@ const ManageProducts = () => {
                         </motion.div>
                     </div>
                 )}
+
+                {/* Reject Modal */}
+                {showRejectModal && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setShowRejectModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="relative bg-white w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden flex flex-col">
+                            <div className="p-6 border-b flex justify-between items-center bg-rose-50/50">
+                                <h2 className="text-xl font-black text-rose-600 flex items-center gap-2"><FiX className="w-5 h-5" /> Reject Equipment</h2>
+                                <button onClick={() => setShowRejectModal(false)} className="p-2 hover:bg-rose-100 rounded-full transition-colors"><FiX /></button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-wide">Reason for Rejection</label>
+                                    <textarea 
+                                        className="w-full bg-slate-50 rounded-2xl p-4 font-medium outline-none border border-slate-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-100 transition-all resize-none h-32" 
+                                        placeholder="Explain why this equipment is being rejected. The owner will see this message."
+                                        value={rejectReason} 
+                                        onChange={e => setRejectReason(e.target.value)} 
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-6 bg-slate-50 border-t flex gap-4">
+                                <button type="button" onClick={() => setShowRejectModal(false)} className="flex-1 py-3.5 bg-white border rounded-2xl font-black text-xs uppercase text-slate-600 hover:bg-slate-50">Cancel</button>
+                                <button onClick={handleRejectConfirm} className="flex-[2] py-3.5 bg-rose-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-rose-200 hover:bg-rose-700 transition-all">Confirm Rejection</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
             </AnimatePresence>
         </div>
     );
 };
 
 export default ManageProducts;
+

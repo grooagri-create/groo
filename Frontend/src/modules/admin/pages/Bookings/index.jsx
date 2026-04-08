@@ -28,6 +28,7 @@ const Bookings = () => {
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [moduleFilter, setModuleFilter] = useState('All Types');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -68,6 +69,10 @@ const Bookings = () => {
       if (statusFilter !== 'All Status') {
         params.status = statusFilter.toUpperCase().replace(' ', '_');
       }
+      
+      if (moduleFilter === 'Hourly Rent') params.rental_type = 'hourly';
+      if (moduleFilter === 'Monthly Rent') params.rental_type = 'monthly';
+      if (moduleFilter === 'Acre Rent') params.rental_type = 'land_based';
 
       const res = await adminBookingService.getAllBookings(params);
       if (res.success) {
@@ -100,7 +105,7 @@ const Bookings = () => {
 
   useEffect(() => {
     fetchData();
-  }, [page, debouncedSearch, statusFilter, startDate, endDate]);
+  }, [page, debouncedSearch, statusFilter, moduleFilter, startDate, endDate]);
 
   const handleExport = () => {
     const headers = ['Order ID', 'Farmer', 'Equipment', 'Total', 'Status', 'Date'];
@@ -164,6 +169,17 @@ const Bookings = () => {
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
+          </select>
+
+          <select
+            value={moduleFilter}
+            onChange={(e) => setModuleFilter(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-blue-600 font-bold focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm"
+          >
+            <option>All Types</option>
+            <option value="Hourly Rent">🚜 Hourly Rent</option>
+            <option value="Monthly Rent">📅 Monthly Rent</option>
+            <option value="Acre Rent">🌾 Acre Rent</option>
           </select>
 
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Booking = require('../../models/Booking');
 const Service = require('../../models/Service');
 const Category = require('../../models/Category');
+const Plan = require('../../models/Plan');
 const Cart = require('../../models/Cart');
 const User = require('../../models/User');
 const Vendor = require('../../models/Vendor');
@@ -47,11 +48,15 @@ const createBooking = async (req, res) => {
       // Metadata from frontend
       serviceCategory: reqServiceCategory,
       categoryIcon: reqCategoryIcon,
+      brandName: reqBrandName,
       brandIcon: reqBrandIcon,
       bookingType, // Extract bookingType
       rental_type,  // Agriculture: extract rental_type
       cropType,     // Agriculture: extract cropType
-      landSize      // Agriculture: extract landSize
+      landSize,      // Agriculture: extract landSize
+      endDate,      // Agriculture: extract range end
+      estimatedDuration, // Agriculture: extract hours
+      selectedImplements // MACHINERY: attachments chosen by user
     } = req.body;
 
     let visitingCharges = reqVisitingCharges !== undefined ? reqVisitingCharges : (reqVisitationFee || 0);
@@ -85,14 +90,73 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // Calculate total value from booked items or fallback to service base price immediately after service load
-    if (totalServiceValue === 0 && bookedItems && bookedItems.length > 0) {
-      // It was calculated above? No, I defined variable but didn't assign fallback yet.
-      // Let's just do the whole calc here correctly.
-    }
+    // Get category for the service FIRST (needed for Agri check)
+    const categoryId = service.categoryId || service.categoryIds?.[0];
+    const category = categoryId ? await Category.findById(categoryId) : null;
 
-    // RE-EVALUATE: Better to consolidate the logic at one place: AFTER service load.
-    if (totalServiceValue === 0) { // If not calculated from items or items were 0 price
+    // Calculate total value from booked items or fallback to service base price immediately after service load
+    const isAgriService = service.category === 'Agriculture' || (category && category.title === 'Agriculture') || reqServiceCategory === 'Agriculture';
+
+    if (isAgriService) {
+      // ── Agriculture Dynamic Multiplier Logic ──
+      let multiplier = 1;
+      if (rental_type === 'hourly') {
+        multiplier = parseFloat(estimatedDuration) || 1;
+      } else if (rental_type === 'land_based') {
+        multiplier = parseFloat(String(landSize).replace(/[^\d.]/g, '')) || 1;
+      } else if (rental_type === 'daily' || rental_type === 'monthly') {
+        multiplier = parseFloat(estimatedDuration) || 1;
+      }
+
+      // Determine correct unit rate from service model
+      let unitRate = service.basePrice || 500;
+      if (rental_type === 'hourly' && service.hourly_price) unitRate = service.hourly_price;
+      else if (rental_type === 'land_based' && service.land_price) unitRate = service.land_price;
+      else if ((rental_type === 'daily' || rental_type === 'monthly') && service.daily_price) unitRate = service.daily_price;
+      else if (service.basePrice) unitRate = service.basePrice;
+
+      let finalMultiplier = multiplier;
+      if (rental_type === 'monthly') finalMultiplier = multiplier * 30;
+
+      const mainAgriPrice = Math.round(unitRate * finalMultiplier);
+      
+      // Update the price of the main service in bookedItems to reflect the calculated Agri price
+      // This ensures the items list and basePrice are consistent.
+      if (Array.isArray(bookedItems) && bookedItems.length > 0) {
+        let mainItemHandled = false;
+        bookedItems.forEach(item => {
+          const itemTitle = item.card?.title || item.title;
+          if (itemTitle === service.title && !mainItemHandled) {
+            // Update this item's price with the calculated agri price
+            if (item.card) item.card.price = mainAgriPrice;
+            else item.price = mainAgriPrice;
+            mainItemHandled = true;
+          }
+        });
+
+        // Recalculate totalServiceValue from the updated items
+        totalServiceValue = bookedItems.reduce((sum, item) => {
+          const itemPrice = item.card?.price || item.price || 0;
+          return sum + (itemPrice * (item.quantity || 1));
+        }, 0);
+      } else {
+        totalServiceValue = mainAgriPrice;
+      }
+      
+      // --- ADD IMPLEMENT PRICING ---
+      if (Array.isArray(selectedImplements) && selectedImplements.length > 0) {
+        selectedImplements.forEach(impl => {
+          const implPriceObj = impl.pricing?.[rental_type];
+          if (implPriceObj && implPriceObj.isEnabled) {
+            const implRate = implPriceObj.price || 0;
+            totalServiceValue += Math.round(implRate * finalMultiplier);
+          }
+        });
+      }
+      
+      console.log(`[AgriPricing] unitRate=${unitRate}, multiplier=${multiplier}, totalServiceValue=${totalServiceValue}`);
+    } else if (totalServiceValue === 0) { 
+      // Standard services
       totalServiceValue = service.basePrice || 500;
     }
 
@@ -110,10 +174,6 @@ const createBooking = async (req, res) => {
 
     // Don't assign vendor initially - send to nearby vendors instead
     // Vendor will be assigned when a vendor accepts the booking
-
-    // Get category for the service FIRST (needed for plan validation)
-    const categoryId = service.categoryId || service.categoryIds?.[0];
-    const category = categoryId ? await Category.findById(categoryId) : null;
 
     // --- MOVE VENDOR SEARCH UP HERE ---
     // Find nearby vendors using location service
@@ -183,7 +243,6 @@ const createBooking = async (req, res) => {
 
     // 2. Logic Branch: Plan Benefit vs Standard
     if (usePlanBenefits) {
-      const Plan = require('../../models/Plan');
       const userPlan = await Plan.findOne({ name: user.plans.name });
 
       if (!userPlan) {
@@ -237,18 +296,34 @@ const createBooking = async (req, res) => {
         // Use amount from frontend logic
         if (reqBasePrice !== undefined && reqTax !== undefined) {
           // Use breakdown provided by frontend
-          basePrice = reqBasePrice;
-          discount = reqDiscount || 0;
-          tax = reqTax;
           visitingCharges = (reqVisitingCharges !== undefined) ? reqVisitingCharges : (visitingCharges || 49);
+          discount = reqDiscount || 0;
+          tax = reqTax || 0;
+          
+          if (isAgriService) {
+             // For Agri, trust the server-side recalculated totalServiceValue but allow 
+             // frontend to pass the breakdown if it matches our logic.
+             // If frontend total is very different, we prioritize server logic for security.
+             basePrice = totalServiceValue;
+          } else {
+             basePrice = reqBasePrice;
+          }
+
           finalAmount = (basePrice - discount + tax + visitingCharges) + pendingPenalty;
         } else {
           // Backward compatibility: Reverse calculate
           if (!visitingCharges) visitingCharges = 49;
-          basePrice = Math.round((amount - visitingCharges) / 1.18);
-          tax = amount - basePrice - visitingCharges;
+          
+          if (isAgriService) {
+            basePrice = totalServiceValue;
+            tax = Math.round(basePrice * 0.18);
+            finalAmount = basePrice + tax + visitingCharges + pendingPenalty;
+          } else {
+            basePrice = Math.round((amount - visitingCharges) / 1.18);
+            tax = amount - basePrice - visitingCharges;
+            finalAmount = amount + pendingPenalty;
+          }
           discount = 0;
-          finalAmount = amount + pendingPenalty;
         }
       } else {
         // Fallback to service pricing (if no amount sent)
@@ -272,9 +347,20 @@ const createBooking = async (req, res) => {
     }
 
     // Ensure minimum amount for Razorpay (₹1) for paid bookings
-    if (finalAmount < 1 && paymentMethod !== 'plan_benefit') {
-      finalAmount = 1;
+    if (isNaN(finalAmount) || finalAmount < 1) {
+      if (paymentMethod !== 'plan_benefit') {
+        finalAmount = 1;
+      } else {
+        finalAmount = 0;
+      }
     }
+    
+    // Ensure numeric fields are valid
+    basePrice = Number(basePrice) || 0;
+    discount = Number(discount) || 0;
+    tax = Number(tax) || 0;
+    visitingCharges = Number(visitingCharges) || 0;
+    finalAmount = Number(finalAmount) || 0;
 
     // Create booking
     const bookingNumber = `BK${Date.now()}${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
@@ -283,7 +369,6 @@ const createBooking = async (req, res) => {
     let finalCategory = category;
     if (!finalCategory && service.category) {
       // Try finding by name if ID lookup failed
-      const Category = require('../../models/Category');
       finalCategory = await Category.findOne({ title: service.category });
     }
 
@@ -329,6 +414,8 @@ const createBooking = async (req, res) => {
       rental_type: rental_type || null,
       cropType: cropType || null,
       landSize: landSize || null,
+      endDate: (endDate && !isNaN(new Date(endDate).getTime())) ? new Date(endDate) : null,
+      estimatedDuration: (estimatedDuration !== undefined && estimatedDuration !== null && !isNaN(Number(estimatedDuration))) ? Number(estimatedDuration) : null,
 
       description: service.description,
       serviceImages: service.images || [],
@@ -360,7 +447,8 @@ const createBooking = async (req, res) => {
       // isPlusAdded: isPlusAdded || false, // Removed
       paymentMethod: paymentMethod || null,
       status: bookingStatus,
-      paymentStatus: bookingPaymentStatus
+      paymentStatus: bookingPaymentStatus,
+      selectedImplements: selectedImplements || []
       // notifiedVendors will be set after wave sorting
     });
 
@@ -481,7 +569,7 @@ const createBooking = async (req, res) => {
     const populatedBooking = await Booking.findById(booking._id)
       .populate('userId', 'name phone email')
       .populate('serviceId', 'title iconUrl')
-      .populate('categoryId', 'title slug');
+      .populate('categoryId', 'title slug requiresDriver');
 
     // NOTIFY USER: Send actionable notification so they can track status
 
@@ -632,7 +720,7 @@ const getUserBookings = async (req, res) => {
     const bookings = await Booking.find(query)
       .populate('vendorId', 'name businessName phone profilePhoto')
       .populate('serviceId', 'title iconUrl')
-      .populate('categoryId', 'title slug')
+      .populate('categoryId', 'title slug requiresDriver')
       .populate('workerId', 'name phone profilePhoto')
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -669,11 +757,11 @@ const getBookingById = async (req, res) => {
     const { id } = req.params;
 
     const booking = await Booking.findOne({ _id: id, userId })
-      .select('+visitOtp +paymentOtp') // Include secure OTPs for the user
+      .select('+visitOtp +paymentOtp +driver_start_otp +driver_end_otp +start_kilometer_photo +end_kilometer_photo') // Include secure OTPs and trip photos
       .populate('userId', 'name phone email')
       .populate('vendorId', 'name businessName phone email address profilePhoto')
       .populate('serviceId', 'title description iconUrl images')
-      .populate('categoryId', 'title slug')
+      .populate('categoryId', 'title slug requiresDriver')
       .populate('workerId', 'name phone rating totalJobs location profilePhoto');
 
     if (!booking) {
@@ -1037,11 +1125,11 @@ const addReview = async (req, res) => {
       });
     }
 
-    // Check if booking is completed or work is done
+    // Check if booking is completed or work is done (work_done is for machinery after driver completes)
     if (booking.status !== BOOKING_STATUS.COMPLETED && booking.status !== BOOKING_STATUS.WORK_DONE) {
       return res.status(400).json({
         success: false,
-        message: 'Can only review bookings after work is done'
+        message: 'You can only review a booking after the work has been completed by the service provider'
       });
     }
 

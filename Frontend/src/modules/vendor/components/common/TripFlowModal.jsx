@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FiCamera, FiX, FiCheck, FiUpload, FiLoader, FiRefreshCw } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
-import { uploadToCloudinary } from '../../../../services/cloudinaryService';
+import { uploadToCloudinary } from '../../../../utils/cloudinaryUpload';
 
 /**
  * TripFlowModal - Handles Start Trip / End Trip flow
@@ -14,10 +15,12 @@ import { uploadToCloudinary } from '../../../../services/cloudinaryService';
  *   isOpen     {boolean}
  *   onClose    {() => void}
  *   mode       {'start' | 'end'}
+ *   mode       {'start' | 'end'}
  *   onSubmit   {(photoUrl: string, otp: string, workUnits?: number) => Promise<void>}
  *   rentalType {string} 'hourly' | 'land_based' | 'monthly'
+ *   isMachinery {boolean} True if this is an equipment rental
  */
-const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }) => {
+const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType, isMachinery = false, requiresDriver = true, trackingType = 'odometer' }) => {
     const [step, setStep] = useState(1); // 1 = Photo, 2 = OTP
     const [photoPreview, setPhotoPreview] = useState(null);
     const [photoFile, setPhotoFile] = useState(null);
@@ -31,23 +34,35 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
     const otpRefs = [useRef(), useRef(), useRef(), useRef()];
 
     const isStart = mode === 'start';
-    const title = isStart ? '🚜 Start Trip' : '🏁 End Trip';
-    const photoLabel = isStart ? 'Starting Kilometer Photo' : 'Ending Kilometer Photo';
+    // Machinery auto-generates End OTP, so vendor doesn't need to enter one on end trip
+    // But for Standalone (no driver), we REQUIRE Start OTP to verify handover.
+    const skipOtpStep = isMachinery && (requiresDriver === true);
+    const isMeterBased = trackingType === 'odometer';
+
+    const title = isStart ? (requiresDriver ? '🚜 Start Trip' : '📦 Handover Equipment') : (requiresDriver ? '🏁 End Trip' : '✅ Collect Equipment');
+    const photoLabel = isStart 
+        ? (isMeterBased ? 'Starting Kilometer Photo' : 'Equipment Condition Photo (Optional)')
+        : (isMeterBased ? 'Ending Kilometer Photo' : 'Rental Condition Photo (Optional)');
     const themeColor = isStart ? '#16a34a' : '#dc2626'; // green for start, red for end
 
-    // Reset state when modal closes / reopens
+    // Reset state when modal closes / reopens or changes mode
+    useEffect(() => {
+        if (isOpen) {
+            setStep(1);
+            setPhotoPreview(null);
+            setPhotoFile(null);
+            setOtp(['', '', '', '']);
+            setWorkUnits('');
+            setUploading(false);
+            setSubmitting(false);
+        }
+    }, [isOpen, mode]);
+
     const handleClose = () => {
-        setStep(1);
-        setPhotoPreview(null);
-        setPhotoFile(null);
-        setEvidencePreview(null);
-        setEvidenceFile(null);
-        setOtp(['', '', '', '']);
-        setWorkUnits('');
-        setUploading(false);
-        setSubmitting(false);
         onClose();
     };
+
+    // Auto-skip logic removed to let vendor see Step 1 first
 
     // Handle photo selection (camera or gallery)
     const handlePhotoCapture = (e, target = 'km') => {
@@ -84,16 +99,33 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
     // Go to Step 2: Upload photo to Cloudinary
     const handleProceed = async () => {
         if (step === 1) {
-            if (!photoFile) return toast.error('Please take a KM photo first');
+            // KM photo is mandatory ONLY if it's meter based. Else it's optional.
+            if (isMeterBased && !photoFile) return toast.error('Please take a KM photo first');
+            
             try {
                 setUploading(true);
-                const url = await uploadToCloudinary(photoFile);
-                setPhotoFile(url); // store URL
-                setStep(isStart ? 3 : 2); // Start trip skips step 2 (evidence)
+                let url = '';
+                if (photoFile) {
+                    url = await uploadToCloudinary(photoFile);
+                    setPhotoFile(url); // store URL
+                }
+                
+                if (isStart) {
+                    if (skipOtpStep) {
+                        setSubmitting(true);
+                        await onSubmit(url, '', undefined, undefined);
+                        handleClose();
+                    } else {
+                        setStep(3);
+                    }
+                } else {
+                    setStep(2);
+                }
             } catch (err) {
-                toast.error('Photo upload failed. Try again.');
+                toast.error(err?.message || 'Photo upload/submit failed. Try again.');
             } finally {
                 setUploading(false);
+                setSubmitting(false);
             }
         } else if (step === 2) {
             if (!evidenceFile) return toast.error('Please take a Work Evidence photo');
@@ -101,16 +133,39 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                 setUploading(true);
                 const url = await uploadToCloudinary(evidenceFile);
                 setEvidenceFile(url); // store URL
-                setStep(3);
+                if (skipOtpStep) {
+                    setSubmitting(true);
+                    await onSubmit(photoFile, '', workUnits ? parseFloat(workUnits) : undefined, url);
+                    handleClose();
+                } else {
+                    setStep(3);
+                }
             } catch (err) {
-                toast.error('Evidence upload failed. Try again.');
+                toast.error(err?.message || 'Evidence upload/submit failed. Try again.');
             } finally {
                 setUploading(false);
+                setSubmitting(false);
             }
         }
     };
 
-    // Final Submit
+    const handleSubmitSkippingOTP = async () => {
+        if (!photoFile) return toast.error('KM Photo not uploaded');
+        if (!isStart && !evidenceFile) return toast.error('Work Evidence photo not uploaded');
+        if (!isStart && rentalType === 'land_based' && !workUnits) return toast.error('Please enter total acres covered');
+
+        try {
+            setSubmitting(true);
+            await onSubmit(photoFile, '', workUnits ? parseFloat(workUnits) : undefined, evidenceFile);
+            handleClose();
+        } catch (err) {
+            toast.error(err?.message || 'Failed to submit. Try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Final Submit (OTP Mode)
     const handleSubmit = async () => {
         const otpStr = otp.join('');
         if (otpStr.length !== 4) return toast.error('Enter 4-digit OTP from farmer');
@@ -131,14 +186,14 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
 
     if (!isOpen) return null;
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 px-0 sm:px-4"
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 px-0 sm:px-4"
                     onClick={(e) => e.target === e.currentTarget && handleClose()}
                 >
                     <motion.div
@@ -154,7 +209,11 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                             <div>
                                 <h2 className="text-lg font-extrabold text-gray-900">{title}</h2>
                                 <p className="text-xs text-gray-500 mt-0.5">
-                                    Step {step} of 3: {step === 1 ? 'Take KM Photo' : step === 2 ? 'Evidence of Work' : 'Enter Farmer OTP'}
+                                    Step {step} of {skipOtpStep ? (isStart ? 1 : 2) : 3}: {
+                                       step === 1 ? (isMeterBased ? 'Take KM Photo' : 'Confirm & Handover') : 
+                                       step === 2 ? (skipOtpStep ? 'Confirm Submission' : 'Evidence of Work') : 
+                                       'Enter Farmer OTP'
+                                    }
                                 </p>
                             </div>
                             <button onClick={handleClose}
@@ -165,7 +224,7 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
 
                         {/* Step Indicator */}
                         <div className="flex gap-1.5 px-5 pt-3">
-                            {[1, 2, 3].map(s => (
+                            {(skipOtpStep ? (isStart ? [1] : [1, 2]) : [1, 2, 3]).map(s => (
                                 <div key={s} className="flex-1 h-1 rounded-full transition-all"
                                     style={{ background: step >= s ? themeColor : '#e5e7eb' }} />
                             ))}
@@ -194,8 +253,15 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                                             className="w-full h-52 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 transition-all active:scale-95"
                                             style={{ borderColor: themeColor, background: `${themeColor}08` }}>
                                             <FiCamera className="w-10 h-10" style={{ color: themeColor }} />
-                                            <p className="text-sm font-bold" style={{ color: themeColor }}>Tap to Open Camera</p>
-                                            <p className="text-[10px] text-gray-400">Take a clear photo of the odometer/meter</p>
+                                            <p className="text-sm font-bold" style={{ color: themeColor }}>
+                                                {isMeterBased ? 'Tap to Open Camera' : 'Take Photo (Optional)'}
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 text-center px-6">
+                                                {isMeterBased 
+                                                    ? 'Take a clear photo of the odometer/meter' 
+                                                    : 'Optionally document the equipment condition'
+                                                }
+                                            </p>
                                         </button>
                                     )}
 
@@ -211,13 +277,15 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
 
                                     <button
                                         onClick={handleProceed}
-                                        disabled={!photoPreview || uploading}
-                                        className="w-full py-4 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                        disabled={(isMeterBased && !photoPreview) || uploading}
+                                        className="w-full py-4 mb-2 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
                                         style={{ background: themeColor }}>
                                         {uploading
-                                            ? <><FiLoader className="w-4 h-4 animate-spin" /> Uploading Photo...</>
-                                            : <><FiUpload className="w-4 h-4" /> Upload & Continue</>}
+                                            ? <><FiLoader className="w-4 h-4 animate-spin" /> {photoFile ? 'Uploading...' : 'Processing...'}</>
+                                            : <><FiUpload className="w-4 h-4" /> {skipOtpStep && isStart ? (requiresDriver ? 'Confirm & Start Engine' : 'Confirm Handover') : (!photoPreview ? 'Skip Photo & Continue' : 'Next: Verify OTP')}</>}
                                     </button>
+                                    {/* Safety spacer for mobile BottomNav */}
+                                    <div className="h-20 sm:hidden" />
                                 </motion.div>
                             )}
 
@@ -264,25 +332,28 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                                         <button
                                             onClick={handleProceed}
                                             disabled={!evidencePreview || uploading}
-                                            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
                                             style={{ background: themeColor }}>
                                             {uploading
-                                                ? <><FiLoader className="w-4 h-4 animate-spin" /> Uploading Proof...</>
-                                                : <><FiUpload className="w-4 h-4" /> Verify Evidence & Continue</>}
+                                                ? <><FiLoader className="w-4 h-4 animate-spin" /> Uploading...</>
+                                                : <><FiCheck className="w-4 h-4" /> {skipOtpStep ? 'Confirm & End Trip' : 'Verify & Continue'}</>}
                                         </button>
                                     </div>
+                                    <div className="h-20 sm:hidden" />
                                 </motion.div>
                             )}
 
                             {/* === STEP 3: OTP === */}
                             {step === 3 && (
                                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                            <FiCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
-                                            <p className="text-xs font-semibold text-gray-700">Photos uploaded successfully ✅</p>
+                                    {photoFile && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                                <FiCheck className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                                <p className="text-xs font-semibold text-gray-700">Photos uploaded successfully ✅</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* Additional Input for Land Based (Step 2) */}
                                     {!isStart && rentalType === 'land_based' && (
@@ -335,13 +406,14 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
                                         <button
                                             onClick={handleSubmit}
                                             disabled={otp.join('').length < 4 || submitting}
-                                            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                            className="flex-1 py-3.5 rounded-2xl font-extrabold text-white text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
                                             style={{ background: themeColor }}>
                                             {submitting
                                                 ? <><FiLoader className="w-4 h-4 animate-spin" /> Submitting...</>
-                                                : <><FiCheck className="w-4 h-4" /> Confirm {isStart ? 'Start' : 'End'} Trip</>}
+                                                : <><FiCheck className="w-4 h-4" /> {isStart ? (requiresDriver ? 'Confirm Start Trip' : 'Confirm Handover') : (requiresDriver ? 'Confirm End Trip' : 'Confirm Collection')}</>}
                                         </button>
                                     </div>
+                                    <div className="h-20 sm:hidden" />
                                 </motion.div>
                             )}
                         </div>
@@ -350,6 +422,8 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType }
             )}
         </AnimatePresence>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 export default TripFlowModal;

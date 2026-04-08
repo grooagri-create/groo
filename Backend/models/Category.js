@@ -54,6 +54,43 @@ const categorySchema = new mongoose.Schema({
     ref: 'City',
     index: true
   }],
+  // For dynamic subcategories (e.g. Tractor -> Rotavator)
+  // DEPRECATED: use parentCategories instead for new logic
+  parentCategory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    default: null,
+    index: true
+  },
+  // Multi-parent support: a tool can belong to multiple categories (e.g. Rotavator under Tractor AND Standalone)
+  parentCategories: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    index: true
+  }],
+  // If true, this category will ALWAYS appear in the Main Categories list, even if it has parents
+  isAlwaysMain: {
+    type: Boolean,
+    default: false
+  },
+  // ==========================================
+  // MACHINERY CLASSIFICATION (New)
+  // Controls tracking & driver logic for Equipment Rental flow
+  // Does NOT affect Soil Testing or E-commerce
+  // ==========================================
+  // 'odometer' = Moving machine (Tractor/Harvester) - KM photo required
+  // 'timestamp' = Static tool (Pump/Sprayer) - only time-based billing
+  // 'none' = Non-machinery (default - Soil Testing, E-commerce, etc.)
+  trackingType: {
+    type: String,
+    enum: ['odometer', 'timestamp', 'none'],
+    default: 'none'
+  },
+  // If true, vendor MUST register an operator/driver for this category
+  requiresDriver: {
+    type: Boolean,
+    default: false
+  },
   // Additional backend fields
   description: {
     type: String,

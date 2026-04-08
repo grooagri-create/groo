@@ -78,6 +78,24 @@ const brandSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Rich content for brand landing page
+  page: {
+    type: mongoose.Schema.Types.Mixed,
+    default: () => ({
+      banners: [],
+      ratingTitle: '',
+      ratingValue: '',
+      bookingsText: '',
+      paymentOffersEnabled: true,
+      paymentOffers: [],
+      serviceCategoriesGrid: []
+    })
+  },
+  // Custom sections for services
+  sections: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
+  },
 
   // Admin tracking
   createdBy: {

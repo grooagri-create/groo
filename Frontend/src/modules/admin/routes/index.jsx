@@ -35,6 +35,7 @@ const RegisteredShops = lazy(() => import('../pages/Products/RegisteredShops'));
 const SoilTesting = lazy(() => import('../pages/SoilTesting'));
 const Disputes = lazy(() => import('../pages/Disputes'));
 const WebsiteSettings = lazy(() => import('../pages/WebsiteSettings'));
+const EquipmentApproval = lazy(() => import('../pages/EquipmentApproval'));
 
 
 
@@ -72,6 +73,7 @@ const AdminRoutes = () => {
           <Route path="bookings/km-photos" element={<BookingKmPhotos />} />
           <Route path="users/kyc" element={<KycVerification />} />
           <Route path="equipment-catalog/*" element={<UserCategories />} />
+          <Route path="equipment-approvals/*" element={<EquipmentApproval />} />
           <Route path="payments/*" element={<Payments />} />
           <Route path="reports/*" element={<Reports />} />
           <Route path="notifications/*" element={<Notifications />} />

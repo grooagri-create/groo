@@ -76,7 +76,8 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
       const response = await publicCatalogService.getServices({
         brandId: brandId,
         cityId: cityId,
-        categoryId: category?.id
+        categoryId: category?.id,
+        pricing_context: 'standalone' // Only show standalone machines here
       });
       if (response.success) {
         setServices(response.services || []);
@@ -101,80 +102,143 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
   };
 
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState(null);
+  const [availableImplements, setAvailableImplements] = useState([]);
+  const [selectedImplements, setSelectedImplements] = useState([]);
 
   const isRentalCategory = (categoryTitle) => {
     if (!categoryTitle) return false;
-    const rentals = ['tractor', 'harvester', 'drone', 'heavy', 'planting', 'irrigation', 'crop protection', 'land preparation', 'modern equipment'];
+    const rentals = ['tractor', 'harvester', 'drone', 'heavy', 'planting', 'irrigation', 'crop protection', 'land preparation', 'modern equipment', 'machinery', 'agriculture'];
     return rentals.some(r => categoryTitle.toLowerCase().includes(r));
   };
 
-  const handleServiceClick = (service) => {
-    // Check if we need to pick a slot
+  const handleServiceClick = async (service) => {
+    // Check if we need to pick attachments (implements)
     if (isRentalCategory(category?.title)) {
       setSelectedServiceForBooking(service);
-      setView('slots');
+      setLoading(true);
+      try {
+        // Find attachments where parentSourceId matches the parent category ID
+        const parentId = category?._id || category?.id;
+        const res = await publicCatalogService.getServices({
+          pricing_context: 'sub-category',
+          parentSourceId: parentId
+        });
+        if (res?.success && res.services?.length > 0) {
+          setAvailableImplements(res.services);
+          setSelectedImplements([]);
+          setView('attachments');
+        } else {
+          // No implements, direct add
+          processAddToCart(service);
+        }
+      } catch (err) {
+        console.error("Failed to fetch attachments:", err);
+        processAddToCart(service);
+      } finally {
+        setLoading(false);
+      }
     } else {
-      // Direct add for non-rentals (like Marketplace items if they were in categories, but here we handle usual services)
+      // Direct add for non-rentals
       processAddToCart(service);
     }
   };
 
-  const handleSlotSelection = (slot, date) => {
-    if (slot && date && selectedServiceForBooking) {
-      processAddToCart(selectedServiceForBooking, slot, date);
-    }
+  const calculateTotals = () => {
+    const parent = selectedServiceForBooking || {};
+    const total = {
+      hourly: parent.hourly_price || 0,
+      land: parent.land_price || 0,
+      daily: parent.daily_price || 0
+    };
+
+    selectedImplements.forEach(impl => {
+      total.hourly += (impl.hourly_price || 0);
+      total.land += (impl.land_price || 0);
+      total.daily += (impl.daily_price || 0);
+    });
+
+    return total;
   };
 
-  const processAddToCart = async (service, slot = null, date = null) => {
+  const toggleImplement = (impl) => {
+    setSelectedImplements(prev => {
+      const exists = prev.find(i => (i._id || i.id) === (impl._id || impl.id));
+      if (exists) {
+        return prev.filter(i => (i._id || i.id) !== (impl._id || impl.id));
+      }
+      return [...prev, impl];
+    });
+  };
+
+  const handleProcessWithAttachments = () => {
+    processAddToCart(selectedServiceForBooking, null, null, selectedImplements);
+  };
+
+  const processAddToCart = async (service, slot = null, date = null, implementsToAdd = []) => {
     // Add to cart logic
     try {
-      const cartItemData = {
-        serviceId: service.id || service._id,
-        categoryId: category?.id,
-        title: service.title,
-        description: service.description || '',
-        icon: toAssetUrl(service.icon || ''),
-        category: category?.title,
-        categoryTitle: category?.title || '', // Explicit field
-        categoryIcon: toAssetUrl(category?.homeIconUrl || category?.iconUrl || ''), // Explicit field
-        // Brand info — stored as sectionTitle/sectionIcon for booking flow
-        sectionId: selectedBrand?.id || selectedBrand?._id || null, // VITAL: Added for plan benefits
-        sectionTitle: selectedBrand?.title || '',
-        sectionIcon: toAssetUrl(selectedBrand?.iconUrl || selectedBrand?.icon || ''),
-        price: service.discountPrice || service.basePrice,
-        originalPrice: service.discountPrice ? service.basePrice : null,
-        unitPrice: service.discountPrice || service.basePrice,
-        serviceCount: 1,
-        rating: "4.8",
-        reviews: "1k+",
-        vendorId: service.vendorId || selectedBrand?.vendorId || null,
-        scheduledDate: date,
-        timeSlot: slot,
-        card: {
+      if (service) {
+        // Add parent machine first
+        await addToCart({
+          serviceId: service?._id || service?.id,
           title: service.title,
-          subtitle: service.description || '',
-          price: service.discountPrice || service.basePrice,
-          originalPrice: service.discountPrice ? service.basePrice : null,
-          duration: service.duration || '',
           description: service.description || '',
-          imageUrl: toAssetUrl(service.icon || ''),
-          features: service.features || []
-        }
-      };
+          icon: toAssetUrl(service.icon || ''),
+          price: service.hourly_price || service.price || service.discountPrice || service.basePrice || 0,
+          hourly_price: service.hourly_price,
+          land_price: service.land_price,
+          daily_price: service.daily_price,
+          categoryId: category?._id || category?.id,
+          categoryTitle: category?.title || 'Agriculture',
+          category: category?.title || 'Agriculture',
+          brandId: selectedBrand?._id || selectedBrand?.id,
+          sectionTitle: selectedBrand?.title || '',
+          sectionIcon: toAssetUrl(selectedBrand?.iconUrl || selectedBrand?.icon || ''),
+          scheduledDate: date,
+          timeSlot: slot
+        });
 
-      const response = await addToCart(cartItemData);
-      if (response.success) {
+        // Add selected implements
+        for (const impl of implementsToAdd) {
+          await addToCart({
+            serviceId: impl?._id || impl?.id,
+            title: impl.title,
+            description: impl.description || '',
+            icon: toAssetUrl(impl.icon || ''),
+            price: impl.hourly_price || impl.price || 0,
+            hourly_price: impl.hourly_price,
+            land_price: impl.land_price,
+            daily_price: impl.daily_price,
+            pricing_context: 'sub-category',
+            parentSourceId: service?._id || service?.id,
+            categoryId: category?._id || category?.id,
+            category: category?.title || 'Agriculture'
+          });
+        }
+        
         setIsRedirecting(true);
         setTimeout(() => {
-          navigate('/user/cart');
+          setIsRedirecting(false);
+          onClose();
+          // Fast-track for rentals, regular flow for others
+          const isRental = isRentalCategory(category?.title);
+          if (isRental) {
+            navigate('/user/checkout', {
+              state: {
+                category: category?.title,
+                rentalType: 'hourly'
+              }
+            });
+          } else {
+            navigate('/user/cart');
+          }
         }, 1200);
-      } else {
-        toast.error(response.message || 'Failed to add to cart');
       }
     } catch (error) {
-      toast.error('Failed to add to cart');
+      toast.error('Failed to add to cart. Try again.');
     }
   };
+
 
   if (!isOpen && !isClosing) return null;
   if (!mounted) return null;
@@ -254,15 +318,15 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                       </button>
                     )}
                     <div>
-                      <h1 className="text-xl font-bold text-gray-900">
+                      <h1 className="text-xl font-bold text-gray-900 line-clamp-1">
                         {view === 'brands'
                           ? (category?.title || 'Brands')
-                          : view === 'slots'
-                            ? 'Select Appointment'
+                          : view === 'attachments'
+                            ? `Attachments for ${selectedServiceForBooking?.title}`
                             : (selectedBrand?.title || 'Services')}
                       </h1>
-                      {view === 'services' && <p className="text-xs text-gray-500">Select a service to add</p>}
-                      {view === 'slots' && <p className="text-xs text-gray-500">Pick time for {selectedServiceForBooking?.title}</p>}
+                      {view === 'services' && <p className="text-xs text-gray-500">Select a machine to continue</p>}
+                      {view === 'attachments' && <p className="text-xs text-gray-500">Step 2: Choose tools required for your task</p>}
                     </div>
                     {loading && <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin ml-auto"></div>}
                   </div>
@@ -287,7 +351,7 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                               <div
                                 key={brand.id || brand._id}
                                 onClick={() => handleBrandClick(brand)}
-                                className="flex flex-col items-center cursor-pointer group active:scale-95 transition-all"
+                                className="flex flex-col items-center cursor-pointer group active:scale-95 transition-all text-center"
                               >
                                 <div className="w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mb-2 group-hover:bg-gray-100 transition-colors shadow-sm overflow-hidden border border-gray-100 relative">
                                   {brand.icon ? (
@@ -300,13 +364,8 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                                   ) : (
                                     <FiLayers className="w-8 h-8 text-gray-300" />
                                   )}
-                                  {brand.badge && (
-                                    <span className="absolute top-0 right-0 bg-purple-100 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded-bl-lg">
-                                      {brand.badge}
-                                    </span>
-                                  )}
                                 </div>
-                                <p className="text-[11px] font-bold text-gray-800 text-center leading-tight line-clamp-2 px-1">
+                                <p className="text-[11px] font-bold text-gray-800 leading-tight line-clamp-2 px-1">
                                   {brand.title}
                                 </p>
                               </div>
@@ -317,32 +376,145 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                             <p>No brands found in this category.</p>
                           </div>
                         )
-                      ) : view === 'slots' ? (
-                        <SlotPicker
-                          serviceId={selectedServiceForBooking?._id || selectedServiceForBooking?.id}
-                          onSlotSelect={handleSlotSelection}
-                        />
+                      ) : view === 'attachments' ? (
+                        // Attachments View
+                        <div className="space-y-6 pb-32">
+                          {/* Machine Summary Snippet */}
+                          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-4">
+                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                              {toAssetUrl(selectedServiceForBooking?.icon) ? (
+                                <img src={toAssetUrl(selectedServiceForBooking?.icon)} className="w-8 h-8 object-contain" />
+                              ) : <FiLayers className="w-6 h-6 text-slate-300" />}
+                            </div>
+                            <div>
+                                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Selected Machine</h4>
+                                <h3 className="font-black text-slate-800 text-sm">{selectedServiceForBooking?.title}</h3>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 max-h-[40vh] overflow-y-auto pr-1">
+                            {availableImplements.map((impl) => {
+                              const isSelected = selectedImplements.some(i => (i._id || i.id) === (impl._id || impl.id));
+                              return (
+                                <div
+                                  key={impl.id || impl._id}
+                                  onClick={() => toggleImplement(impl)}
+                                  className={`p-4 border-2 rounded-2xl flex flex-col gap-3 transition-all cursor-pointer ${
+                                    isSelected 
+                                      ? 'border-emerald-600 bg-emerald-50/50 shadow-md' 
+                                      : 'border-gray-100 bg-white hover:border-gray-200'
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <h3 className="font-extrabold text-gray-900 text-sm italic uppercase">{impl.title}</h3>
+                                      <p className="text-[10px] text-gray-400 font-medium line-clamp-1">{impl.description || 'Rental implement attachment'}</p>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                      isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-gray-200'
+                                    }`}>
+                                      {isSelected && <FiCheck className="w-4 h-4 text-white" />}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Pricing Row */}
+                                  <div className="grid grid-cols-3 gap-2 mt-1">
+                                    {impl.hourly_price > 0 && (
+                                      <div className="flex flex-col bg-white p-2 rounded-xl border border-gray-100 items-center">
+                                        <span className="text-[7px] font-black text-gray-400 uppercase">Hourly</span>
+                                        <span className="text-[11px] font-black text-emerald-700">+₹{impl.hourly_price}</span>
+                                      </div>
+                                    )}
+                                    {impl.land_price > 0 && (
+                                      <div className="flex flex-col bg-white p-2 rounded-xl border border-gray-100 items-center">
+                                        <span className="text-[7px] font-black text-gray-400 uppercase">Land (/Ac)</span>
+                                        <span className="text-[11px] font-black text-teal-700">+₹{impl.land_price}</span>
+                                      </div>
+                                    )}
+                                    {impl.daily_price > 0 && (
+                                      <div className="flex flex-col bg-white p-2 rounded-xl border border-gray-100 items-center">
+                                        <span className="text-[7px] font-black text-gray-400 uppercase">Daily</span>
+                                        <span className="text-[11px] font-black text-blue-700">+₹{impl.daily_price}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Sticky Summary / Total Bar */}
+                          <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-100 shadow-[0_-8px_24px_rgba(0,0,0,0.05)] z-50 rounded-t-3xl">
+                            <div className="flex flex-col gap-4">
+                                {/* Aggregated Prices Preview */}
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Hourly</span>
+                                        <span className="text-xl font-black text-slate-900">₹{calculateTotals().hourly}</span>
+                                    </div>
+                                    <div className="h-10 w-px bg-slate-100"></div>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Land</span>
+                                        <span className="text-xl font-black text-slate-900">₹{calculateTotals().land}</span>
+                                    </div>
+                                    <div className="h-10 w-px bg-slate-100"></div>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Daily</span>
+                                        <span className="text-xl font-black text-slate-900">₹{calculateTotals().daily}</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleProcessWithAttachments}
+                                    className="w-full py-4 rounded-2xl text-white font-extrabold text-base shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                                    style={{ 
+                                        backgroundColor: themeColors.button,
+                                        boxShadow: `0 8px 16px ${themeColors.brand.teal}3D`
+                                    }}
+                                >
+                                    Proceed to Booking ({selectedImplements.length + 1} Items)
+                                </button>
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         // Services List
                         services.length > 0 ? (
-                          <div className="space-y-4">
-                            {services.map((svc) => (
-                              <div key={svc.id || svc._id} className="flex justify-between items-center p-3 border border-gray-100 rounded-xl hover:shadow-md transition-shadow">
-                                <div className="flex-1">
-                                  <h3 className="font-bold text-gray-900">{svc.title}</h3>
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-sm font-black text-emerald-600">₹{svc.basePrice}</p>
-                                    {svc.discountPrice && <p className="text-xs text-slate-400 line-through">₹{svc.discountPrice}</p>}
+                          <div className="space-y-3">
+                            {services.map((svc) => {
+                              const isAgri = isRentalCategory(category?.title);
+                              return (
+                                <div key={svc.id || svc._id} className="p-4 border border-gray-100 rounded-2xl bg-white shadow-sm flex flex-col gap-3">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1 pr-4">
+                                      <h3 className="font-bold text-gray-900 text-base">{svc.title}</h3>
+                                      <p className="text-[10px] text-gray-400 font-medium line-clamp-1">{svc.description || 'Professional rental equipment service'}</p>
+                                    </div>
+                                    <button
+                                      onClick={() => handleServiceClick(svc)}
+                                      className="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-black flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+                                    >
+                                      <FiPlus className="w-4 h-4" /> Add
+                                    </button>
+                                  </div>
+
+                                  <div className="grid grid-cols-3 gap-2 py-3 px-2 bg-gray-50/50 rounded-xl border border-gray-50">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-wider">Hourly</span>
+                                      <span className="text-[13px] font-extrabold text-gray-900">₹{svc.hourly_price || svc.basePrice || 0}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center border-x border-gray-100">
+                                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-wider">Land (Acre)</span>
+                                      <span className="text-[13px] font-extrabold text-gray-900">₹{svc.land_price || 0}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[8.5px] font-black text-gray-400 uppercase tracking-wider">Daily</span>
+                                      <span className="text-[13px] font-extrabold text-gray-900">₹{svc.daily_price || 0}</span>
+                                    </div>
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() => handleServiceClick(svc)}
-                                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-emerald-700 shadow-sm"
-                                >
-                                  <FiPlus /> Add
-                                </button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="text-center py-12 text-gray-500">

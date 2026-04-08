@@ -87,7 +87,12 @@ const createService = async (req, res) => {
       gstPercentage,
       description,
       status,
-      iconUrl
+      iconUrl,
+      hourly_price,
+      land_price,
+      daily_price,
+      pricing_context,
+      parentSourceId
     } = req.body;
 
     // Verify brand exists
@@ -105,11 +110,16 @@ const createService = async (req, res) => {
       brandId,
       categoryId,
       title,
-      basePrice,
+      basePrice: basePrice || hourly_price || daily_price || land_price || 0,
       gstPercentage: gstPercentage || 18,
       description,
       status: status || SERVICE_STATUS.ACTIVE,
-      iconUrl
+      iconUrl,
+      hourly_price: hourly_price || 0,
+      land_price: land_price || 0,
+      daily_price: daily_price || 0,
+      pricing_context: pricing_context || 'any',
+      parentSourceId: parentSourceId || null
     });
 
     res.status(201).json({
@@ -171,6 +181,18 @@ const updateService = async (req, res) => {
     if (updates.status) service.status = updates.status;
     if (updates.iconUrl !== undefined) service.iconUrl = updates.iconUrl;
     if (updates.brandId) service.brandId = updates.brandId;
+    
+    // Rental Pricing Fields
+    if (updates.hourly_price !== undefined) service.hourly_price = updates.hourly_price;
+    if (updates.land_price !== undefined) service.land_price = updates.land_price;
+    if (updates.daily_price !== undefined) service.daily_price = updates.daily_price;
+    if (updates.pricing_context !== undefined) service.pricing_context = updates.pricing_context;
+    if (updates.parentSourceId !== undefined) service.parentSourceId = updates.parentSourceId || null;
+    
+    // Sync basePrice if it's not explicitly sent but rental rates are
+    if (updates.basePrice === undefined) {
+       service.basePrice = service.hourly_price || service.daily_price || service.land_price || service.basePrice;
+    }
 
     // Slugs are auto-updated if title changes via pre-save hook? 
     // Wait, the pre-save hook only runs if slug is empty or we explicitly modify it?

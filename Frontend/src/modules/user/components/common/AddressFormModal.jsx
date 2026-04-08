@@ -52,17 +52,23 @@ const AddressFormModal = ({ isOpen, onClose, address, onSave }) => {
 
   // Animate modal open/close
   useEffect(() => {
+    let ctx;
     if (isOpen && modalRef.current && backdropRef.current) {
-      // Open animation
-      gsap.fromTo(backdropRef.current, 
-        { opacity: 0 },
-        { opacity: 1, duration: 0.3, ease: 'power2.out' }
-      );
-      gsap.fromTo(modalRef.current,
-        { y: '100%', opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
-      );
+      ctx = gsap.context(() => {
+        // Open animation
+        gsap.fromTo(backdropRef.current, 
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, ease: 'power2.out' }
+        );
+        gsap.fromTo(modalRef.current,
+          { y: '100%', opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
+        );
+      });
     }
+    return () => {
+      if (ctx) ctx.revert();
+    };
   }, [isOpen]);
 
   const handleClose = () => {

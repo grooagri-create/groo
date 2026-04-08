@@ -30,7 +30,9 @@ const createBookingValidation = [
   body('scheduledDate').isISO8601().withMessage('Valid scheduled date is required'),
   body('scheduledTime').trim().notEmpty().withMessage('Scheduled time is required'),
   body('timeSlot.start').trim().notEmpty().withMessage('Time slot start is required'),
-  body('timeSlot.end').trim().notEmpty().withMessage('Time slot end is required')
+  body('timeSlot.end').trim().notEmpty().withMessage('Time slot end is required'),
+  body('endDate').optional({ nullable: true }).isISO8601().withMessage('Valid end date is required'),
+  body('estimatedDuration').optional({ nullable: true }).isNumeric().withMessage('Estimated duration must be a number')
 ];
 
 const cancelBookingValidation = [

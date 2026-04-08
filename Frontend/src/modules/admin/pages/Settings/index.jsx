@@ -23,6 +23,13 @@ const AdminSettings = () => {
     platformFeePercentage: 1
   });
 
+  // Agriculture Machine Renting Settings
+  const [rentalSettings, setRentalSettings] = useState({
+    rentalGstPercentage: 5,
+    rentalPayoutPercentage: 90
+  });
+  const [rentalLoading, setRentalLoading] = useState(false);
+
   // Billing Configuration State
   const [billingSettings, setBillingSettings] = useState({
     companyName: 'TodayMyDream',
@@ -116,6 +123,11 @@ const AdminSettings = () => {
             platformFeePercentage: res.settings.platformFeePercentage || 1,
             vendorCashLimit: res.settings.vendorCashLimit || 10000,
             cancellationPenalty: res.settings.cancellationPenalty !== undefined ? res.settings.cancellationPenalty : 49
+          });
+          // Load rental settings
+          setRentalSettings({
+            rentalGstPercentage: res.settings.rentalGstPercentage ?? 5,
+            rentalPayoutPercentage: res.settings.rentalPayoutPercentage ?? 90
           });
           // Load billing settings
           setBillingSettings({
@@ -211,6 +223,24 @@ const AdminSettings = () => {
       toast.error('Failed to update settings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRentalChange = (e) => {
+    const { name, value } = e.target;
+    setRentalSettings(prev => ({ ...prev, [name]: Number(value) }));
+  };
+
+  const handleRentalSave = async (e) => {
+    e.preventDefault();
+    setRentalLoading(true);
+    try {
+      await updateSettings(rentalSettings);
+      toast.success('Agriculture Renting settings updated!');
+    } catch (error) {
+      toast.error('Failed to update renting settings');
+    } finally {
+      setRentalLoading(false);
     }
   };
 
@@ -471,6 +501,17 @@ const AdminSettings = () => {
           </div>
           <h3 className="text-lg font-bold text-gray-800 mb-2">Manage Admins</h3>
           <p className="text-sm text-gray-500">Add, remove, and view all system administrators</p>
+        </div>
+      )}
+      {/* Agriculture Renting Settings Card - Super Admin Only */}
+      {isSuperAdmin && (
+        <div onClick={() => setActiveView('rental')}
+          className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group">
+          <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-4 group-hover:bg-orange-100 transition-colors">
+            <span className="text-2xl">🚜</span>
+          </div>
+          <h3 className="text-lg font-bold text-gray-800 mb-2">Agriculture Renting</h3>
+          <p className="text-sm text-gray-500">Configure GST and payout % for machine rentals</p>
         </div>
       )}
     </div>
@@ -804,6 +845,66 @@ const AdminSettings = () => {
             </motion.div>
           )
         }
+
+        {/* City Management View */}
+        {activeView === 'rental' && (
+          <motion.div key="rental" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}
+            className="max-w-lg mx-auto">
+            <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-2xl">🚜</div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">Agriculture Renting Settings</h2>
+                  <p className="text-xs text-gray-500">These values apply ONLY to machine rental bookings, not to E-commerce or Soil Testing.</p>
+                </div>
+              </div>
+
+              <div className="mb-4 p-3 rounded-lg bg-orange-50 border border-orange-100 text-xs text-orange-700">
+                ⚠️ <strong>Note:</strong> Normal services use <strong>18% GST</strong>. Agriculture equipment rentals typically use <strong>5% GST</strong> as per Indian tax law.
+              </div>
+
+              <form onSubmit={handleRentalSave} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Rental GST (%)</label>
+                  <input
+                    type="number" name="rentalGstPercentage"
+                    value={rentalSettings.rentalGstPercentage}
+                    onChange={handleRentalChange}
+                    min="0" max="100"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-orange-500 transition-all"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">GST rate applied on machine rental billing (recommended: 5%)</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Equipment Owner Payout (%)</label>
+                  <input
+                    type="number" name="rentalPayoutPercentage"
+                    value={rentalSettings.rentalPayoutPercentage}
+                    onChange={handleRentalChange}
+                    min="0" max="100"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-orange-500 transition-all"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">% of base rental charge that goes to the Equipment Owner (recommended: 90%)</p>
+                </div>
+
+                <div className="pt-2 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <p className="text-xs font-semibold text-gray-600 mb-1">Live Preview</p>
+                  <p className="text-xs text-gray-500">
+                    For a ₹1000 rental job → Owner earns <strong>₹{rentalSettings.rentalPayoutPercentage * 10}</strong>, App earns <strong>₹{(100 - rentalSettings.rentalPayoutPercentage) * 10}</strong>, GST collected = <strong>₹{rentalSettings.rentalGstPercentage * 10}</strong>
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <button type="submit" disabled={rentalLoading}
+                    className="px-8 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 flex items-center gap-2 disabled:opacity-60 shadow-lg shadow-orange-200 transition-all">
+                    {rentalLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <FiSave className="w-5 h-5" />}
+                    Save Rental Settings
+                  </button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
 
         {/* City Management View */}
         {

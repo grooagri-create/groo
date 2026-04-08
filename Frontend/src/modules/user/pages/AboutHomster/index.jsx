@@ -24,9 +24,9 @@ const AboutGrooAgri = () => {
   }, []);
 
   // Gradient Definition for re-use in inline styles
-  const homsterGradient = 'linear-gradient(135deg, #347989 0%, #BB5F36 100%)';
-  const homsterTextGradient = {
-    background: homsterGradient,
+  const grooGradient = 'linear-gradient(135deg, #347989 0%, #BB5F36 100%)';
+  const grooTextGradient = {
+    background: grooGradient,
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   };
@@ -64,7 +64,7 @@ const AboutGrooAgri = () => {
     <div ref={containerRef} className="min-h-screen bg-gray-50 pb-10">
       {/* SVG Gradient Definition */}
       <svg width="0" height="0" className="absolute">
-        <linearGradient id="homster-about-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="groo-about-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#347989" />
           <stop offset="50%" stopColor="#D68F35" />
           <stop offset="100%" stopColor="#BB5F36" />
@@ -80,7 +80,7 @@ const AboutGrooAgri = () => {
           >
             <FiArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <span className="text-xl font-bold" style={homsterTextGradient}>About GrooAgri</span>
+          <span className="text-xl font-bold" style={grooTextGradient}>About GrooAgri</span>
         </div>
       </header>
 
@@ -103,7 +103,7 @@ const AboutGrooAgri = () => {
           </div>
 
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-            Welcome to <span style={homsterTextGradient}>GrooAgri</span>
+            Welcome to <span style={grooTextGradient}>GrooAgri</span>
           </h1>
           <p className="text-gray-500 max-w-xs mx-auto leading-relaxed">
             Your trusted partner for premium agriculture and farm care services.
@@ -148,7 +148,7 @@ const AboutGrooAgri = () => {
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300"
                   style={{ background: 'linear-gradient(135deg, rgba(52, 121, 137, 0.1), rgba(187, 95, 54, 0.1))' }}>
-                  <feature.icon className="w-5 h-5" style={{ stroke: 'url(#homster-about-gradient)' }} />
+                  <feature.icon className="w-5 h-5" style={{ stroke: 'url(#groo-about-gradient)' }} />
                 </div>
                 <h4 className="text-sm font-bold text-gray-800 mb-1">{feature.title}</h4>
                 <p className="text-xs text-gray-500 leading-relaxed">{feature.description}</p>
@@ -183,7 +183,7 @@ const AboutGrooAgri = () => {
         {/* Footer Info */}
         <div className="animate-item text-center pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-400 mb-1">Designed & Developed by</p>
-          <span className="text-sm font-bold tracking-wide" style={homsterTextGradient}>GrooAgri Team</span>
+          <span className="text-sm font-bold tracking-wide" style={grooTextGradient}>GrooAgri Team</span>
           <p className="text-[10px] text-gray-300 mt-4">v1.2.1 • Made with ❤️ in India</p>
         </div>
       </main>

@@ -137,7 +137,7 @@ const ActiveJobs = memo(() => {
         // Jobs that are assigned but not yet in progress or completed
         matchesFilter = ['ASSIGNED', 'WORKER_ACCEPTED'].includes(status) || (!!job.assignedTo && ['ACCEPTED', 'CONFIRMED'].includes(status));
       } else if (filter === 'in_progress') {
-        matchesFilter = ['ACCEPTED', 'ASSIGNED', 'STARTED', 'JOURNEY_STARTED', 'REACHED', 'VISITED', 'WORK_DONE', 'IN_PROGRESS', 'ON_THE_WAY'].includes(status);
+        matchesFilter = ['ACCEPTED', 'CONFIRMED', 'AWAITING_PAYMENT', 'PENDING', 'ASSIGNED', 'WORKER_ACCEPTED', 'STARTED', 'JOURNEY_STARTED', 'REACHED', 'VISITED', 'WORK_DONE', 'IN_PROGRESS', 'ON_THE_WAY'].includes(status);
       } else if (filter === 'completed') {
         matchesFilter = ['COMPLETED', 'WORKER_PAID', 'SETTLEMENT_PENDING', 'PAID', 'CLOSED'].includes(status);
       }

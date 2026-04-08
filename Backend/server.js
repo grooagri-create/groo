@@ -166,6 +166,7 @@ app.use('/api/vendors', require('./routes/vendor-routes/vendorBill.routes'));
 
 app.use('/api/vendors/maintenance', require('./routes/vendor-routes/maintenance.routes'));
 app.use('/api/vendors/compliance', require('./routes/vendor-routes/compliance.routes'));
+app.use('/api/vendors/equipment', require('./routes/vendor-routes/equipment.routes'));
 
 // Worker routes
 app.use('/api/workers/auth', require('./routes/worker-routes/auth.routes'));
@@ -181,7 +182,9 @@ app.use('/api/admin', require('./routes/admin-routes/cityManagement.routes.js'))
 app.use('/api/admin', require('./routes/admin-routes/dashboard.routes'));
 app.use('/api/admin', require('./routes/admin-routes/userManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/vendorManagement.routes'));
-app.use('/api/admin', require('./routes/admin-routes/workerManagement.routes'));
+app.use('/api/admin/workers', require('./routes/admin-routes/workerManagement.routes'));
+app.use('/api/admin/equipment', require('./routes/admin-routes/equipmentManagement.routes'));
+app.use('/api/admin/reports', require('./routes/admin-routes/reportManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/categoryManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/brandManagement.routes'));
 app.use('/api/admin', require('./routes/admin-routes/serviceManagement.routes'));
@@ -238,6 +241,7 @@ app.use('/api/public', require('./routes/public-routes/config.routes'));
 app.use('/api/products', require('./routes/public-routes/product.routes'));
 app.use('/api/weather', require('./routes/common-routes/weather.routes'));
 app.use('/api/availabilities', require('./routes/common-routes/availability.routes'));
+app.use('/api/public/equipment', require('./routes/public-routes/equipment.routes'));
 app.use('/api/v1/translate', require('./routes/common-routes/translation.routes'));
 
 // 404 handler

@@ -159,10 +159,16 @@ export const ensureIds = (catalog) => {
       homeOrder: Number.isFinite(c.homeOrder) ? c.homeOrder : 0,
       // Preserve additional fields
       cityIds: c.cityIds || [],
+      parentCategory: c.parentCategory || null,
+      parentCategories: Array.isArray(c.parentCategories) ? c.parentCategories : [],
+      isAlwaysMain: Boolean(c.isAlwaysMain),
       description: c.description || "",
       imageUrl: c.imageUrl || "",
       status: c.status || "active",
       isPopular: Boolean(c.isPopular),
+      // Machinery Classification
+      trackingType: c.trackingType || "none",
+      requiresDriver: Boolean(c.requiresDriver),
     })),
     services: (catalog.services || []).map((s) => ({
       id: s.id || `usvc-${Date.now()}-${Math.random().toString(16).slice(2)}`,

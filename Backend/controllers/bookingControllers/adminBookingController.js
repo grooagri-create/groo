@@ -13,6 +13,8 @@ const getAllBookings = async (req, res) => {
       userId,
       vendorId,
       workerId,
+      rental_type,
+      serviceCategory,
       startDate,
       endDate,
       search,
@@ -28,6 +30,8 @@ const getAllBookings = async (req, res) => {
     if (userId) query.userId = userId;
     if (vendorId) query.vendorId = vendorId;
     if (workerId) query.workerId = workerId;
+    if (rental_type) query.rental_type = rental_type;
+    if (serviceCategory) query.serviceCategory = serviceCategory;
 
     if (startDate || endDate) {
       query.scheduledDate = {};

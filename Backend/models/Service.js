@@ -71,9 +71,25 @@ const serviceSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  monthly_price: {
+  daily_price: {
     type: Number,
     default: 0
+  },
+  // ==========================================
+  // CONTEXTUAL PRICING (New)
+  // Differentiates between Standalone vs Sub-category Implement pricing
+  // ==========================================
+  pricing_context: {
+    type: String,
+    enum: ['standalone', 'sub-category', 'any'],
+    default: 'any'
+  },
+  // If context is 'sub-category', this specifies the parent it applies to
+  // (e.g. Rate for 'Rotavator' when rented with 'Mahindra Tractor')
+  parentSourceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    default: null
   },
   equipment_features: [{
     type: String

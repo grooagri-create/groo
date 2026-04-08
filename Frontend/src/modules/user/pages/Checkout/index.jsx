@@ -12,6 +12,7 @@ import { bookingService } from '../../../../services/bookingService';
 import { paymentService } from '../../../../services/paymentService';
 import { cartService } from '../../../../services/cartService';
 import { configService } from '../../../../services/configService';
+import { publicCatalogService } from '../../../../services/catalogService';
 import { getPlans } from '../../services/planService';
 import { userAuthService } from '../../../../services/authService';
 import { useCart } from '../../../../context/CartContext';
@@ -61,11 +62,14 @@ const Checkout = () => {
   const [visitedFee, setVisitedFee] = useState(29);
   const [gstPercentage, setGstPercentage] = useState(18);
   const [bookingType, setBookingType] = useState('instant'); // 'instant' | 'scheduled'
-  // ── Agriculture: Rental Type State (New - additive only) ──
-  const [rentalType, setRentalType] = useState('hourly'); // 'hourly' | 'land_based' | 'monthly'
+  // ── Agriculture: Rental Type State (pre-filled from Cart navigation state) ──
+  const [rentalType, setRentalType] = useState(location.state?.rentalType || 'hourly'); // 'hourly' | 'land_based' | 'daily'
   const [cropType, setCropType] = useState('');           // Agriculture: crop type
-  const [landSize, setLandSize] = useState('');           // Agriculture: area in acres
-  // ──────────────────────────────────────────────────────────
+  const [landSize, setLandSize] = useState(1);           // Agriculture: area in acres
+  const [endDate, setEndDate] = useState(null);           // Agriculture: end date for ranges
+  const [estimatedDuration, setEstimatedDuration] = useState(1); // Agriculture: hours for hourly
+  const [localDays, setLocalDays] = useState(1);         // Agriculture: days for daily
+
 
   // Check if Razorpay is loaded (defer to avoid blocking initial render)
   useEffect(() => {
@@ -87,49 +91,68 @@ const Checkout = () => {
     }
   }, []);
 
-  // Load user data and cart
+  // Load user data once on mount
   useEffect(() => {
     const loadUserData = () => {
-      const storedUserData = localStorage.getItem('userData');
-      if (storedUserData) {
-        const userData = JSON.parse(storedUserData);
-        if (userData.phone) {
-          setUserPhone(userData.phone);
+      try {
+        const storedUserData = localStorage.getItem('userData');
+        if (storedUserData && storedUserData !== 'undefined') {
+          const userData = JSON.parse(storedUserData);
+          if (userData && userData.phone) {
+            setUserPhone(userData.phone);
+          }
+          // Initialize contact details for editing
+          if (userData) {
+            setContactDetails({
+              name: userData.name || '',
+              phone: userData.phone || ''
+            });
+          }
         }
-        // Initialize contact details for editing
-        setContactDetails({
-          name: userData.name || '',
-          phone: userData.phone || ''
-        });
+      } catch (err) {
+        console.error("Failed to parse user data:", err);
       }
     };
     loadUserData();
 
-    // Refresh on focus to catch updates from profile page
+    // Refresh on focus
     window.addEventListener('focus', loadUserData);
     return () => window.removeEventListener('focus', loadUserData);
   }, []);
 
+  // Main Initialization Effect
   useEffect(() => {
-    // Load config settings
-    const loadConfig = async () => {
-      try {
-        const response = await configService.getSettings();
-        if (response.success && response.settings) {
-          if (!plan) setVisitedFee(response.settings.visitedCharges || 29);
-          else setVisitedFee(0);
-          setGstPercentage(response.settings.serviceGstPercentage || 18);
-        }
-      } catch (error) {
-        console.error('Failed to load config', error);
-      }
-    };
+    let active = true;
 
-    const loadUserAddresses = async () => {
+    // Safety timeout: Ensure loading finishes eventually
+    const safetyTimeout = setTimeout(() => {
+      if (active) setLoading(false);
+    }, 5000);
+
+    const initializeData = async () => {
       try {
-        const response = await userAuthService.getProfile();
-        if (response.success && response.user?.addresses?.length > 0) {
-          const defaultAddr = response.user.addresses.find(a => a.isDefault) || response.user.addresses[0];
+        if (active) setLoading(true);
+
+        // Pre-initialize config and profile in parallel
+        const [configRes, profileRes] = await Promise.allSettled([
+          configService.getSettings(),
+          userAuthService.getProfile()
+        ]);
+
+        if (!active) return;
+
+        // Apply config
+        if (configRes.status === 'fulfilled' && configRes.value.success) {
+          const settings = configRes.value.settings;
+          if (!plan) setVisitedFee(settings.visitedCharges || 29);
+          else setVisitedFee(0);
+          setGstPercentage(settings.serviceGstPercentage || 18);
+        }
+
+        // Apply profile / addresses
+        if (profileRes.status === 'fulfilled' && profileRes.value.success && profileRes.value.user?.addresses?.length > 0) {
+          const addresses = profileRes.value.user.addresses;
+          const defaultAddr = addresses.find(a => a.isDefault) || addresses[0];
           setAddress(defaultAddr.addressLine1);
           setHouseNumber(defaultAddr.addressLine2 || '');
           setAddressDetails({
@@ -142,66 +165,54 @@ const Checkout = () => {
             pincode: defaultAddr.pincode
           });
         }
+
+        // Handle Plan vs Cart
+        if (plan) {
+          setCartItems([{
+            id: plan.id,
+            name: plan.name,
+            price: plan.price,
+            description: plan.description,
+            isPlan: true,
+            serviceCount: 1
+          }]);
+        } else {
+          const cartRes = await cartService.getCart();
+          if (active && cartRes.success) {
+            let items = cartRes.data || [];
+            if (category) {
+              const normalizedCategory = category.toLowerCase().trim();
+              items = items.filter(item => {
+                const itemCat = (item.category || item.categoryTitle || 'Other').toLowerCase().trim();
+                return itemCat === normalizedCategory;
+              });
+            }
+            setCartItems(items);
+            
+            // Auto-select date/time if exists in cart
+            const itemWithSlot = items.find(i => i.scheduledDate || i.timeSlot);
+            if (itemWithSlot) {
+              if (itemWithSlot.scheduledDate) setSelectedDate(new Date(itemWithSlot.scheduledDate));
+              if (itemWithSlot.timeSlot) setSelectedTime(itemWithSlot.timeSlot.id || itemWithSlot.timeSlot.start);
+              setBookingType('scheduled');
+            }
+          }
+        }
       } catch (error) {
-        console.error('Failed to load user addresses', error);
+        console.error("Checkout Initialization Failed:", error);
+      } finally {
+        if (active) setLoading(false);
+        clearTimeout(safetyTimeout);
       }
     };
 
-    if (plan) {
-      setCartItems([{
-        id: plan.id,
-        name: plan.name,
-        price: plan.price,
-        description: plan.description,
-        isPlan: true,
-        serviceCount: 1
-      }]);
-      setLoading(false);
-      loadConfig();
-      loadUserAddresses();
-    } else {
-      loadCart();
-      loadConfig();
-      loadUserAddresses();
-    }
+    initializeData();
+
+    return () => {
+      active = false;
+      clearTimeout(safetyTimeout);
+    };
   }, [category, plan]);
-
-  const loadCart = async () => {
-    try {
-      setLoading(true);
-      const response = await cartService.getCart();
-      if (response.success) {
-        let items = response.data || [];
-        if (category) {
-          const normalizedCategory = category.toLowerCase().trim();
-          items = items.filter(item => {
-            const itemCat = (item.category || 'Other').toLowerCase().trim();
-            return itemCat === normalizedCategory;
-          });
-        }
-        setCartItems(items);
-
-        // ── Agriculture: Check for pre-selected slot ──
-        const itemWithSlot = items.find(i => i.scheduledDate || i.timeSlot);
-        if (itemWithSlot) {
-          if (itemWithSlot.scheduledDate) {
-            setSelectedDate(new Date(itemWithSlot.scheduledDate));
-          }
-          if (itemWithSlot.timeSlot) {
-            setSelectedTime(itemWithSlot.timeSlot.id || itemWithSlot.timeSlot.start);
-          }
-          setBookingType('scheduled');
-        }
-        // ──────────────────────────────────────────────
-      } else {
-        setCartItems([]);
-      }
-    } catch (error) {
-      setCartItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const cartCount = cartItems.length;
 
@@ -364,7 +375,17 @@ const Checkout = () => {
 
         paymentMethod: 'online',
         rental_type: rentalType,
-        bookedItems: bookedItemsData
+        bookedItems: bookedItemsData,
+        
+        // --- AGRICULTURE SPECIFIC ---
+        landSize: landSize || 1,
+        cropType: cropType || '',
+        estimatedDuration: estimatedDuration || 1,
+        selectedImplements: selectedImplements.map(impl => ({
+          subCategoryId: impl._id,
+          title: impl.title,
+          pricing: impl.pricing || {}
+        }))
       });
 
       if (response.success) {
@@ -508,7 +529,13 @@ const Checkout = () => {
         end: getTimeSlots().find(slot => slot.value === selectedTime)?.end || selectedTime
       };
 
-      if (bookingType === 'instant') {
+      if (rentalType === 'daily' || rentalType === 'monthly') {
+        finalTimeDisplay = 'Full Day';
+        timeSlotObj = { 
+          start: '00:00', 
+          end: '23:59' 
+        };
+      } else if (bookingType === 'instant') {
         finalDate = new Date();
         finalTimeDisplay = "ASAP";
         timeSlotObj = { start: "Now", end: "45 mins" };
@@ -526,23 +553,37 @@ const Checkout = () => {
 
       // Prepare bookedItems array matching Service catalog structure
       // Prepare bookedItems array matching Service catalog structure
+      // Prepare bookedItems array highlighting different item types
       const bookedItemsData = cartItems.map(item => ({
         brandName: item.sectionTitle || item.brand || '',
         brandIcon: item.sectionIcon || null,
         card: {
-          title: item.card?.title || item.title || 'Unknown Service',
-          subtitle: item.card?.subtitle || item.description || '',
-          price: item.card?.price || item.price || 0,
-          originalPrice: item.card?.originalPrice || item.originalPrice || null,
-          duration: item.card?.duration || item.duration || '',
-          description: item.card?.description || item.description || '',
-          imageUrl: item.card?.imageUrl || item.icon || '',
-          features: item.card?.features || []
+          title: item.title || 'Unknown Service',
+          subtitle: item.description || '',
+          price: (item.hourly_price || item.land_price || item.daily_price || item.price || 0),
+          originalPrice: item.originalPrice || null,
+          duration: item.duration || '',
+          description: item.description || '',
+          imageUrl: item.icon || '',
+          features: item.features || []
         },
-        quantity: item.serviceCount || 1
+        quantity: item.serviceCount || 1,
+        serviceId: item.serviceId?._id || item.serviceId?.id || item.serviceId,
+        pricing_context: item.pricing_context || 'any'
       }));
 
-
+      // Identify implements (sub-categories) to pass separately for Agri logic
+      const selectedImplementsFromCart = cartItems
+        .filter(item => item.pricing_context === 'sub-category')
+        .map(impl => ({
+          subCategoryId: impl.serviceId?._id || impl.serviceId?.id || impl.serviceId,
+          title: impl.title,
+          pricing: {
+            hourly: { price: impl.hourly_price, isEnabled: !!impl.hourly_price },
+            land_based: { price: impl.land_price, isEnabled: !!impl.land_price },
+            daily: { price: impl.daily_price, isEnabled: !!impl.daily_price }
+          }
+        }));
 
       const bookingResponse = await bookingService.create({
         bookingType, // 'instant' or 'scheduled'
@@ -551,11 +592,12 @@ const Checkout = () => {
         scheduledDate: finalDate.toISOString(),
         scheduledTime: finalTimeDisplay,
         timeSlot: timeSlotObj,
-        // userNotes: null, // Removed per request
-        paymentMethod: amountToPay === 0 ? 'plan_benefit' : 'pay_at_home',
+        paymentMethod: amountToPay === 0 ? 'plan_benefit' : (paymentMethod === 'online' ? 'online' : 'pay_at_home'),
         rental_type: rentalType,
         cropType,
         landSize,
+        endDate: (rentalType === 'monthly' || rentalType === 'daily') && endDate ? endDate.toISOString() : undefined,
+        estimatedDuration: rentalType === 'hourly' ? (Number(estimatedDuration) || undefined) : (['daily', 'monthly'].includes(rentalType) ? (Number(localDays) || undefined) : undefined),
         amount: amountToPay,
 
         // Pass Full Breakdown to Backend
@@ -565,12 +607,13 @@ const Checkout = () => {
         visitationFee: finalVisitedFee,
 
         // Metadata for better data capture
-        serviceCategory: firstItem.categoryTitle || firstItem.category || 'General',
+        serviceCategory: firstItem.categoryTitle || firstItem.category || 'Agriculture',
         categoryIcon: firstItem.categoryIcon || firstItem.icon || null,
         brandName: firstItem.sectionTitle || firstItem.brand || '',
         brandIcon: firstItem.sectionIcon || null,
 
-        bookedItems: bookedItemsData
+        bookedItems: bookedItemsData,
+        selectedImplements: selectedImplementsFromCart
       });
 
       if (!bookingResponse.success) {
@@ -675,7 +718,7 @@ const Checkout = () => {
         amount: orderResponse.data.amount * 100,
         currency: orderResponse.data.currency || 'INR',
         order_id: orderResponse.data.orderId,
-        name: 'Homster',
+        name: 'Groo',
         description: `Payment for ${bookingRequest.serviceName || 'service'}`,
         handler: async function (response) {
           try {
@@ -831,9 +874,13 @@ const Checkout = () => {
     }
   };
 
-  const handleTimeSlotSave = (date, time) => {
+  const handleTimeSlotSave = (date, time, extra = {}) => {
     setSelectedDate(date);
     setSelectedTime(time);
+    if (extra.endDate) setEndDate(extra.endDate);
+    if (extra.estimatedDuration) setEstimatedDuration(extra.estimatedDuration);
+    if (extra.landSize) setLandSize(extra.landSize);
+    if (extra.localDays) setLocalDays(extra.localDays);
     setShowTimeSlotModal(false);
   };
 
@@ -878,7 +925,7 @@ const Checkout = () => {
           key,
           amount: amount * 100,
           currency: 'INR',
-          name: 'Homster',
+          name: 'Groo',
           description: `Payment for ${plan.name} ${isUpgrade ? '(Upgrade)' : ''}`,
           order_id: orderId,
           handler: async (response) => {
@@ -971,13 +1018,16 @@ const Checkout = () => {
 
     // 1. Determine Base Price (Handles Agri Rental Logic)
     let basePrice = item.price || 0;
-    const isAgri = item.categoryTitle === 'Agriculture' || item.category === 'Agriculture';
+    // Data-driven: any item with rental price fields is treated as machinery
+    const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+    const isAgri = !!(svc.hourly_price || svc.land_price || svc.daily_price ||
+      item.hourly_price || item.land_price || item.daily_price ||
+      item.categoryTitle === 'Agriculture' || item.category === 'Agriculture');
 
     if (isAgri) {
-      const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
-      if (rentalType === 'hourly') basePrice = svc.hourly_price || basePrice;
-      else if (rentalType === 'land_based') basePrice = svc.land_price || basePrice;
-      else if (rentalType === 'monthly') basePrice = svc.monthly_price || basePrice;
+      if (rentalType === 'hourly') basePrice = svc.hourly_price || item.hourly_price || basePrice;
+      else if (rentalType === 'land_based') basePrice = svc.land_price || item.land_price || basePrice;
+      else if (rentalType === 'daily' || rentalType === 'monthly') basePrice = svc.daily_price || item.daily_price || basePrice;
     }
 
     // 2. Identify Item for Plan Matching
@@ -994,42 +1044,67 @@ const Checkout = () => {
       return 0;
     }
 
-    // 4. Check for Partial Discounts (Agri-Specific)
-    const isRental = !!(item.rental_type || isAgri);
-    const isProduct = item.type === 'product' || item.category === 'Marketplace';
-
-    if (isRental && planBenefits.rentalDiscountPercentage > 0) {
-      return Math.round(basePrice * (1 - planBenefits.rentalDiscountPercentage / 100));
+    // 4. Multiply by Quantity (Dynamic Multipliers for Agri)
+    let qty = 1;
+    if (isAgri) {
+      if (rentalType === 'hourly') qty = parseFloat(estimatedDuration) || 1;
+      else if (rentalType === 'land_based') qty = parseFloat(landSize) || 1;
+      else if (rentalType === 'daily' || rentalType === 'monthly') qty = parseFloat(localDays) || 1;
     }
 
-    if (isProduct && planBenefits.marketplaceDiscountPercentage > 0) {
-      return Math.round(basePrice * (1 - planBenefits.marketplaceDiscountPercentage / 100));
-    }
+    const discountedPrice = (() => {
+      const isRental = !!(item.rental_type || isAgri);
+      const isProduct = item.type === 'product' || item.category === 'Marketplace';
 
-    return basePrice;
+      if (isRental && planBenefits.rentalDiscountPercentage > 0) {
+        return Math.round(basePrice * (1 - planBenefits.rentalDiscountPercentage / 100));
+      }
+      if (isProduct && planBenefits.marketplaceDiscountPercentage > 0) {
+        return Math.round(basePrice * (1 - planBenefits.marketplaceDiscountPercentage / 100));
+      }
+      return basePrice;
+    })();
+
+    return discountedPrice * qty;
   };
 
   const itemTotal = cartItems.reduce((sum, item) => sum + calculateItemPrice(item), 0);
   // Calculate savings including Plan Savings
   const totalOriginalPrice = cartItems.reduce((sum, item) => {
-    const isAgri = item.categoryTitle === 'Agriculture' || item.category === 'Agriculture' || item.serviceCategory === 'Agriculture';
+    const svcO = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+    const isAgri = !!(svcO.hourly_price || svcO.land_price || svcO.daily_price ||
+      item.hourly_price || item.land_price || item.daily_price ||
+      item.categoryTitle === 'Agriculture' || item.category === 'Agriculture');
     let base = (item.originalPrice || item.unitPrice || (item.price / (item.serviceCount || 1)));
 
-    // Dynamic price adjustment for Agriculture display
+    // Sync guideline rates for estimates
     if (isAgri) {
-      const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
-      if (rentalType === 'hourly') base = svc.hourly_price || base;
-      else if (rentalType === 'land_based') base = svc.land_price || base;
-      else if (rentalType === 'monthly') base = svc.monthly_price || base;
+      if (rentalType === 'hourly') base = svcO.hourly_price || item.hourly_price || base;
+      else if (rentalType === 'land_based') base = svcO.land_price || item.land_price || base;
+      else if (rentalType === 'daily' || rentalType === 'monthly') base = svcO.daily_price || item.daily_price || base;
     }
 
-    const original = base * (item.serviceCount || 1);
+    // Dynamic quantity for Agriculture
+    let qty = 1;
+    if (isAgri) {
+      if (rentalType === 'hourly') qty = parseFloat(estimatedDuration) || 1;
+      else if (rentalType === 'land_based') qty = parseFloat(landSize) || 1;
+      else if (rentalType === 'daily') qty = parseFloat(localDays) || 1;
+      else if (rentalType === 'monthly') qty = (parseFloat(estimatedDuration) || 1) * 30;
+    }
+
+    const original = base * qty * (item.serviceCount || 1);
     // If priced 0, original is huge saving
     return sum + original;
   }, 0);
 
   const savings = totalOriginalPrice - itemTotal;
-  const hasAgriItems = cartItems.some(item => item.categoryTitle === 'Agriculture' || item.category === 'Agriculture' || item.category === 'Marketplace');
+  const hasAgriItems = cartItems.some(item => {
+    const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+    return !!(svc.hourly_price || svc.land_price || svc.daily_price ||
+      item.hourly_price || item.land_price || item.daily_price ||
+      item.categoryTitle === 'Agriculture' || item.category === 'Agriculture');
+  });
   const currentGst = hasAgriItems ? 5 : gstPercentage;
   const taxesAndFee = Math.round((itemTotal * currentGst) / 100);
   // Visited fee logic: if Total is 0 (All free), user might still pay visited fee?
@@ -1209,6 +1284,10 @@ const Checkout = () => {
           {cartItems.map((item) => {
             const brandName = item.brand || item.sectionTitle;
             const categoryName = item.categoryTitle || item.category;
+            const itemSvc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+            const isAgri = !!(itemSvc.hourly_price || itemSvc.land_price || itemSvc.daily_price ||
+              item.hourly_price || item.land_price || item.daily_price ||
+              categoryName === 'Agriculture');
 
             return (
               <div key={item._id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
@@ -1242,7 +1321,7 @@ const Checkout = () => {
                       </div>
                     )}
                   </div>
-                  {!item.isPlan && (
+                  {!item.isPlan && !isAgri && (
                     <div className="flex flex-col items-end gap-2">
                       <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-0.5">
                         <button
@@ -1270,32 +1349,53 @@ const Checkout = () => {
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-bold text-black">
-                    {calculateItemPrice(item) === 0 ? (
-                      <span className="text-green-600">Free</span>
-                    ) : (
-                      `₹${(item.price || 0).toLocaleString('en-IN')}`
-                    )}
-                  </span>
-                  {calculateItemPrice(item) === 0 && (
-                    <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
-                      WITH PLAN
-                    </span>
-                  )}
-                  {calculateItemPrice(item) > 0 && (() => {
-                    const unitPrice = item.unitPrice || (item.price / (item.serviceCount || 1));
-                    const unitOriginalPrice = item.originalPrice || unitPrice;
-                    const currentTotal = item.price;
-                    const originalTotal = unitOriginalPrice * (item.serviceCount || 1);
-                    if (originalTotal > currentTotal) {
-                      return (
-                        <span className="text-sm text-gray-400 line-through">
-                          ₹{originalTotal.toLocaleString('en-IN')}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-black text-slate-900 line-clamp-1">
+                        {calculateItemPrice(item) === 0 ? (
+                          <span className="text-emerald-600">Free</span>
+                        ) : (
+                          `₹${calculateItemPrice(item).toLocaleString('en-IN')}`
+                        )}
+                      </span>
+                      {calculateItemPrice(item) === 0 && (
+                        <span className="text-[9px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
+                          WITH PLAN
                         </span>
-                      );
+                      )}
+                    </div>
+                    {isAgri && (
+                      <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full border border-blue-100 uppercase tracking-widest shadow-sm">
+                        {rentalType.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
+
+                  {calculateItemPrice(item) > 0 && (() => {
+                    const svc = item.serviceId && typeof item.serviceId === 'object' ? item.serviceId : item;
+                    let unitLabel = "Unit Price";
+                    let unitPrice = svc.hourly_price || item.unitPrice || (item.price / (item.serviceCount || 1));
+                    
+                    if (isAgri) {
+                       if (rentalType === 'hourly') {
+                         unitPrice = svc.hourly_price || unitPrice;
+                         unitLabel = "Hourly Rate";
+                       } else if (rentalType === 'land_based') {
+                         unitPrice = svc.land_price || unitPrice;
+                         unitLabel = "Per Acre";
+                       } else if (rentalType === 'daily' || rentalType === 'monthly') {
+                         unitPrice = svc.daily_price || unitPrice;
+                         unitLabel = "Daily Rate";
+                       }
                     }
-                    return null;
+
+                    return (
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 font-bold uppercase tracking-tight">
+                        <span>{unitLabel}: ₹{unitPrice.toLocaleString('en-IN')}</span>
+                        {item.serviceCount > 1 && <span>• Qty: {item.serviceCount}</span>}
+                      </div>
+                    );
                   })()}
                 </div>
               </div>
@@ -1314,40 +1414,43 @@ const Checkout = () => {
                   : cartItems[0].serviceId)
                 : null
             }
+            initialRentalType={rentalType}
+            initialQuantity={
+              rentalType === 'hourly' ? (estimatedDuration || 1)
+              : rentalType === 'land_based' ? (landSize || 1)
+              : (localDays || 1)
+            }
             selectedDate={selectedDate}
             selectedTime={selectedTime}
-            onRentalChange={(type) => setRentalType(type)}
+            onRentalChange={({ type, quantity }) => {
+              setRentalType(type);
+              if (type === 'hourly') setEstimatedDuration(quantity);
+              else if (type === 'land_based') setLandSize(quantity);
+              else if (type === 'daily') setLocalDays(quantity);
+              else if (type === 'monthly') setLocalDays(quantity);
+            }}
           />
         )}
 
+
+
         {/* ══ AGRI DETAILS CARD (New) ══ */}
+        {/* ══ CROP TYPE CARD (Consolidated) ══ */}
         {cartItems.some(item => item.category === 'Agriculture' || item.categoryTitle === 'Agriculture') && (
           <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
             <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
               <span className="w-6 h-6 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center">🌾</span>
-              Agriculture Details
+              Crop Information
             </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Crop Type</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Wheat, Rice"
-                  value={cropType}
-                  onChange={(e) => setCropType(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all font-medium"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Area (Acres)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 5 Acres"
-                  value={landSize}
-                  onChange={(e) => setLandSize(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all font-medium"
-                />
-              </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">What crop are you growing?</label>
+              <input
+                type="text"
+                placeholder="e.g. Wheat, Rice, Sugarcane"
+                value={cropType}
+                onChange={(e) => setCropType(e.target.value)}
+                className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all font-medium"
+              />
             </div>
           </div>
         )}
@@ -1512,7 +1615,7 @@ const Checkout = () => {
               onClick={() => setBookingType('scheduled')}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${bookingType === 'scheduled' ? 'bg-white shadow-sm text-black' : 'text-gray-500'}`}
             >
-              <span>📅</span> Slot
+              <span>📅</span> {rentalType === 'monthly' ? 'Schedule' : 'Slot'}
             </button>
           </div>
           {bookingType === 'instant' && (
@@ -1552,16 +1655,35 @@ const Checkout = () => {
                     <FiClock className="w-4 h-4" style={{ color: themeColors.button }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-600 mb-0.5">Time Slot</p>
+                    <p className="text-xs text-gray-600 mb-0.5">
+                      {rentalType === 'monthly' ? 'Rental Period' : rentalType === 'hourly' ? 'Booking Duration' : 'Time Slot'}
+                    </p>
                     <p className="text-sm font-medium text-black">
                       {selectedDate ? (() => {
                         const { day, date: dateNum } = formatDate(selectedDate);
                         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                         const month = monthNames[selectedDate.getMonth()];
-                        const timeStr = selectedTime && getTimeSlots().find(slot => slot.value === selectedTime)?.display ? ` • ${getTimeSlots().find(slot => slot.value === selectedTime).display}` : '';
-                        return `${day}, ${dateNum} ${month}${timeStr}`;
+                        
+                        let displayStr = `${day}, ${dateNum} ${month}`;
+                        
+                        if (rentalType === 'monthly' && endDate) {
+                          const { day: eDay, date: eDateNum } = formatDate(endDate);
+                          const eMonth = monthNames[endDate.getMonth()];
+                          displayStr += ` - ${eDay}, ${eDateNum} ${eMonth}`;
+                        } else if (rentalType === 'hourly') {
+                          const timeDisplay = getTimeSlots().find(slot => slot.value === selectedTime)?.display || selectedTime;
+                          displayStr += ` • ${timeDisplay}`;
+                          if (estimatedDuration) displayStr += ` (${estimatedDuration} Hours)`;
+                        } else {
+                          const timeDisplay = getTimeSlots().find(slot => slot.value === selectedTime)?.display || selectedTime;
+                          if (timeDisplay) displayStr += ` • ${timeDisplay}`;
+                        }
+                        
+                        return displayStr;
                       })() : (
-                        <span className="text-gray-400">Select Date & Time</span>
+                        <span className="text-gray-400">
+                          {rentalType === 'monthly' ? 'Select Rental Period' : 'Select Date & Time'}
+                        </span>
                       )}
                     </p>
                   </div>
@@ -1607,9 +1729,9 @@ const Checkout = () => {
               currentStep === 'payment' ? (totalAmount === 0 ? 'Confirm Booking (Free)' : (paymentMethod === 'online' ? 'Proceed to Pay' : 'Confirm Booking')) :
                 plan ? 'Proceed to Payment' :
                   bookingType === 'instant' ? 'Find nearby vendors now' :
-                    (selectedDate && selectedTime && houseNumber ?
+                    (selectedDate && (selectedTime || rentalType === 'monthly' || rentalType === 'daily')) ? 
                       'Find nearby vendors' :
-                      (houseNumber || addressDetails) ? 'Select Time Slot' : 'Add address to proceed')}
+                      (houseNumber || addressDetails) ? (rentalType === 'monthly' ? 'Select Start Date' : 'Select Time Slot') : 'Add address to proceed'}
           </button>
         </div>
       </div>
@@ -1720,11 +1842,17 @@ const Checkout = () => {
         onDateSelect={setSelectedDate}
         onTimeSelect={setSelectedTime}
         onSave={handleTimeSlotSave}
+        onQuantityChange={({ estimatedDuration: h, landSize: a, localDays: d }) => {
+          if (h !== undefined) setEstimatedDuration(h);
+          if (a !== undefined) setLandSize(a);
+          if (d !== undefined) setLocalDays(d);
+        }}
         getDates={getDates}
         getTimeSlots={getTimeSlots}
         formatDate={formatDate}
         isDateSelected={isDateSelected}
         isTimeSelected={isTimeSelected}
+        rentalType={rentalType}
       />
     </div>
   );

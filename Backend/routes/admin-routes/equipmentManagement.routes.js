@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const equipmentController = require('../../controllers/adminControllers/equipmentController');
+const { authenticate } = require('../../middleware/authMiddleware');
+const { isAdmin } = require('../../middleware/roleMiddleware');
+
+// Protected admin-only routes
+router.use(authenticate);
+router.use(isAdmin);
+
+router.get('/', equipmentController.getAllEquipment);
+router.patch('/:id/status', equipmentController.updateEquipmentStatus);
+router.delete('/:id', equipmentController.deleteEquipment);
+
+module.exports = router;

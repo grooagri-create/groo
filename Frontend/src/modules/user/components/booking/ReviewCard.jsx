@@ -8,7 +8,12 @@ const ReviewCard = ({ booking, onWriteReview }) => {
   const isPaid = ['success', 'paid', 'collected_by_vendor'].includes(booking.paymentStatus?.toLowerCase());
   const hasRating = !!booking.rating;
 
-  if (!hasRating && (!isCompleted || !isPaid)) {
+  // For machinery (work_done), allow review even if payment is still pending
+  // For other services, require payment to be completed first
+  const isMachineryWorkDone = booking.status === 'work_done';
+  const canReview = isCompleted && (isPaid || isMachineryWorkDone);
+
+  if (!hasRating && !canReview) {
     return null;
   }
 

@@ -9,17 +9,26 @@ const MenuModal = React.memo(({ isOpen, onClose, onCategoryClick, categories = [
   const backdropRef = useRef(null);
 
   useEffect(() => {
+    let ctx;
     if (isOpen && modalRef.current && backdropRef.current) {
-      // Animate backdrop
-      gsap.fromTo(
-        backdropRef.current,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.2 }
-      );
-
-      // Animate modal
-      animateModalIn(modalRef.current);
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      
+      ctx = gsap.context(() => {
+        gsap.fromTo(
+          backdropRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.3, ease: 'power2.out' }
+        );
+        animateModalIn(modalRef.current);
+      });
+    } else {
+      document.body.style.overflow = 'auto';
     }
+
+    return () => {
+      document.body.style.overflow = 'auto'; // Cleanup
+      if (ctx) ctx.revert();
+    };
   }, [isOpen]);
 
   const handleClose = () => {

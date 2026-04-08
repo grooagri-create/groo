@@ -33,9 +33,12 @@ exports.updateSettings = async (req, res, next) => {
       partsGstPercentage,
       servicePayoutPercentage,
       partsPayoutPercentage,
+      // Agriculture / Machine Renting Specific
+      rentalGstPercentage,
+      rentalPayoutPercentage,
       tdsPercentage,
       platformFeePercentage,
-      vendorCashLimit, // Add this
+      vendorCashLimit,
       cancellationPenalty,
       razorpayKeyId,
       razorpayKeySecret,
@@ -77,6 +80,9 @@ exports.updateSettings = async (req, res, next) => {
       if (partsGstPercentage !== undefined) settings.partsGstPercentage = partsGstPercentage;
       if (servicePayoutPercentage !== undefined) settings.servicePayoutPercentage = servicePayoutPercentage;
       if (partsPayoutPercentage !== undefined) settings.partsPayoutPercentage = partsPayoutPercentage;
+      // Agriculture Renting
+      if (rentalGstPercentage !== undefined) settings.rentalGstPercentage = rentalGstPercentage;
+      if (rentalPayoutPercentage !== undefined) settings.rentalPayoutPercentage = rentalPayoutPercentage;
       if (tdsPercentage !== undefined) settings.tdsPercentage = tdsPercentage;
       if (platformFeePercentage !== undefined) settings.platformFeePercentage = platformFeePercentage;
       if (vendorCashLimit !== undefined) settings.vendorCashLimit = vendorCashLimit; // Add this
