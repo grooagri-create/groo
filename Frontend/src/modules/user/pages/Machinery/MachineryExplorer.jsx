@@ -5,8 +5,8 @@ import {
   FiClock, FiStar, FiChevronRight, FiMap 
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicEquipmentService } from '../../../../../services/publicEquipmentService';
-import { useCity } from '../../../../../context/CityContext';
+import { publicEquipmentService } from '../../../../services/publicEquipmentService';
+import { useCity } from '../../../../context/CityContext';
 import LogoLoader from '../../../../components/common/LogoLoader';
 import { themeColors } from '../../../../theme';
 

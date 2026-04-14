@@ -6,7 +6,7 @@ import {
   FiArrowLeft, FiCheck, FiInfo, FiTag, FiPlus, FiMinus, FiLayers
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { publicEquipmentService } from '../../../../../services/publicEquipmentService';
+import { publicEquipmentService } from '../../../../services/publicEquipmentService';
 import LogoLoader from '../../../../components/common/LogoLoader';
 import { toast } from 'react-hot-toast';
 
