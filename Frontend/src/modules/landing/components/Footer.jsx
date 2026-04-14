@@ -33,9 +33,10 @@ const Footer = () => {
                     <div>
                         <h4 className="text-white font-bold text-lg mb-6">Explore Groo</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><a href="#services" className="hover:text-yellow-500 transition-colors">Rent Equipment</a></li>
-                            <li><a href="#workflow" className="hover:text-yellow-500 transition-colors">How to Book</a></li>
-                            <li><a href="#features" className="hover:text-yellow-500 transition-colors">Platform Features</a></li>
+                            <li><a href="/user/machinery-explorer" className="hover:text-yellow-500 transition-colors">Rent Equipment</a></li>
+                            <li><a href="/blogs" className="hover:text-yellow-500 transition-colors">Latest Agriculture News</a></li>
+                            <li><a href="/#workflow" className="hover:text-yellow-500 transition-colors">How to Book</a></li>
+                            <li><a href="/#features" className="hover:text-yellow-500 transition-colors">Platform Features</a></li>
                             <li><a href="/vendor/login" className="hover:text-yellow-500 transition-colors">Owner Dashboard</a></li>
                         </ul>
                     </div>

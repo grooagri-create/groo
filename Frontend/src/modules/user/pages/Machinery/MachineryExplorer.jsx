@@ -5,6 +5,7 @@ import {
   FiClock, FiStar, FiChevronRight, FiMap 
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { publicEquipmentService } from '../../../../services/publicEquipmentService';
 import { useCity } from '../../../../context/CityContext';
 import LogoLoader from '../../../../components/common/LogoLoader';
@@ -51,6 +52,10 @@ const MachineryExplorer = () => {
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: '#F8FBFF' }}>
+      <Helmet>
+        <title>Rent Agriculture Machinery | {currentCity?.name ? `In ${currentCity.name}` : 'GrooAgri'}</title>
+        <meta name="description" content={`Rent top-quality tractors, harvesters, and tools ${currentCity?.name ? `in ${currentCity.name}` : ''}. Verified machinery from professional vendors on GrooAgri.`} />
+      </Helmet>
       {/* Header Sticky Container */}
       <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100 px-5 pt-4 pb-4">
         <div className="max-w-xl mx-auto space-y-4">

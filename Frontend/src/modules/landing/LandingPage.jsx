@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ProblemSolution from './components/ProblemSolution';
@@ -17,12 +18,16 @@ import FAQSection from './components/FAQSection';
 
 const LandingPage = () => {
   useEffect(() => {
-    document.title = "Groo | Professional Agriculture Equipment Booking";
     window.scrollTo(0, 0);
   }, []);
 
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>GrooAgri | Professional Agriculture Equipment & Farm Solutions</title>
+        <meta name="description" content="Empowering Indian farmers with easy access to high-quality agriculture machinery. Rent tractors, harvesters, and tools from verified local vendors." />
+        <link rel="canonical" href="https://grooagri.com/" />
+      </Helmet>
       <Navbar />
       <Hero />
       <AboutSection />

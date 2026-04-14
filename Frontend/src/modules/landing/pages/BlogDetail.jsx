@@ -3,14 +3,37 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiCalendar, FiClock, FiTag, FiShare2, FiUser } from 'react-icons/fi';
 import axios from 'axios';
+import { Helmet } from 'react-helmet-async';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TranslatedText from '../../../components/TranslatedText';
+import BreadcrumbsSchema from '../../../components/common/BreadcrumbsSchema';
 
 const BlogDetail = () => {
     const { id } = useParams();
     const [blog, setBlog] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const articleSchema = blog ? {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": blog.title,
+        "image": blog.image || "https://grooagri.com/logo.png",
+        "author": {
+            "@type": "Organization",
+            "name": "GrooAgri"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "GrooAgri",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://grooagri.com/logo.png"
+            }
+        },
+        "datePublished": blog.createdAt,
+        "description": blog.content.substring(0, 160)
+    } : null;
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -35,6 +58,19 @@ const BlogDetail = () => {
 
     return (
         <div className="min-h-screen bg-white">
+            <Helmet>
+                <title>{`${blog.title} | GrooAgri Blog`}</title>
+                <meta name="description" content={blog.content.substring(0, 160)} />
+                <link rel="canonical" href={`https://grooagri.com/blogs/${id}`} />
+                {articleSchema && <script type="application/ld+json">{JSON.stringify(articleSchema)}</script>}
+            </Helmet>
+
+            <BreadcrumbsSchema items={[
+                { name: 'Home', item: '/' },
+                { name: 'Blogs', item: '/blogs' },
+                { name: blog.title, item: `/blogs/${id}` }
+            ]} />
+
             <Navbar />
             
             {/* Hero Image */}

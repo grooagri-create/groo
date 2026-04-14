@@ -53,9 +53,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
-//For camera clicks feature 
-// app.use(express.json({ limit: "20mb" })); // REMOVED redundant
-// app.use(express.urlencoded({ extended: true, limit: "20mb" })); // REMOVED redundant
+// SEO Prerendering Middleware (for search engine bots)
+// This serves rendered HTML to crawlers instead of empty JS bundle
+const prerender = require('prerender-node');
+if (process.env.PRERENDER_TOKEN) {
+  app.use(prerender.set('prerenderToken', process.env.PRERENDER_TOKEN));
+} else if (process.env.NODE_ENV === 'production') {
+  app.use(prerender);
+}
 
 // DEBUG: Log Booking Request Body
 app.use('/api/users/bookings', (req, res, next) => {
@@ -243,6 +248,9 @@ app.use('/api/weather', require('./routes/common-routes/weather.routes'));
 app.use('/api/availabilities', require('./routes/common-routes/availability.routes'));
 app.use('/api/public/equipment', require('./routes/public-routes/equipment.routes'));
 app.use('/api/v1/translate', require('./routes/common-routes/translation.routes'));
+
+// SEO Dynamic Sitemap
+app.use('/', require('./routes/common-routes/sitemap.routes'));
 
 // 404 handler
 app.use((req, res) => {

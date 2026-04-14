@@ -6,8 +6,11 @@ import {
   FiArrowLeft, FiCheck, FiInfo, FiTag, FiPlus, FiMinus, FiLayers
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Helmet } from 'react-helmet-async';
 import { publicEquipmentService } from '../../../../services/publicEquipmentService';
 import LogoLoader from '../../../../components/common/LogoLoader';
+import BreadcrumbsSchema from '../../../../components/common/BreadcrumbsSchema';
+import ServiceSchema from '../../../../components/common/ServiceSchema';
 import { toast } from 'react-hot-toast';
 
 const EquipmentDetail = () => {
@@ -83,6 +86,21 @@ const EquipmentDetail = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
+      <Helmet>
+        <title>{`${equipment.name} Booking | GrooAgri`}</title>
+        <meta name="description" content={`Book ${equipment.name} machinery for your farm. Verified professional operator, affordable rates starting at ₹${currentRate}.`} />
+        <link rel="canonical" href={`https://grooagri.com/user/machinery/${id}`} />
+      </Helmet>
+
+      {/* SEO Structured Data */}
+      <BreadcrumbsSchema items={[
+        { name: 'Home', item: '/' },
+        { name: 'Machinery', item: '/user/machinery-explorer' },
+        { name: equipment.categoryId?.title || 'Category', item: '/user/machinery-explorer' },
+        { name: equipment.name, item: `/user/machinery/${id}` }
+      ]} />
+      <ServiceSchema data={equipment} />
+
       {/* Dynamic Navbar */}
       <div className="fixed top-0 inset-x-0 z-50 px-5 pt-4">
          <div className="max-w-xl mx-auto flex justify-between items-center bg-white/80 backdrop-blur-md p-2 rounded-3xl border border-white/20 shadow-sm">
