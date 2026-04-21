@@ -28,6 +28,18 @@ const PlanSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  freeCategories: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category'
+  }],
+  freeBrands: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Brand'
+  }],
+  freeServices: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service'
+  }],
   freeTransport: {
     type: Boolean,
     default: false

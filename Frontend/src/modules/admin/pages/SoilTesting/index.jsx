@@ -85,15 +85,18 @@ const ManageSoilTests = () => {
         }
     };
 
-    const handleAssignVendor = async () => {
-        if (!selectedVendorId) return toast.error('Please select a vendor');
+    const handleAssignVendor = async (vendorId) => {
+        const vId = vendorId || selectedVendorId;
+        if (!vId) return toast.error('Please select a vendor');
         try {
             setSaving(true);
-            const res = await adminSoilTestService.assignVendor(assignModal._id, selectedVendorId);
+            const res = await adminSoilTestService.assignVendor(assignModal._id, vId);
             if (res.success) {
                 toast.success('Vendor assigned successfully!');
                 setAssignModal(null);
                 setSelectedVendorId('');
+                setFilterByState(false);
+                setFilterByDistrict(false);
                 fetchRequests();
             }
         } catch { toast.error('Failed to assign vendor'); }
@@ -148,9 +151,10 @@ const ManageSoilTests = () => {
     const isPDF = (url) => url?.toLowerCase().includes('.pdf');
 
     const filteredRequests = requests.filter(req => {
+        const lowerSearch = searchTerm.trim().toLowerCase();
         const matchesSearch =
-            (req.userId?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            req._id.toLowerCase().includes(searchTerm.toLowerCase());
+            (req.userId?.name || '').toLowerCase().includes(lowerSearch) ||
+            req._id.toLowerCase().includes(lowerSearch);
         const matchesStatus = filterStatus === 'all' || req.status === filterStatus;
         return matchesSearch && matchesStatus;
     });
@@ -254,7 +258,12 @@ const ManageSoilTests = () => {
                                 </td>
                                 <td className="p-6">
                                     <StatusBadge status={req.status} config={STATUS_CONFIG} />
-                                    {req.vendorId && (
+                                    {req.status === 'cancelled' && req.rejectionReason && (
+                                        <p className="text-[9px] font-bold text-rose-500 mt-2 bg-rose-50 p-2 rounded-lg border border-rose-100 leading-tight">
+                                            Reason: {req.rejectionReason}
+                                        </p>
+                                    )}
+                                    {req.vendorId && req.status !== 'cancelled' && (
                                         <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
                                             <FiUserCheck className="text-teal-500" /> Vendor Assigned
                                         </p>
@@ -308,56 +317,102 @@ const ManageSoilTests = () => {
                             className="relative bg-white w-full max-w-md rounded-[40px] shadow-2xl p-8">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-xl font-black text-slate-800">Assign Lab Vendor</h2>
-                                <button onClick={() => setAssignModal(null)} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+                                <button onClick={() => { setAssignModal(null); setFilterByState(false); setFilterByDistrict(false); }} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
                                     <FiX />
                                 </button>
                             </div>
+
                             <div className="bg-slate-50 rounded-2xl p-4 mb-6">
-                                <p className="text-xs font-black text-slate-400 uppercase mb-1">Request</p>
-                                <p className="font-black text-slate-800">{assignModal.userId?.name} — {assignModal.landSize}</p>
-                                <p className="text-xs text-slate-400">{assignModal.location}</p>
+                                <p className="text-xs font-black text-slate-400 uppercase mb-1">Request Details</p>
+                                <p className="font-black text-slate-800 text-sm">{assignModal.userId?.name} — {assignModal.landSize}</p>
+                                <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                    <FiMapPin className="text-[10px]" /> {assignModal.location}
+                                </p>
                             </div>
 
-                            {/* Filters for Vendor Matching */}
-                            <div className="flex gap-4 mb-4 px-1">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                    checked={filterByState} onChange={e => setFilterByState(e.target.checked)} />
-                                  <span className="text-xs font-bold text-slate-600">Same State</span>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Location Filters</p>
+                            <div className="grid grid-cols-2 gap-3 mb-6">
+                                <label className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer ${filterByState ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white'}`}>
+                                    <input type="checkbox" className="w-4 h-4 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+                                        checked={filterByState} onChange={e => setFilterByState(e.target.checked)} />
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px]">Same State Only</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase">Matches State</p>
+                                    </div>
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                    checked={filterByDistrict} onChange={e => setFilterByDistrict(e.target.checked)} />
-                                  <span className="text-xs font-bold text-slate-600">Same District/City</span>
+                                <label className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all cursor-pointer ${filterByDistrict ? 'border-teal-500 bg-teal-50' : 'border-slate-100 bg-white'}`}>
+                                    <input type="checkbox" className="w-4 h-4 rounded-lg border-slate-300 text-teal-600 focus:ring-teal-500"
+                                        checked={filterByDistrict} onChange={e => setFilterByDistrict(e.target.checked)} />
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px]">Same District Only</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase">Matches City</p>
+                                    </div>
                                 </label>
                             </div>
 
-                            <div className="space-y-1 mb-6">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Soil Lab Vendor</label>
-                                <select className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 font-bold outline-none appearance-none"
-                                    value={selectedVendorId} onChange={e => setSelectedVendorId(e.target.value)}>
-                                    <option value="">— Select a Lab Vendor —</option>
-                                    {vendors.filter(v => {
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Labs</p>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                    {(!(filterByState || filterByDistrict)) ? 0 : vendors.filter(v => {
                                         const reqLoc = (assignModal.location || '').toLowerCase();
                                         const vState = (v.address?.state || '').toLowerCase();
                                         const vCity = (v.address?.city || '').toLowerCase();
-                                        
                                         if (filterByState && vState && !reqLoc.includes(vState)) return false;
                                         if (filterByDistrict && vCity && !reqLoc.includes(vCity)) return false;
-                                        
                                         return true;
-                                    }).map(v => (
-                                        <option key={v._id} value={v._id}>{v.businessName || v.name} {v.address?.city ? `(${v.address.city}, ${v.address.state})` : ''}</option>
-                                    ))}
-                                </select>
+                                    }).length} Found
+                                </span>
                             </div>
-                            <div className="flex gap-3">
-                                <button onClick={() => setAssignModal(null)}
-                                    className="flex-1 py-4 rounded-2xl font-black text-slate-500 bg-slate-100">Cancel</button>
-                                <button onClick={handleAssignVendor} disabled={saving || !selectedVendorId}
-                                    className="flex-1 py-4 rounded-[20px] font-black text-white bg-blue-600 shadow-xl shadow-blue-500/30 active:scale-95 transition-all disabled:opacity-50">
-                                    {saving ? 'Assigning...' : 'Assign Lab Now'}
-                                </button>
+
+                            <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                                {(!(filterByState || filterByDistrict)) ? (
+                                    <div className="py-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                                        <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-2">Filters Required</p>
+                                        <p className="text-[10px] font-bold text-slate-400">Select State or District to see matching labs</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {vendors.filter(v => {
+                                            const reqLoc = (assignModal.location || '').toLowerCase();
+                                            const vState = (v.address?.state || '').toLowerCase();
+                                            const vCity = (v.address?.city || '').toLowerCase();
+                                            
+                                            if (filterByState && vState && !reqLoc.includes(vState)) return false;
+                                            if (filterByDistrict && vCity && !reqLoc.includes(vCity)) return false;
+                                            
+                                            return true;
+                                        }).map(v => (
+                                            <div key={v._id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-white hover:shadow-md transition-all group">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-slate-800 text-xs truncate">{v.businessName || v.name}</p>
+                                                    <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                                                        <FiMapPin className="text-[9px]" /> {v.address?.city}, {v.address?.state}
+                                                    </p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => { setSelectedVendorId(v._id); handleAssignVendor(v._id); }}
+                                                    disabled={saving}
+                                                    className="ml-3 px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black shadow-lg shadow-blue-500/20 active:scale-95 transition-all group-hover:bg-blue-700">
+                                                    {saving && selectedVendorId === v._id ? '...' : 'Assign'}
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {vendors.filter(v => {
+                                            const reqLoc = (assignModal.location || '').toLowerCase();
+                                            const vState = (v.address?.state || '').toLowerCase();
+                                            const vCity = (v.address?.city || '').toLowerCase();
+                                            if (filterByState && vState && !reqLoc.includes(vState)) return false;
+                                            if (filterByDistrict && vCity && !reqLoc.includes(vCity)) return false;
+                                            return true;
+                                        }).length === 0 && (
+                                            <div className="py-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+                                                <p className="text-xs font-bold text-slate-400">No matching labs found</p>
+                                                <p className="text-[10px] text-slate-300 mt-1">Try relaxing the location filters</p>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </motion.div>
                     </div>

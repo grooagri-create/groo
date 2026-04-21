@@ -122,7 +122,7 @@ const Blogs = () => {
     }
   };
 
-  const filteredItems = blogs.filter(b => b.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredItems = blogs.filter(b => b.title.toLowerCase().includes(searchTerm.trim().toLowerCase()));
 
   if (loading) return <LogoLoader />;
 

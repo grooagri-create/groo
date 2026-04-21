@@ -10,7 +10,8 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiClock,
-  FiXCircle
+  FiXCircle,
+  FiRefreshCw
 } from 'react-icons/fi';
 import { adminTransactionService } from '../../../../services/adminTransactionService';
 import toast from 'react-hot-toast';
@@ -243,6 +244,13 @@ const PaymentOverview = () => {
           </select>
 
           <button
+            onClick={fetchData}
+            className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-colors"
+            title="Refresh Data"
+          >
+            <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
             onClick={handleExport}
             className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2 transition-colors"
           >
@@ -324,8 +332,14 @@ const PaymentOverview = () => {
                       <span className="text-sm text-gray-500">{formatDate(tx.createdAt)}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-xs text-gray-400 font-mono" title={tx.razorpayOrderId || tx.referenceId}>
-                        {(tx.razorpayOrderId || tx.referenceId || '-').slice(0, 10)}...
+                      <span className="text-xs text-gray-400 font-mono" title={tx.razorpayOrderId || tx.referenceId || (tx.bookingId?.bookingNumber ? `Booking: ${tx.bookingId.bookingNumber}` : '')}>
+                        {tx.razorpayOrderId || tx.referenceId ? (
+                          (tx.razorpayOrderId || tx.referenceId).length > 15 
+                            ? `${(tx.razorpayOrderId || tx.referenceId).slice(0, 15)}...` 
+                            : (tx.razorpayOrderId || tx.referenceId)
+                        ) : tx.bookingId?.bookingNumber ? (
+                          `#${tx.bookingId.bookingNumber}`
+                        ) : '-'}
                       </span>
                     </td>
                   </tr>

@@ -238,10 +238,11 @@ const ManageProducts = () => {
     };
 
     const currentList = activeTab === 'marketplace' ? products : pendingProducts;
-    const filteredProducts = currentList.filter(p =>
-        p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.brandName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = currentList.filter(p => {
+        const trimmedSearch = searchTerm.trim().toLowerCase();
+        return p.title?.toLowerCase().includes(trimmedSearch) ||
+        p.brandName?.toLowerCase().includes(trimmedSearch)
+    });
 
     return (
         <div className="p-6 bg-slate-50 min-h-screen">

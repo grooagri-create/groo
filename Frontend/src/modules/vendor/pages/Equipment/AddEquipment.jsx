@@ -228,9 +228,6 @@ const AddEquipment = () => {
               <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Main Configuration</p>
               <h2 className="text-white text-xl font-black tracking-tight">{form.name || 'Untitled Machine'}</h2>
             </div>
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <FiSettings className="text-white text-lg" />
-            </div>
           </div>
 
           <div className="space-y-4">
@@ -298,8 +295,9 @@ const AddEquipment = () => {
                                     <input
                                       type="number"
                                       className="flex-1 bg-transparent text-white font-black text-sm outline-none placeholder:text-white/30"
-                                      placeholder={`Add-on rate`}
-                                      value={selected.pricing[key]?.price || 0}
+                                      placeholder="0"
+                                      value={selected.pricing[key]?.price || ""}
+                                      onFocus={(e) => e.target.select()}
                                       onChange={e => {
                                         setForm(p => ({
                                           ...p,
@@ -382,7 +380,9 @@ const AddEquipment = () => {
                     <input 
                       className="w-full bg-slate-100 border-none rounded-xl p-2 text-lg font-black text-emerald-900"
                       type="number"
-                      value={form.pricing[key].price}
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      value={form.pricing[key].price === 0 ? "" : form.pricing[key].price}
                       onChange={e => setForm(p => ({ ...p, pricing: { ...p.pricing, [key]: { ...p.pricing[key], price: parseFloat(e.target.value) || 0 } } }))}
                     />
                   </div>
@@ -399,17 +399,24 @@ const AddEquipment = () => {
               <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">Operator Module</p>
               <h2 className="text-white text-xl font-black tracking-tight">Driver Profile</h2>
             </div>
-            <button 
-              type="button"
-              onClick={() => {
-                if (!categoryMeta.requiresDriver) {
-                  setForm(p => ({ ...p, includesDriver: !p.includesDriver }));
-                }
-              }}
-              className={`w-12 h-6 rounded-full relative transition-all ${form.includesDriver ? 'bg-white' : 'bg-white/20'} ${categoryMeta.requiresDriver ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${form.includesDriver ? 'right-1 bg-purple-600 shadow' : 'left-1 bg-white'}`} />
-            </button>
+              <div className="flex flex-col items-end">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    if (!categoryMeta.requiresDriver) {
+                      setForm(p => ({ ...p, includesDriver: !p.includesDriver }));
+                    } else {
+                      toast('This category requires a professional driver by policy.', { icon: '🛡️' });
+                    }
+                  }}
+                  className={`w-12 h-6 rounded-full relative transition-all ${form.includesDriver ? 'bg-white' : 'bg-white/20'} ${categoryMeta.requiresDriver ? 'cursor-not-allowed' : ''}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full transition-all ${form.includesDriver ? 'right-1 bg-purple-600 shadow' : 'left-1 bg-white'}`} />
+                </button>
+                {categoryMeta.requiresDriver && (
+                  <span className="text-[7px] font-black text-white/70 uppercase mt-1 tracking-widest">Mandatory Policy</span>
+                )}
+              </div>
           </div>
 
           <AnimatePresence>
@@ -421,13 +428,30 @@ const AddEquipment = () => {
                     {form.driver.photo ? <img src={form.driver.photo} className="w-full h-full object-cover rounded-xl" /> : <FiUser className="text-white " />}
                   </label>
                   <div className="flex-1 space-y-2">
-                    <input className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-xs font-black text-white placeholder:text-white/40" placeholder="Driver Name" value={form.driver.name} onChange={e => setForm(p => ({ ...p, driver: { ...p.driver, name: e.target.value } }))} />
+                    <input 
+                      className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-xs font-black text-white placeholder:text-white/40" 
+                      placeholder="Driver Name" 
+                      value={form.driver.name} 
+                      onChange={e => {
+                        const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                        setForm(p => ({ ...p, driver: { ...p.driver, name: val } }));
+                      }} 
+                    />
                     <input className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-xs font-black text-white placeholder:text-white/40" type="tel" maxLength="10" placeholder="Phone Number" value={form.driver.phone} onChange={e => setForm(p => ({ ...p, driver: { ...p.driver, phone: e.target.value.replace(/\D/g, '') } }))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                    <input className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-[10px] font-black text-white placeholder:text-white/40" type="tel" maxLength="12" placeholder="Aadhar Card" value={form.driver.aadharNumber} onChange={e => setForm(p => ({ ...p, driver: { ...p.driver, aadharNumber: e.target.value.replace(/\D/g, '') } }))} />
-                   <input className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-[10px] font-black text-white placeholder:text-white/40 uppercase" maxLength="16" placeholder="Driving License" value={form.driver.licenseNumber} onChange={e => setForm(p => ({ ...p, driver: { ...p.driver, licenseNumber: e.target.value.toUpperCase().replace(/\s/g, '') } }))} />
+                    <input 
+                      className="w-full bg-white/10 border border-white/20 rounded-xl p-3 text-[10px] font-black text-white placeholder:text-white/40 uppercase" 
+                      maxLength={16} 
+                      placeholder="Driving License (Alphanumeric)" 
+                      value={form.driver.licenseNumber} 
+                      onChange={e => {
+                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                        setForm(p => ({ ...p, driver: { ...p.driver, licenseNumber: val } }));
+                      }} 
+                    />
                 </div>
               </motion.div>
             )}

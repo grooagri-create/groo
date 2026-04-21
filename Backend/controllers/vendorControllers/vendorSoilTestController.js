@@ -130,9 +130,8 @@ exports.rejectRequest = async (req, res) => {
         if (!request.rejectedByVendors) request.rejectedByVendors = [];
         request.rejectedByVendors.push(req.user._id);
 
-        // Reset for re-assignment
-        request.status = 'pending';
-        request.vendorId = null;
+        // Update status for visibility to Admin & User
+        request.status = 'cancelled';
         request.rejectionReason = reason || 'No reason provided';
 
         await request.save();

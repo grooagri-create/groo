@@ -35,7 +35,8 @@ const ecommerceOrderSchema = new mongoose.Schema({
         adminCommission: { type: Number, required: true }, // Platform fee portion
         gstAmount: { type: Number, required: true }, // Tax portion
         platformFee: { type: Number, required: true }, // adminCommission + gstAmount
-        vendorBalance: { type: Number, required: true } // itemsTotal - adminCommission
+        vendorBalance: { type: Number, required: true }, // itemsTotal - adminCommission
+        orderTotal: { type: Number, required: true, default: 0 } // itemsTotal + gstAmount
     },
     paymentStatus: {
         type: String,

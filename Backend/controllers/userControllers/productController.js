@@ -65,6 +65,8 @@ const placeOrder = async (req, res) => {
         const platformFee = adminCommission + gstAmount;
         const vendorBalance = itemsTotal - adminCommission;
 
+        const orderTotal = itemsTotal + gstAmount;
+        
         const order = new EcommerceOrder({
             userId: req.user._id,
             vendorId: product.vendorId,
@@ -81,7 +83,8 @@ const placeOrder = async (req, res) => {
                 adminCommission,
                 gstAmount,
                 platformFee,
-                vendorBalance
+                vendorBalance,
+                orderTotal
             },
             shippingAddress,
             deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString(),

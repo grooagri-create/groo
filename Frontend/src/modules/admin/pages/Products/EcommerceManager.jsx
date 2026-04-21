@@ -241,9 +241,11 @@ const EcommerceManager = () => {
     };
 
     const currentList = activeTab === 'marketplace' ? products : pendingProducts;
+    const trimmedSearch = searchTerm.trim().toLowerCase();
+    
     const filteredProducts = currentList.filter(p =>
-        p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.brandName?.toLowerCase().includes(searchTerm.toLowerCase())
+        p.title?.toLowerCase().includes(trimmedSearch) ||
+        p.brandName?.toLowerCase().includes(trimmedSearch)
     );
 
     return (

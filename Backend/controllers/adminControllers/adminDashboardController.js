@@ -34,10 +34,10 @@ const getDashboardStats = async (req, res) => {
       if (endDate) bookingMatch.completedAt.$lte = new Date(endDate);
     }
 
-    // Total counts (Users and Vendors are usually kept total/lifetime, or we can show "new" counts)
-    const totalUsers = await User.countDocuments({ isActive: true });
-    const totalVendors = await Vendor.countDocuments({ isActive: true });
-    const totalWorkers = await Worker.countDocuments({ isActive: true });
+    // Total counts (Users and Vendors now follow the date filter)
+    const totalUsers = await User.countDocuments({ isActive: true, ...dateFilter });
+    const totalVendors = await Vendor.countDocuments({ isActive: true, ...dateFilter });
+    const totalWorkers = await Worker.countDocuments({ isActive: true, ...dateFilter });
     const totalBookings = await Booking.countDocuments(dateFilter);
 
     // Booking stats

@@ -101,6 +101,14 @@ const VendorSignup = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Live Restriction for Name: Only allow alphabets and spaces
+    if (name === 'name') {
+      const filteredValue = value.replace(/[^A-Za-z\s]/g, '');
+      setFormData(prev => ({ ...prev, [name]: filteredValue }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -256,7 +264,7 @@ const VendorSignup = () => {
         if (response.success) {
           toast.success(
             <div className="flex flex-col">
-              <span className="font-bold">Application Submitted!</span>
+              <span className="font-bold">Successfully Registered!</span>
               <span className="text-xs">Your vendor account is pending admin approval.</span>
             </div>,
             { icon: <FiCheckCircle className="text-[#D68F35]" />, duration: 5000 }
@@ -354,7 +362,7 @@ const VendorSignup = () => {
 
       if (response.success) {
         setIsLoading(false);
-        toast.success('Registration successful! Pending admin approval.');
+        toast.success('Successfully Registered! Pending admin approval.');
         navigate('/vendor/login');
       } else {
         setIsLoading(false);
@@ -474,10 +482,17 @@ const VendorSignup = () => {
                         required
                         value={formData.email}
                         onChange={handleInputChange}
-                        className="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none hover:border-gray-400"
+                        className={`block w-full pl-10 pr-10 py-2.5 border rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none ${
+                          formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) 
+                            ? 'border-red-500 focus:border-red-500' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
                         style={{ '--tw-ring-color': brandColor }}
                         placeholder="vendor@example.com"
                       />
+                      {(formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) && (
+                        <FiCheckCircle className="text-green-500 absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5" />
+                      )}
                     </div>
                   </div>
 

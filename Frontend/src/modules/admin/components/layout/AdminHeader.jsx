@@ -10,6 +10,18 @@ const AdminHeader = ({ onMenuClick }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [adminData, setAdminData] = useState(null);
+
+  useEffect(() => {
+    const data = localStorage.getItem('adminData');
+    if (data) {
+      try {
+        setAdminData(JSON.parse(data));
+      } catch (e) {
+        console.error("Failed to parse admin data", e);
+      }
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -169,18 +181,18 @@ const AdminHeader = ({ onMenuClick }) => {
         </div>
 
         {/* Right: Notifications & Logout */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
           {/* Notifications */}
           <div className="relative">
             <Button
               data-notification-button
               onClick={toggleNotifications}
               variant="icon"
-              className="text-gray-700"
+              className="text-gray-700 hover:bg-gray-50"
               icon={FiBell}
             />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold border-2 border-white">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -196,13 +208,27 @@ const AdminHeader = ({ onMenuClick }) => {
             />
           </div>
 
+          {/* Admin Profile Section */}
+          <div
+            onClick={() => navigate('/admin/settings')}
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all cursor-pointer group"
+          >
+            <div className="flex flex-col items-end hidden md:flex">
+              <span className="text-[13px] font-extrabold text-gray-800 leading-tight">{adminData?.name || 'Admin'}</span>
+              <span className="text-[9px] text-gray-500 font-medium">{adminData?.email || 'Administrator'}</span>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-blue-600/20 group-hover:scale-105 transition-transform border-2 border-white">
+              {adminData?.name ? adminData.name.charAt(0).toUpperCase() : 'A'}
+            </div>
+          </div>
+
           {/* Logout Button */}
           <Button
             onClick={handleLogout}
             variant="ghost"
             icon={FiLogOut}
             size="sm"
-            className="text-gray-700 hover:bg-red-600 hover:text-white hover:border-red-600 border border-gray-300"
+            className="text-gray-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-gray-200 ml-1"
           >
             Logout
           </Button>

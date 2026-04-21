@@ -66,7 +66,7 @@ const CategoriesPage = ({ catalog, setCatalog, selectedCity }) => {
 
   const categoriesFiltered = useMemo(() => {
     if (!searchTerm) return categoriesBase;
-    const lower = searchTerm.toLowerCase();
+    const lower = searchTerm.trim().toLowerCase();
     return categoriesBase.filter(c =>
       c.title?.toLowerCase().includes(lower) ||
       c.slug?.toLowerCase().includes(lower)

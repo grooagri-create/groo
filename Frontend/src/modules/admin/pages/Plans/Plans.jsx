@@ -198,6 +198,8 @@ const Plans = () => {
       const payload = {
         ...formData,
         price: Number(formData.price),
+        marketplaceDiscountPercentage: Number(formData.marketplaceDiscountPercentage) || 0,
+        rentalDiscountPercentage: Number(formData.rentalDiscountPercentage) || 0,
         freeCategories: formData.freeCategories.map(c => String(c?._id || c)),
         freeBrands: formData.freeBrands.map(b => String(b?._id || b)),
         freeServices: formData.freeServices.map(s => String(s?._id || s)),
@@ -507,6 +509,8 @@ const Plans = () => {
                     name="marketplaceDiscountPercentage"
                     value={formData.marketplaceDiscountPercentage}
                     onChange={handleInputChange}
+                    onFocus={(e) => { if (e.target.value === '0') setFormData(prev => ({ ...prev, marketplaceDiscountPercentage: '' })); }}
+                    onBlur={(e) => { if (e.target.value === '') setFormData(prev => ({ ...prev, marketplaceDiscountPercentage: 0 })); }}
                     className="w-full px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-emerald-800"
                     placeholder="0"
                     min="0"
@@ -521,6 +525,8 @@ const Plans = () => {
                     name="rentalDiscountPercentage"
                     value={formData.rentalDiscountPercentage}
                     onChange={handleInputChange}
+                    onFocus={(e) => { if (e.target.value === '0') setFormData(prev => ({ ...prev, rentalDiscountPercentage: '' })); }}
+                    onBlur={(e) => { if (e.target.value === '') setFormData(prev => ({ ...prev, rentalDiscountPercentage: 0 })); }}
                     className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-blue-800"
                     placeholder="0"
                     min="0"

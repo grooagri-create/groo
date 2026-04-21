@@ -13,11 +13,27 @@ const AllOwners = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOwner, setSelectedOwner] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [analytics, setAnalytics] = useState({ totalVendors: 0, totalBookings: 0 });
 
   // Load owners from backend
   useEffect(() => {
     loadOwners();
+    fetchAnalytics();
   }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await adminVendorService.getVendorAnalytics();
+      if (response.success) {
+        setAnalytics({
+          totalVendors: response.data.totalVendors || 0,
+          totalBookings: response.data.totalBookings || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching vendor analytics:', error);
+    }
+  };
 
   const loadOwners = async () => {
     try {
@@ -66,11 +82,11 @@ const AllOwners = () => {
       const matchesStatus = filterStatus === 'all' || owner.approvalStatus === filterStatus;
 
       const matchesSearch =
-        owner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        owner.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        owner.phone.includes(searchQuery) ||
-        serviceString.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (owner.businessName && owner.businessName.toLowerCase().includes(searchQuery.toLowerCase()));
+        owner.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        owner.email.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        owner.phone.includes(searchQuery.trim()) ||
+        serviceString.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        (owner.businessName && owner.businessName.toLowerCase().includes(searchQuery.trim().toLowerCase()));
       return matchesStatus && matchesSearch;
     });
   }, [owners, filterStatus, searchQuery]);
@@ -206,7 +222,15 @@ const AllOwners = () => {
         subtitle="Manage and verify platform equipment owners"
       >
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+            <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Total Owners</div>
+            <div className="text-xl font-bold text-blue-900">{analytics.totalVendors || owners.length}</div>
+          </div>
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+            <div className="text-[10px] font-bold text-purple-700 uppercase tracking-wider mb-1">Total Bookings</div>
+            <div className="text-xl font-bold text-purple-900">{analytics.totalBookings}</div>
+          </div>
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
             <div className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider mb-1">Pending</div>
             <div className="text-xl font-bold text-yellow-900">{pendingCount}</div>

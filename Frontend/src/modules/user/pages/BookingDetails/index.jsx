@@ -1113,7 +1113,7 @@ const BookingDetails = () => {
           )}
 
           {/* Agriculture Completion OTP - Share only when work is done */}
-          {['in_progress', 'work_done', 'completed'].includes(booking.status?.toLowerCase()) && booking.driver_end_otp && (
+          {['in_progress', 'work_done'].includes(booking.status?.toLowerCase()) && booking.driver_end_otp && (
             <div className="bg-gradient-to-br from-teal-600 to-emerald-700 rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 blur-2xl"></div>
 

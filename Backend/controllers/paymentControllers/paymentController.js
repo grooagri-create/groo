@@ -757,9 +757,12 @@ const verifyPlanPayment = async (req, res) => {
     const validityDays = plan.validityDays || 30;
     user.plans = {
       isActive: true,
+      planId: plan._id,
       name: plan.name,
       expiry: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000),
-      price: plan.price
+      price: plan.price,
+      rentalDiscountPercentage: plan.rentalDiscountPercentage || 0,
+      marketplaceDiscountPercentage: plan.marketplaceDiscountPercentage || 0
     };
 
     await user.save();

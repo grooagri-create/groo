@@ -124,7 +124,7 @@ const Reviews = () => {
     }
   };
 
-  const filteredItems = reviews.filter(r => r.userName.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredItems = reviews.filter(r => r.userName.toLowerCase().includes(searchTerm.trim().toLowerCase()));
 
   if (loading) return <LogoLoader />;
 

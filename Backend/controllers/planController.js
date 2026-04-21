@@ -7,7 +7,8 @@ const Service = require('../models/Service');
 exports.createPlan = async (req, res) => {
   try {
     console.log('DEBUG: Create Plan Body:', JSON.stringify(req.body, null, 2));
-    const { name, price, highlights, validityDays, freeCategories, freeBrands, freeServices } = req.body;
+    const { name, price, highlights, validityDays, freeCategories, freeBrands, freeServices,
+            marketplaceDiscountPercentage, rentalDiscountPercentage } = req.body;
 
     // Check if plan exists
     const existingPlan = await Plan.findOne({ name });
@@ -15,7 +16,12 @@ exports.createPlan = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Plan with this name already exists' });
     }
 
-    const plan = new Plan({ name, price, highlights, validityDays, freeCategories, freeBrands, freeServices });
+    const plan = new Plan({
+      name, price, highlights, validityDays,
+      freeCategories, freeBrands, freeServices,
+      marketplaceDiscountPercentage: marketplaceDiscountPercentage || 0,
+      rentalDiscountPercentage: rentalDiscountPercentage || 0
+    });
     await plan.save();
     res.status(201).json({ success: true, data: plan });
   } catch (error) {

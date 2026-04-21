@@ -151,7 +151,7 @@ const HelpSupport = () => {
     },
   ];
 
-  const handleContactSubmit = (e) => {
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
@@ -159,10 +159,17 @@ const HelpSupport = () => {
       return;
     }
 
-    // TODO: Send to backend
-    toast.success('Your message has been sent! We\'ll get back to you soon.');
-    setShowContactForm(false);
-    setFormData({ name: '', email: '', subject: '', message: '' });
+    try {
+      const response = await api.post('/support/submit', formData);
+      if (response.data.success) {
+        toast.success(response.data.message || 'Your message has been sent! We\'ll get back to you soon.');
+        setShowContactForm(false);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      }
+    } catch (error) {
+      console.error('Support submit error:', error);
+      toast.error(error.response?.data?.message || 'Failed to send message. Please try again.');
+    }
   };
 
   const filteredQuestions = categories.flatMap(cat =>

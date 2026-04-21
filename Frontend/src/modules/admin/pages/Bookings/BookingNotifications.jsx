@@ -101,10 +101,10 @@ const BookingNotifications = () => {
       {/* Notifications List */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
         <AnimatePresence>
-          {notifications.length === 0 ? (
+          {notifications.filter(n => filter === 'All Types' || n.type === filter).length === 0 ? (
             <div className="p-8 text-center text-gray-500">No notifications</div>
           ) : (
-            notifications.map((notification) => (
+            notifications.filter(n => filter === 'All Types' || n.type === filter).map((notification) => (
               <motion.div
                 key={notification.id}
                 initial={{ opacity: 0, height: 0 }}

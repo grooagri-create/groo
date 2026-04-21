@@ -115,7 +115,7 @@ const resolveDispute = async (req, res) => {
         const { status, resolutionNotes } = req.body;
         const adminId = req.user.id;
 
-        const dispute = await Dispute.findById(id);
+        const dispute = await Dispute.findById(id).populate('bookingId', 'bookingNumber');
         if (!dispute) {
             return res.status(404).json({ success: false, message: 'Dispute not found' });
         }
@@ -129,15 +129,30 @@ const resolveDispute = async (req, res) => {
 
         await dispute.save();
 
-        // Notify the person who raised the dispute
-        await createNotification({
-            userId: dispute.raisedBy,
+        // Get booking number for message
+        const bookingNumber = dispute.bookingId?.bookingNumber || 'N/A';
+
+        // Notify the person who raised the dispute (Routes correctly to User or Vendor for Push)
+        const notificationData = {
             type: 'dispute_update',
             title: `Dispute Case ${status.toUpperCase()}`,
-            message: `Admin has ${status} your dispute for booking #${dispute.bookingId}. Status: ${status}`,
+            message: `Admin has ${status} your dispute for booking #${bookingNumber}.`,
             relatedId: dispute._id,
-            relatedType: 'dispute'
-        });
+            relatedType: 'dispute',
+            data: {
+                bookingId: dispute.bookingId._id,
+                status: status
+            }
+        };
+
+        // Determine if it should go to userId or vendorId for proper Push Routing
+        if (dispute.raisedByRole === 'VENDOR') {
+            notificationData.vendorId = dispute.raisedBy;
+        } else {
+            notificationData.userId = dispute.raisedBy;
+        }
+
+        await createNotification(notificationData);
 
         res.status(200).json({
             success: true,

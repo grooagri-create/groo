@@ -1482,7 +1482,7 @@ export default function BookingDetails() {
         )}
 
         {/* Action Buttons */}
-        <div className="space-y-3">
+        <div className="space-y-3 mb-4">
           <button
             onClick={handleViewTimeline}
             className="w-full py-4 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-all active:scale-95"

@@ -18,6 +18,7 @@ const Bookings = lazy(() => import('../pages/Bookings'));
 const BookingTracking = lazy(() => import('../pages/Bookings/Tracking'));
 const BookingNotifications = lazy(() => import('../pages/Bookings/BookingNotifications'));
 const BookingKmPhotos = lazy(() => import('../pages/Bookings/BookingKmPhotos'));
+const BookingDetailsPage = lazy(() => import('../pages/Bookings/BookingDetailsPage'));
 const KycVerification = lazy(() => import('../pages/Users/KycVerification'));
 const Payments = lazy(() => import('../pages/Payments'));
 const Reports = lazy(() => import('../pages/Reports'));
@@ -36,6 +37,7 @@ const SoilTesting = lazy(() => import('../pages/SoilTesting'));
 const Disputes = lazy(() => import('../pages/Disputes'));
 const WebsiteSettings = lazy(() => import('../pages/WebsiteSettings'));
 const EquipmentApproval = lazy(() => import('../pages/EquipmentApproval'));
+const Support = lazy(() => import('../pages/Support'));
 
 
 
@@ -68,6 +70,7 @@ const AdminRoutes = () => {
           <Route path="users/*" element={<Users />} />
           <Route path="vendors/*" element={<Vendors />} />
           <Route path="bookings" element={<Bookings />} />
+          <Route path="bookings/:id" element={<BookingDetailsPage />} />
           <Route path="bookings/tracking" element={<BookingTracking />} />
           <Route path="bookings/notifications" element={<BookingNotifications />} />
           <Route path="bookings/km-photos" element={<BookingKmPhotos />} />
@@ -89,6 +92,7 @@ const AdminRoutes = () => {
           <Route path="disputes" element={<Disputes />} />
           <Route path="settlements/*" element={<Settlements />} />
           <Route path="manage-website/*" element={<WebsiteSettings />} />
+          <Route path="support" element={<Support />} />
           <Route path="settings/*" element={<Settings />} />
         </Route>
       </Routes>

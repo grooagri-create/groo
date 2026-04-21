@@ -191,10 +191,7 @@ const Login = () => {
 
       <div className="bg-transparent flex-1 px-8 py-4 w-full z-20 sm:max-w-md sm:mx-auto relative pt-[32vh] sm:pt-10 flex flex-col justify-end pb-10">
         <div className="mb-8 text-center relative z-10 flex flex-col items-center">
-          {/* Back button */}
-          <button onClick={() => navigate(-1)} className="absolute left-0 top-0 sm:hidden w-8 h-8 rounded-full bg-white/30 backdrop-blur-sm text-[#426B4F] flex items-center justify-center -translate-y-24">
-            <FiChevronLeft className="w-5 h-5 text-white" />
-          </button>
+
 
           <div className="relative inline-block mb-2">
             {step === 'phone' ? (
@@ -244,15 +241,8 @@ const Login = () => {
             <div className="flex items-center justify-between text-xs px-2 mt-2">
               <label className="flex items-center text-[#426B4F] font-medium cursor-pointer">
                 <input type="checkbox" className="mr-2 rounded-full text-[#426B4F] focus:ring-[#426B4F] border-gray-300 shadow-sm" />
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#DFE8E2] mr-2 text-white">
-                  <FiCheckCircle className="w-3 h-3 opacity-0 group-hover:opacity-100" />
-                </span>
                 Remember Me
               </label>
-
-              <button type="button" className="text-[#426B4F] font-bold">
-                Forgot Password ?
-              </button>
             </div>
 
             <div className="pt-4">

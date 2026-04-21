@@ -65,6 +65,14 @@ const Signup = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Live Restriction for Name: Only allow alphabets and spaces
+    if (name === 'name') {
+      const filteredValue = value.replace(/[^A-Za-z\s]/g, '');
+      setFormData(prev => ({ ...prev, [name]: filteredValue }));
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -99,8 +107,8 @@ const Signup = () => {
 
           toast.success(
             <div className="flex flex-col">
-              <span className="font-bold">Welcome to GrooAgri!</span>
-              <span className="text-xs">Your account has been created successfully.</span>
+              <span className="font-bold">Successfully Registered!</span>
+              <span className="text-xs">Welcome to GrooAgri.</span>
             </div>,
             { icon: <FiCheckCircle className="text-green-500" /> }
           );
@@ -190,8 +198,8 @@ const Signup = () => {
 
         toast.success(
           <div className="flex flex-col">
-            <span className="font-bold">Welcome to GrooAgri!</span>
-            <span className="text-xs">Account created successfully.</span>
+            <span className="font-bold">Successfully Registered!</span>
+            <span className="text-xs">Welcome to GrooAgri.</span>
           </div>,
           { icon: <FiCheckCircle className="text-green-500" /> }
         );
@@ -293,10 +301,14 @@ const Signup = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="block w-full py-4 bg-transparent border-none focus:ring-0 text-[#426B4F] font-bold placeholder-[#426B4F]/60 sm:text-sm"
+                  className={`block w-full py-4 bg-transparent border-none focus:ring-0 font-bold placeholder-[#426B4F]/60 sm:text-sm ${
+                    formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+                      ? 'text-red-500'
+                      : 'text-[#426B4F]'
+                  }`}
                   placeholder="farmer@agri.com"
                 />
-                {(formData.email && !signupSchema.safeParse({ ...formData }).error?.errors?.find(e => e.path.includes('email'))) && (
+                {(formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) && (
                   <FiCheckCircle className="text-green-500 absolute right-4 h-5 w-5" />
                 )}
               </div>

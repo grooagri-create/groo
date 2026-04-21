@@ -41,11 +41,15 @@ const EcommerceOrders = () => {
         }
     };
 
-    const filteredOrders = orders.filter(o => 
-        o._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.vendorId?.businessName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOrders = orders.filter(o => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return true;
+        return (
+            o._id.toLowerCase().includes(term) ||
+            o.userId?.name?.toLowerCase().includes(term) ||
+            o.vendorId?.businessName?.toLowerCase().includes(term)
+        );
+    });
 
     const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
     const currentOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);

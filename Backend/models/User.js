@@ -74,6 +74,11 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    planId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Plan',
+      default: null
+    },
     name: {
       type: String,
       default: null
@@ -83,6 +88,14 @@ const userSchema = new mongoose.Schema({
       default: null
     },
     price: {
+      type: Number,
+      default: 0
+    },
+    rentalDiscountPercentage: {
+      type: Number,
+      default: 0
+    },
+    marketplaceDiscountPercentage: {
       type: Number,
       default: 0
     }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSearch, FiLoader, FiCalendar, FiClock, FiUser, FiShoppingBag } from 'react-icons/fi';
+import { FiSearch, FiLoader, FiCalendar, FiClock, FiUser, FiShoppingBag, FiArrowRight } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import CardShell from '../UserCategories/components/CardShell';
 import { adminUserService } from '../../../../services/adminUserService';
 
@@ -11,6 +12,7 @@ const FarmerBookings = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
+  const navigate = useNavigate();
 
   const loadBookings = async (page = 1) => {
     try {
@@ -19,7 +21,7 @@ const FarmerBookings = () => {
         page,
         limit: pagination.limit,
         status: filterStatus === 'all' ? undefined : filterStatus,
-        search: searchQuery || undefined
+        search: searchQuery.trim() || undefined
       };
       // Note: We'll need to implement getAllUserBookings in adminUserService
       const response = await adminUserService.getAllUserBookings(params);
@@ -119,20 +121,29 @@ const FarmerBookings = () => {
                             <span>Farmer: <span className="font-medium text-gray-800">{booking.userId?.name}</span></span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <FiCalendar className="w-4 h-4" />
-                            <span>Date: {new Date(booking.bookingDate).toLocaleDateString()}</span>
+                            <FiCalendar className="w-4 h-4 text-orange-500" />
+                            <span>Date: <span className="font-medium text-gray-800">{booking.scheduledDate ? new Date(booking.scheduledDate).toLocaleDateString() : 'N/A'}</span></span>
                           </div>
-                            <span>Operator: <span className="font-medium text-gray-800">{booking.workerId?.name || 'Manual Assignment'}</span></span>
                           <div className="flex items-center gap-2">
-                            <FiClock className="w-4 h-4" />
-                            <span>Slot: {booking.bookingSlot}</span>
+                             <FiUser className="w-4 h-4 text-green-500" />
+                            <span>Operator: <span className="font-medium text-gray-800">{booking.workerId?.name || 'Manual Assignment'}</span></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <FiClock className="w-4 h-4 text-purple-500" />
+                            <span>Slot: <span className="font-medium text-gray-800">{booking.scheduledTime || 'N/A'}</span></span>
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <div className="text-lg font-bold text-gray-900">₹{booking.finalAmount}</div>
-                      <button className="text-sm text-blue-600 font-semibold hover:underline">View Details</button>
+                      <button 
+                        onClick={() => navigate(`/admin/bookings/${booking._id}`)}
+                        className="text-sm text-blue-600 font-semibold hover:underline flex items-center gap-1 group"
+                      >
+                        View Details
+                        <FiArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                      </button>
                     </div>
                   </div>
                 </motion.div>

@@ -243,20 +243,51 @@ const createBooking = async (req, res) => {
 
     // 2. Logic Branch: Plan Benefit vs Standard
     if (usePlanBenefits) {
-      const userPlan = await Plan.findOne({ name: user.plans.name });
+      // Prioritize planId if available
+      let userPlan = null;
+      if (user.plans.planId) {
+          userPlan = await Plan.findById(user.plans.planId);
+      }
+      if (!userPlan && user.plans.name) {
+          userPlan = await Plan.findOne({ name: user.plans.name });
+      }
 
       if (!userPlan) {
         // Fallback if data missing
         usePlanBenefits = false;
         paymentMethod = 'pay_at_home';
       } else {
-        // --- IMPROVED PLAN LOGIC: PERCENTAGE DISCOUNTS & FREE DELIVERY ---
+        // --- IMPROVED PLAN LOGIC: PERCENTAGE DISCOUNTS & FREE DELIVERY & FREE SERVICES ---
+
+        // Helper to normalize ObjectIds for comparison
+        const normalizeId = (id) => {
+            if (!id) return null;
+            if (typeof id === 'string') return id;
+            if (id.toString) return id.toString();
+            return String(id);
+        };
+
+        const serviceIdStr = normalizeId(service._id);
+        const categoryIdStr = normalizeId(finalCategory?._id || categoryId);
         
-        // 1. Equipment Rental Discount
+        let isFreeBrand = false;
+        if (service.brandId) {
+            isFreeBrand = userPlan.freeBrands?.some(id => normalizeId(id) === normalizeId(service.brandId));
+        }
+
+        const isFreeService = userPlan.freeServices?.some(id => normalizeId(id) === serviceIdStr);
+        const isFreeCategory = userPlan.freeCategories?.some(id => normalizeId(id) === categoryIdStr);
+
+        // 1. Check if the core service itself is 100% Free
+        if (isFreeService || isFreeCategory || isFreeBrand) {
+            totalServiceValue = 0;
+            basePrice = 0;
+        }        
+        // 2. Equipment Rental Discount
         const isRental = !!(rental_type || service.rental_type);
         const rentalDiscount = isRental ? (userPlan.rentalDiscountPercentage || 0) : 0;
 
-        // 2. Marketplace Product Discount
+        // 3. Marketplace Product Discount
         let totalProductDiscount = 0;
         if (bookedItems && bookedItems.length > 0 && userPlan.marketplaceDiscountPercentage > 0) {
           bookedItems.forEach(item => {
@@ -268,13 +299,15 @@ const createBooking = async (req, res) => {
           });
         }
 
-        // 3. Apply calculated discounts
-        basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
+        // 4. Apply calculated discounts
+        if (basePrice !== 0) {
+             basePrice = totalServiceValue > 0 ? totalServiceValue : (service.basePrice || 500);
+        }
 
         const rentalDiscountAmount = (basePrice * (rentalDiscount / 100));
         discount = Math.round(rentalDiscountAmount + totalProductDiscount);
 
-        // 4. Free Transport/Delivery Check
+        // 5. Free Transport/Delivery Check
         visitingCharges = (reqVisitingCharges !== undefined) ? reqVisitingCharges : (visitingCharges || 49);
         if (userPlan.freeTransport) {
             visitingCharges = 0; // Waive transport fee

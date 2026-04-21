@@ -20,7 +20,7 @@ const StoreOrders = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('ordered'); // ordered, packed, shipped, delivered
+    const [activeTab, setActiveTab] = useState('all'); // all, ordered, packed, shipped, delivered
 
     useEffect(() => {
         fetchOrders();
@@ -42,15 +42,21 @@ const StoreOrders = () => {
         try {
             const res = await vendorProductService.updateOrderStatus(orderId, { status, ...extra });
             if (res.success) {
-                toast.success(`Order marked as ${status}`);
+                toast.success(res.message || `Order marked as ${status}`);
                 fetchOrders();
+                return true;
+            } else {
+                toast.error(res.message || "Status update failed");
+                return false;
             }
         } catch (err) {
-            toast.error("Status update failed");
+            const errorMsg = err.response?.data?.message || err.message || "Status update failed";
+            toast.error(errorMsg);
+            return false;
         }
     };
 
-    const filteredOrders = orders.filter(o => o.deliveryStatus === activeTab);
+    const filteredOrders = activeTab === 'all' ? orders : orders.filter(o => o.deliveryStatus === activeTab);
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -68,7 +74,7 @@ const StoreOrders = () => {
             {/* Tabs */}
             <div className="bg-white px-6 pt-2 border-b border-slate-100 sticky top-[73px] z-30">
                 <div className="flex gap-6 overflow-x-auto scrollbar-hide">
-                    {['ordered', 'packed', 'shipped', 'delivered'].map(tab => (
+                    {['all', 'ordered', 'packed', 'shipped', 'delivered'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -231,6 +237,27 @@ const ShippingModal = ({ onConfirm }) => {
 const DeliveryOtpModal = ({ onConfirm }) => {
     const [show, setShow] = useState(false);
     const [otp, setOtp] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    const handleVerify = async () => {
+        if (otp.length !== 4) {
+            toast.error("Please enter a valid 4-digit OTP");
+            return;
+        }
+
+        try {
+            setIsVerifying(true);
+            const success = await onConfirm({ deliveryOtp: otp });
+            if (success) {
+                setShow(false);
+                setOtp('');
+            }
+        } catch (error) {
+            console.error("OTP Verification Error:", error);
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     return (
         <>
@@ -243,29 +270,55 @@ const DeliveryOtpModal = ({ onConfirm }) => {
             <AnimatePresence>
                 {show && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShow(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            onClick={() => !isVerifying && setShow(false)} 
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" 
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.9, opacity: 0 }} 
+                            className="relative bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl"
+                        >
                             <h2 className="text-xl font-black text-slate-800">Delivery verification</h2>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Ask buyer for OTP</p>
                             
                             <div className="space-y-4">
                                 <div className="space-y-1">
                                     <label className="text-[9px] font-black text-slate-400 uppercase ml-1">4-Digit Code</label>
-                                    <input type="text" maxLength={4} className="w-full bg-slate-50 border-none rounded-xl py-4 px-5 font-bold outline-none text-center tracking-[1em] text-lg" placeholder="1234" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} />
+                                    <input 
+                                        type="text" 
+                                        maxLength={4} 
+                                        disabled={isVerifying}
+                                        className="w-full bg-slate-50 border-none rounded-xl py-4 px-5 font-bold outline-none text-center tracking-[1em] text-lg" 
+                                        placeholder="1234" 
+                                        value={otp} 
+                                        onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
+                                    />
                                 </div>
                                 <button 
-                                    onClick={() => { 
-                                        if(otp.length === 4) {
-                                            onConfirm({ deliveryOtp: otp }); 
-                                            setShow(false); 
-                                        } else {
-                                            toast.error("Please enter a valid 4-digit OTP");
-                                        }
-                                    }}
-                                    className="w-full py-5 bg-green-600 text-white rounded-[28px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all mt-4 disabled:opacity-50"
+                                    onClick={handleVerify}
+                                    disabled={isVerifying}
+                                    className="w-full py-5 bg-green-600 text-white rounded-[28px] font-black text-xs uppercase tracking-widest active:scale-95 transition-all mt-4 disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                    Verify & Mark Delivered
+                                    {isVerifying ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        "Verify & Mark Delivered"
+                                    )}
                                 </button>
+                                
+                                {!isVerifying && (
+                                    <button 
+                                        onClick={() => setShow(false)}
+                                        className="w-full py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     </div>

@@ -235,6 +235,10 @@ app.use('/api/payments', require('./routes/payment-routes/payment.routes'));
 // Notification routes
 app.use('/api/notifications', require('./routes/notification.routes'));
 
+// Support routes
+app.use('/api/support', require('./routes/user-routes/support.routes'));
+app.use('/api/admin/support', require('./routes/admin-routes/support.routes'));
+
 // Dispute routes (Common)
 app.use('/api/disputes', require('./routes/common-routes/dispute.routes'));
 

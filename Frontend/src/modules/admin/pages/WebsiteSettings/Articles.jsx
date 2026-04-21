@@ -121,7 +121,7 @@ const Articles = () => {
     }
   };
 
-  const filteredItems = articles.filter(a => a.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredItems = articles.filter(a => a.title.toLowerCase().includes(searchTerm.trim().toLowerCase()));
 
   if (loading) return <LogoLoader />;
 

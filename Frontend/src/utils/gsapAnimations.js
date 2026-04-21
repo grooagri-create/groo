@@ -5,6 +5,13 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
   
+  // High-performance ScrollTrigger configuration to prevent 'removeChild' errors
+  // on mobile browsers and during rapid component re-mounting.
+  ScrollTrigger.config({
+    ignoreMobileResize: true, // Stops problematic vh-refresh loops on mobile
+    autoRefreshEvents: "visibilitychange,DOMContentLoaded,load" // Avoid frequent resize refreshes
+  });
+
   // Optimize GSAP for better performance
   gsap.config({
     nullTargetWarn: false,

@@ -40,7 +40,17 @@ const AgriMarket = () => {
         // Load categories independently (filter strictly for products)
         try {
             const catRes = await publicCatalogService.getCategories({ type: 'product' });
-            if (catRes.success) setCategories(catRes.categories || catRes.data || []);
+            if (catRes.success) {
+                const allCats = catRes.categories || catRes.data || [];
+                // STRICT FILTER: Only show categories meant for Seeds & Fertilizers marketplace
+                // This hides any machinery or accidental test categories (like Tractor, Rotavator)
+                const allowedKeywords = ['seed', 'fertilizer', 'pesticide', 'chemical', 'urea', 'zinc', 'spray', 'nutrition', 'crop'];
+                const filteredCats = allCats.filter(cat => {
+                    const title = cat.title?.toLowerCase() || '';
+                    return allowedKeywords.some(kw => title.includes(kw));
+                });
+                setCategories(filteredCats);
+            }
         } catch (err) {
             console.error('Categories fetch error:', err.message);
         }
@@ -62,8 +72,8 @@ const AgriMarket = () => {
         <div className="min-h-screen bg-slate-50">
             {/* Premium Header */}
             <div className="bg-white px-6 pt-12 pb-6 rounded-b-[48px] shadow-sm border-b border-slate-100 sticky top-0 z-40">
-                <div className="flex items-center gap-4 mb-6">
-                    <button onClick={() => navigate(-1)} className="p-3 bg-slate-50 rounded-2xl">
+                <div className="flex items-center gap-4 mb-6 relative z-50">
+                    <button onClick={() => navigate('/user')} className="p-3 bg-slate-50 rounded-2xl relative z-50 cursor-pointer pointer-events-auto active:scale-95 transition-all">
                         <FiChevronLeft className="w-6 h-6 text-slate-800" />
                     </button>
                     <div>

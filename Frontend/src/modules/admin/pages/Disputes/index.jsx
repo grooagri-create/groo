@@ -11,6 +11,7 @@ const AdminDisputes = () => {
     const [disputes, setDisputes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [selectedDispute, setSelectedDispute] = useState(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [resolutionNotes, setResolutionNotes] = useState('');
@@ -33,6 +34,12 @@ const AdminDisputes = () => {
             setLoading(false);
         }
     };
+
+    const filteredDisputes = disputes.filter(d => 
+        (d.bookingId?.bookingNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (d.raisedBy?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (d.reason || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const handleViewDetails = async (id) => {
         try {
@@ -96,13 +103,23 @@ const AdminDisputes = () => {
                     <p className="text-gray-500 text-sm mt-1">Review and resolve complaints from Farmers and Owners.</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="relative">
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative w-full sm:w-64">
+                        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search disputes..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                        />
+                    </div>
+                    <div className="relative w-full sm:w-auto">
                         <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none appearance-none cursor-pointer"
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none appearance-none cursor-pointer"
                         >
                             <option value="">All Statuses</option>
                             <option value="pending">Pending</option>
@@ -134,7 +151,7 @@ const AdminDisputes = () => {
                                     <td colSpan="6" className="px-6 py-4 h-16 bg-gray-50/50"></td>
                                 </tr>
                             ))
-                        ) : disputes.length === 0 ? (
+                        ) : filteredDisputes.length === 0 ? (
                             <tr>
                                 <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
                                     <FiCheckCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
@@ -142,7 +159,7 @@ const AdminDisputes = () => {
                                 </td>
                             </tr>
                         ) : (
-                            disputes.map((d) => (
+                            filteredDisputes.map((d) => (
                                 <tr key={d._id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-900">{d.bookingId?.bookingNumber || 'N/A'}</td>
                                     <td className="px-6 py-4 text-sm">

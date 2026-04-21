@@ -170,6 +170,15 @@
     "children": []
   },
   {
+    "title": "Help & Support",
+    "route": "/admin/support",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
     "title": "Manage Website",
     "route": "/admin/manage-website",
     "allowedRoles": [

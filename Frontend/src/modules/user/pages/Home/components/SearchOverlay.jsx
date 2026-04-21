@@ -181,6 +181,11 @@ const SearchOverlay = ({ isOpen, onClose, categories = [], onCategoryClick }) =>
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && results.length > 0) {
+                     handleResultClick(results[0]);
+                  }
+                }}
                 placeholder="Search for services..."
                 className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-100 transition-all border-none outline-none text-base font-medium text-gray-900"
                 style={{ '--tw-ring-color': `${themeColors.primary}33` }}

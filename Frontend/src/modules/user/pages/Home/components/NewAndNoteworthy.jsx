@@ -71,15 +71,21 @@ const NewAndNoteworthy = React.memo(({ services, onServiceClick }) => {
       };
     };
 
+    let cleanupFunc = null;
+    const runAnimations = () => { cleanupFunc = initAnimations(); };
     // Use requestIdleCallback if available, otherwise setTimeout
     if (window.requestIdleCallback) {
-      const idleCallback = window.requestIdleCallback(initAnimations, { timeout: 2000 });
+      const idleCallback = window.requestIdleCallback(runAnimations, { timeout: 2000 });
       return () => {
         if (idleCallback) window.cancelIdleCallback(idleCallback);
+        if (cleanupFunc) cleanupFunc();
       };
     } else {
-      const timeout = setTimeout(initAnimations, 500);
-      return () => clearTimeout(timeout);
+      const timeout = setTimeout(runAnimations, 500);
+      return () => {
+        clearTimeout(timeout);
+        if (cleanupFunc) cleanupFunc();
+      };
     }
   }, []); // Empty deps - only run once on mount
 

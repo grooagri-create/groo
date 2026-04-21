@@ -25,7 +25,6 @@ const Profile = () => {
   const [error, setError] = useState(null);
 
   const menuItems = React.useMemo(() => [
-    { id: 2, label: 'Wallet', icon: FaWallet, path: '/vendor/wallet' },
     { id: 12, label: 'My Agri-Store (Equipments & Supplies)', icon: FaTractor, path: '/vendor/store' },
     { id: 14, label: 'Business Profile', icon: FiBriefcase, path: '/vendor/business-details' },
     {
@@ -38,13 +37,12 @@ const Profile = () => {
       path: '/vendor/store/registration'
     },
     { id: 5, label: 'My Ratings', icon: FiStar, path: '/vendor/my-ratings' },
-    { id: 6, label: 'Manage Payment Methods', icon: FiCreditCard, path: '/vendor/manage-payment-methods' },
     { id: 7, label: 'Manage Address', icon: FiMapPin, path: '/vendor/address-management' },
     { id: 8, label: 'Settings', icon: FiSettings, path: '/vendor/settings' },
     { id: 10, label: 'Maintenance Calendar', icon: FiClock, path: '/vendor/maintenance' },
     { id: 11, label: 'Legal Compliance', icon: FiCheckCircle, path: '/vendor/compliance' },
     { id: 13, label: 'Soil Test Requests', icon: FiActivity, path: '/vendor/soil-tests' },
-    { id: 9, label: 'About GrooAgri', icon: null, customIcon: 'G', path: '/vendor/about-homster' },
+    { id: 9, label: 'About GrooAgri', icon: null, customIcon: 'G', path: '/vendor/about-groo' },
   ], [profile]);
 
   useLayoutEffect(() => {
@@ -182,7 +180,8 @@ const Profile = () => {
       <main className="px-4 pt-4 pb-6">
         {/* Profile Header Card with Phone & Email */}
         <div
-          className="rounded-2xl p-5 mb-4 shadow-xl relative overflow-hidden"
+          onClick={() => navigate('/vendor/profile/details')}
+          className="rounded-2xl p-5 mb-4 shadow-xl relative overflow-hidden cursor-pointer group active:scale-[0.98] transition-all duration-300"
           style={{
             background: themeColors.button,
             border: `2px solid ${themeColors.button}`,
@@ -261,29 +260,18 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Navigate Button */}
-              <button
-                onClick={() => navigate('/vendor/profile/details')}
-                className="p-3.5 rounded-xl flex-shrink-0 transition-all duration-300 active:scale-95 mt-1"
+              {/* Arrow Button Visual Cue */}
+              <div
+                className="p-3.5 rounded-xl flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 mt-1"
                 style={{
                   background: 'rgba(255, 255, 255, 0.28)',
                   backdropFilter: 'blur(12px)',
                   boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
                   border: '1.5px solid rgba(255, 255, 255, 0.35)',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.12) rotate(5deg)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.38)';
-                  e.currentTarget.style.boxShadow = '0 6px 18px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1) rotate(0deg)';
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.28)';
-                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)';
-                }}
               >
                 <FiArrowRight className="w-5 h-5 text-white" style={{ fontWeight: 'bold' }} />
-              </button>
+              </div>
             </div>
           </div>
         </div>

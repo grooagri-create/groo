@@ -247,9 +247,31 @@ const AdminSettings = () => {
   // Handle billing settings change
   const handleBillingChange = (e) => {
     const { name, value } = e.target;
-    // Auto-uppercase for specific fields
-    const upperFields = ['companyGSTIN', 'companyPAN', 'invoicePrefix'];
-    const newValue = upperFields.includes(name) ? value.toUpperCase() : value;
+    let newValue = value;
+
+    // Live Input Restrictions
+    if (name === 'companyCity' || name === 'companyState') {
+      // Accept only alphabets and spaces
+      newValue = value.replace(/[^a-zA-Z\s]/g, '');
+    } else if (name === 'companyPhone') {
+      // Accept only digits and limit to 10
+      newValue = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'companyPincode') {
+      // Accept only digits and limit to 6
+      newValue = value.replace(/\D/g, '').slice(0, 6);
+    } else if (name === 'sacCode') {
+      // Accept only digits and limit to 6
+      newValue = value.replace(/\D/g, '').slice(0, 6);
+    } else if (name === 'companyPAN') {
+      // Auto-uppercase and limit to 10
+      newValue = value.toUpperCase().slice(0, 10);
+    } else if (name === 'companyGSTIN') {
+      // Auto-uppercase and limit to 15
+      newValue = value.toUpperCase().slice(0, 15);
+    } else if (name === 'invoicePrefix') {
+      newValue = value.toUpperCase().slice(0, 5);
+    }
+
     setBillingSettings(prev => ({ ...prev, [name]: newValue }));
   };
 
@@ -263,21 +285,24 @@ const AdminSettings = () => {
     if (!companyName?.trim()) return "Company Name is required";
 
     const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    if (!companyGSTIN || !gstRegex.test(companyGSTIN)) return "Invalid GSTIN format (e.g., 27ABCDE1234F1Z5)";
+    if (!companyGSTIN || !gstRegex.test(companyGSTIN)) return "Invalid GSTIN format (ex: 27ABCDE1234F1Z5)";
 
     const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-    if (!companyPAN || !panRegex.test(companyPAN)) return "Invalid PAN format (e.g., ABCDE1234F)";
+    if (!companyPAN || !panRegex.test(companyPAN)) return "PAN should be in format (ex - ASDFE1234D)";
 
     if (!companyAddress?.trim()) return "Address is required";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!companyEmail || !emailRegex.test(companyEmail)) return "Invalid Email Address";
+    if (!companyEmail || !emailRegex.test(companyEmail)) return "Company mail should be in format (ex: info@company.com)";
 
     const phoneRegex = /^[6-9]\d{9}$/;
-    if (!companyPhone || !phoneRegex.test(companyPhone)) return "Invalid Phone Number (must be 10 digits)";
+    if (!companyPhone || !phoneRegex.test(companyPhone)) return "Company phone no. should be in format (10 digits starting with 6-9)";
 
-    if (!companyCity?.trim()) return "City is required";
-    if (!companyState?.trim()) return "State is required";
+    if (!companyCity?.trim()) return "City field is required";
+    if (/[^a-zA-Z\s]/.test(companyCity)) return "City field accept only alphabet";
+
+    if (!companyState?.trim()) return "State field is required";
+    if (/[^a-zA-Z\s]/.test(companyState)) return "State field accept only alphabet";
 
     const pincodeRegex = /^[1-9][0-9]{5}$/;
     if (!companyPincode || !pincodeRegex.test(companyPincode)) return "Invalid Pincode (must be 6 digits)";

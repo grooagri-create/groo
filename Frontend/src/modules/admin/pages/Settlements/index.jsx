@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiDollarSign, FiCheck, FiX, FiEye, FiClock, FiUsers, FiTrendingUp, FiAlertCircle, FiDownload } from 'react-icons/fi';
+import { FiDollarSign, FiCheck, FiX, FiEye, FiClock, FiUsers, FiTrendingUp, FiAlertCircle, FiDownload, FiRefreshCw } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import Button from '../../components/Button';
@@ -785,8 +785,9 @@ const SettlementManagement = () => {
         <button
           onClick={() => loadData()}
           className="px-3 py-2.5 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-colors"
+          title="Refresh Data"
         >
-          <FiClock className="w-4 h-4" />
+          <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 

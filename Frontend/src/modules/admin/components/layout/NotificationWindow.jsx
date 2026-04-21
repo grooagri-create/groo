@@ -40,20 +40,30 @@ const NotificationWindow = ({
 
   const handleNotificationClick = (notification) => {
     if (!notification.isRead && onMarkAsRead) {
-      onMarkAsRead(notification._id);
-    }
-    if (notification.relatedId && notification.relatedType === 'booking') {
-      // Navigate to booking details if possible, or just bookings list
-      // For now, if we have bookingId in data, use it.
-      const bookingId = notification.relatedId || notification.bookingId;
-      if (bookingId) {
-        navigate(`/admin/bookings`);
-      }
+      onMarkAsRead(notification._id || notification.id);
     }
 
-    if (notification.relatedType === 'scrap') {
+    const type = (notification.type || '').toLowerCase();
+    const relatedType = (notification.relatedType || '').toLowerCase();
+    const title = (notification.title || '').toLowerCase();
+
+    // Redirection logic for Admin
+    if (relatedType === 'booking' || type.includes('booking')) {
+      navigate('/admin/bookings');
+    } else if (relatedType === 'soil' || type.includes('soil') || title.includes('soil')) {
+      navigate('/admin/soil-tests');
+    } else if (relatedType === 'scrap' || type.includes('scrap')) {
       navigate('/admin/scrap');
+    } else if (type.includes('payment')) {
+      navigate('/admin/payments');
+    } else if (type.includes('kyc') || type.includes('verification')) {
+      navigate('/admin/users/kyc');
+    } else if (type.includes('withdraw') || type.includes('settlement')) {
+      navigate('/admin/settlements');
+    } else if (type.includes('store') || type.includes('shop')) {
+      navigate('/admin/marketplace/store-approvals');
     }
+
     onClose();
   };
 
@@ -122,45 +132,47 @@ const NotificationWindow = ({
                 <div className="p-2">
                   {notifications.map((n) => (
                     <div
-                      key={n._id}
-                      className={`p-3 rounded-xl border mb-2 cursor-pointer transition-colors ${n.isRead ? 'bg-white border-gray-200' : 'bg-primary-50 border-primary-300'
+                      key={n._id || n.id}
+                      className={`p-3 rounded-xl border mb-2 cursor-pointer transition-all hover:shadow-md ${n.isRead ? 'bg-white border-gray-100' : 'bg-primary-50 border-primary-200'
                         }`}
                       onClick={() => handleNotificationClick(n)}
                     >
                       <div className="flex items-start gap-3">
+                        {/* Notification Icon */}
                         <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <FiBell className="text-gray-600" />
+                          <FiBell className="text-gray-500 w-5 h-5" />
                         </div>
+
+                        {/* Content Area */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-800 text-sm">{n.title}</p>
-                          <p className="text-xs text-gray-600 mt-1 line-clamp-2">{n.message}</p>
-                          <p className="text-[11px] text-gray-400 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            {(n.title || '').toLowerCase().includes('reject') && <span className="text-sm">🚫</span>}
+                            <p className="font-bold text-gray-800 text-sm truncate">{n.title}</p>
+                          </div>
+                          <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{n.message}</p>
+                          <p className="text-[10px] text-gray-400 mt-1.5 font-medium">{new Date(n.createdAt || Date.now()).toLocaleString()}</p>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          {!n.isRead && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMarkAsRead && onMarkAsRead(n._id);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 text-green-600"
-                              title="Mark as read"
-                            >
-                              <FiCheck />
-                            </button>
-                          )}
+
+                        {/* Actions: Red X and Gray Arrow (Side-by-Side as per screenshot) */}
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-1">
+                          {/* Delete Button (Red X) */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onDelete && onDelete(n._id);
+                              const id = n._id || n.id;
+                              if (onDelete && id) onDelete(id);
                             }}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-red-600"
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete"
                           >
-                            <FiX />
+                            <FiX className="w-4 h-4" />
                           </button>
+
+                          {/* Arrow Icon */}
+                          <div className="text-gray-300 group-hover:text-gray-500 transition-colors">
+                            <FiChevronRight className="w-5 h-5" />
+                          </div>
                         </div>
-                        <FiChevronRight className="text-gray-300 mt-1" />
                       </div>
                     </div>
                   ))}

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import PageTransition from '../components/common/PageTransition';
 import BottomNav from '../components/layout/BottomNav';
@@ -82,6 +82,21 @@ const LoadingFallback = () => (
 
 const VendorRoutes = () => {
   const location = useLocation();
+
+  // PROACTIVE CLEANUP: Kill all orphaned ScrollTriggers from other modules
+  // This prevents background animations (from Landing/User home) from crashing 
+  // the Vendor panel when body styles or viewport sizes change.
+  useEffect(() => {
+    import('gsap/ScrollTrigger').then(({ ScrollTrigger }) => {
+      // Configure safely before killing
+      ScrollTrigger.config({
+        ignoreMobileResize: true,
+        autoRefreshEvents: "visibilitychange,DOMContentLoaded,load"
+      });
+      // Kill all existing triggers to prevent background crashes
+      ScrollTrigger.getAll().forEach(t => t.kill());
+    }).catch(() => {});
+  }, []);
 
   // Check if current route should hide bottom nav (auth routes or map)
   // Check if current route should hide bottom nav (auth routes or map or booking alert)

@@ -8,23 +8,29 @@ import { themeColors } from '../../../../theme';
 
 const Rewards = () => {
   const navigate = useNavigate();
+  const getReferralLink = () => {
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    const userCode = userData._id || userData.id || 'NEW_USER';
+    return `${window.location.origin}/signup?ref=${userCode}`;
+  };
+
   const handleCopyLink = () => {
     // Copy referral link to clipboard
-    const referralLink = 'https://appzeto.com/refer/your-link';
+    const referralLink = getReferralLink();
     navigator.clipboard.writeText(referralLink).then(() => {
       toast.success('Link copied to clipboard!');
     });
   };
 
   const handleShareWhatsApp = () => {
-    const text = 'Check out this amazing electrical services app!';
-    const url = 'https://appzeto.com/refer/your-link';
+    const text = 'Check out this amazing service app! Join via my link:';
+    const url = getReferralLink();
     window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
   };
 
   const handleShareMessenger = () => {
-    const url = 'https://appzeto.com/refer/your-link';
-    window.open(`https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=your-app-id`, '_blank');
+    const url = getReferralLink();
+    window.open(`https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=123456789`, '_blank');
   };
   return (
     <div
@@ -35,7 +41,7 @@ const Rewards = () => {
       <div className="bg-white sticky top-0 z-50 border-b border-gray-100 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/user')}
             className="p-1.5 hover:bg-gray-50 rounded-full transition-colors"
           >
             <FiArrowLeft className="w-5 h-5 text-gray-800" />
@@ -45,12 +51,6 @@ const Rewards = () => {
             <h1 className="text-lg font-bold text-gray-900">Refer & Earn</h1>
           </div>
         </div>
-        <button
-          onClick={() => navigate('/user/notifications')}
-          className="p-2 hover:bg-gray-50 rounded-full transition-colors"
-        >
-          <FiBell className="w-6 h-6 text-gray-700" />
-        </button>
       </div>
 
       <main>
@@ -156,13 +156,12 @@ const Rewards = () => {
           </div>
         </div>
 
-        {/* Links Section */}
         <div className="px-4 py-3 border-t border-gray-100 bg-white">
           <div className="flex items-center gap-2 text-[#00A6A6] text-xs">
             <span className="text-[#00A6A6]">•</span>
-            <button className="hover:underline">Terms and conditions</button>
+            <button onClick={() => navigate('/user/cancellation-policy')} className="hover:underline cursor-pointer">Terms and conditions</button>
             <span className="text-[#00A6A6]">•</span>
-            <button className="hover:underline">FAQs</button>
+            <button onClick={() => navigate('/user/help-support')} className="hover:underline cursor-pointer">FAQs</button>
           </div>
         </div>
 

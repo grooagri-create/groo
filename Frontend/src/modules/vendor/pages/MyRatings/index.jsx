@@ -115,9 +115,6 @@ const MyRatings = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between px-2">
             <h3 className="text-lg font-black text-gray-900">Recent Feedback</h3>
-            <button className="p-2 bg-white rounded-xl shadow-sm border border-gray-100">
-              <FiFilter className="w-4 h-4 text-gray-600" />
-            </button>
           </div>
 
           {ratings.length > 0 ? (

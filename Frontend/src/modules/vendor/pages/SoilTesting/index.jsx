@@ -39,7 +39,28 @@ const VendorSoilTests = () => {
     const [filePreview, setFilePreview] = useState(null);
     const [rejectionReason, setRejectionReason] = useState('');
 
-    useEffect(() => { fetchMyRequests(); }, []);
+    useEffect(() => { 
+        fetchMyRequests(); 
+        
+        // AUTO UPDATE: Poll for new requests every 30 seconds
+        const pollInterval = setInterval(fetchMyRequests, 30000);
+        return () => clearInterval(pollInterval);
+    }, []);
+
+    // BACKGROUND SCROLL LOCK: Prevent scrolling when any modal is open
+    useEffect(() => {
+        if (modalType) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none'; // Further safety for mobile
+        } else {
+            document.body.style.overflow = 'unset';
+            document.body.style.touchAction = 'auto';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+            document.body.style.touchAction = 'auto';
+        };
+    }, [modalType]);
 
     const fetchMyRequests = async () => {
         try {

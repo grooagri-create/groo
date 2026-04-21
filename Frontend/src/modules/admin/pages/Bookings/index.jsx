@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   FiSearch, FiCalendar, FiDownload, FiMoreVertical,
   FiClock, FiCheckCircle, FiBox, FiTruck, FiXCircle, FiRefreshCw, FiShoppingBag
@@ -62,12 +63,12 @@ const Bookings = () => {
       const params = {
         page,
         limit: 10,
-        search: debouncedSearch,
+        search: debouncedSearch.trim(),
         startDate,
         endDate
       };
       if (statusFilter !== 'All Status') {
-        params.status = statusFilter.toUpperCase().replace(' ', '_');
+        params.status = statusFilter;
       }
       
       if (moduleFilter === 'Hourly Rent') params.rental_type = 'hourly';
@@ -183,7 +184,6 @@ const Bookings = () => {
           </select>
 
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-            <FiCalendar className="text-gray-400 w-3.5 h-3.5" />
             <input
               type="date"
               value={startDate}
@@ -199,6 +199,13 @@ const Bookings = () => {
             />
           </div>
 
+          <button
+            onClick={fetchData}
+            className="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-colors"
+            title="Refresh Data"
+          >
+            <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
           <button
             onClick={handleExport}
             className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm shadow-green-200"
@@ -237,7 +244,11 @@ const Bookings = () => {
                 bookings.map((booking) => (
                   <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="font-bold text-gray-900 text-xs">#{booking.bookingNumber || booking._id.slice(-6).toUpperCase()}</span>
+                      <Link to={`/admin/bookings/${booking._id}`}>
+                        <span className="font-bold text-blue-600 hover:underline text-xs cursor-pointer">
+                          #{booking.bookingNumber || booking._id.slice(-6).toUpperCase()}
+                        </span>
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <div>

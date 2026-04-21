@@ -420,12 +420,12 @@ const bookingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate unique booking number
+// Generate unique booking number (5-8 alphanumeric)
 bookingSchema.pre('save', async function (next) {
   if (this.isNew && !this.bookingNumber) {
-    const timestamp = Date.now().toString().slice(-8);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    this.bookingNumber = `BK${timestamp}${random}`;
+    // Math.random().toString(36).substring(2, 8) generates exactly 6 alphanumeric chars
+    // .toUpperCase() converts it to a clean order ID format (e.g., 'K9R2X4')
+    this.bookingNumber = Math.random().toString(36).substring(2, 8).toUpperCase();
   }
   next();
 });

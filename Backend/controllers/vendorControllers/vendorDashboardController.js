@@ -5,12 +5,15 @@ const Service = require('../../models/Service');
 const EcommerceOrder = require('../../models/EcommerceOrder');
 const { BOOKING_STATUS, PAYMENT_STATUS, WORKER_STATUS } = require('../../utils/constants');
 
+const mongoose = require('mongoose');
+
 /**
  * Get vendor dashboard stats
  */
 const getDashboardStats = async (req, res) => {
   try {
     const vendorId = req.user.id;
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
     const vendor = await require('../../models/Vendor').findById(vendorId);
     const vendorCategories = vendor?.service || [];
 
@@ -94,7 +97,7 @@ const getDashboardStats = async (req, res) => {
     const earningsResult = await VendorBill.aggregate([
       {
         $match: {
-          vendorId: vendorId,
+          vendorId: vendorObjectId,
           status: 'paid'
         }
       },
@@ -196,6 +199,7 @@ const getDashboardStats = async (req, res) => {
 const getRevenueAnalytics = async (req, res) => {
   try {
     const vendorId = req.user.id;
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
     const { period = 'monthly' } = req.query; // daily, weekly, monthly
 
     let groupFormat = '%Y-%m-%d';
@@ -209,7 +213,7 @@ const getRevenueAnalytics = async (req, res) => {
     const revenueData = await VendorBill.aggregate([
       {
         $match: {
-          vendorId: vendorId,
+          vendorId: vendorObjectId,
           status: 'paid'
         }
       },
@@ -251,6 +255,7 @@ const getRevenueAnalytics = async (req, res) => {
 const getWorkerPerformance = async (req, res) => {
   try {
     const vendorId = req.user.id;
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
 
     // Get workers for this vendor
     const workers = await Worker.find({ vendorId })
@@ -260,7 +265,7 @@ const getWorkerPerformance = async (req, res) => {
     const workerStats = await Booking.aggregate([
       {
         $match: {
-          vendorId: vendorId,
+          vendorId: vendorObjectId,
           workerId: { $ne: null }
         }
       },
@@ -327,12 +332,13 @@ const getWorkerPerformance = async (req, res) => {
 const getServicePerformance = async (req, res) => {
   try {
     const vendorId = req.user.id;
+    const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
 
     // Get service stats
     const serviceStats = await Booking.aggregate([
       {
         $match: {
-          vendorId: vendorId
+          vendorId: vendorObjectId
         }
       },
       {

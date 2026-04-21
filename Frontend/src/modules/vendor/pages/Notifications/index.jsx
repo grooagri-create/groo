@@ -115,6 +115,35 @@ const Notifications = () => {
     }
   };
 
+  const handleNotificationClick = (notif) => {
+    // Mark as read when clicked
+    if (!notif.read) {
+      handleMarkAsRead(notif.id);
+    }
+
+    // Extraction of path based on type or related metadata
+    const type = (notif.type || '').toLowerCase();
+    const relatedType = (notif.relatedType || '').toLowerCase();
+    const relatedId = notif.relatedId || notif.bookingId || notif.itemId;
+
+    if (relatedType === 'booking' || type.includes('booking') || type.includes('job') || type.includes('work')) {
+      if (relatedId) navigate(`/vendor/booking/${relatedId}`);
+      else navigate('/vendor/jobs');
+    } else if (type.includes('soil')) {
+      navigate('/vendor/soil-tests');
+    } else if (type.includes('payment') || type.includes('wallet') || type.includes('payout')) {
+      navigate('/vendor/wallet');
+    } else if (type.includes('compliance')) {
+      navigate('/vendor/compliance');
+    } else if (type.includes('profile')) {
+      navigate('/vendor/profile/details');
+    } else if (type.includes('dispute') || relatedType === 'dispute') {
+      const bId = notif.data?.bookingId || notif.bookingId;
+      if (bId) navigate(`/vendor/booking/${bId}`);
+      else navigate('/vendor/jobs');
+    }
+  };
+
   const filteredNotifications = notifications.filter(notif => {
     if (filter === 'all') return true;
 
@@ -140,6 +169,7 @@ const Notifications = () => {
 
     if (['payment', 'refund', 'wallet', 'payout'].some(t => type.includes(t))) return '💰';
     if (['booking', 'job', 'work', 'visit', 'journey', 'vendor'].some(t => type.includes(t))) return '📋';
+    if (type.includes('dispute')) return '⚖️';
     if (['alert', 'general'].some(t => type.includes(t))) return '🔔';
 
     return '📢';
@@ -226,12 +256,13 @@ const Notifications = () => {
             {filteredNotifications.map((notif) => (
               <div
                 key={notif.id}
-                className={`bg-white rounded-xl p-4 shadow-md transition-all relative group ${!notif.read ? 'border-l-4' : ''
+                className={`bg-white rounded-xl p-4 shadow-md transition-all relative group cursor-pointer active:scale-[0.98] ${!notif.read ? 'border-l-4' : ''
                   }`}
                 style={{
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                   borderLeftColor: !notif.read ? getNotificationColor(notif.type) : 'transparent',
                 }}
+                onClick={() => handleNotificationClick(notif)}
               >
                 <div className="flex items-start gap-3">
                   <div
@@ -240,7 +271,7 @@ const Notifications = () => {
                   >
                     {getNotificationIcon(notif.type)}
                   </div>
-                  <div className="flex-1 pr-6">
+                  <div className="flex-1 pr-12">
                     <div className="flex items-start justify-between mb-1">
                       <div>
                         <p className={`font-semibold text-gray-800 ${!notif.read ? 'font-bold' : ''}`}>{notif.title}</p>
@@ -248,31 +279,11 @@ const Notifications = () => {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 mt-2">{notif.time || (notif.createdAt && new Date(notif.createdAt).toLocaleString())}</p>
-
-                    {/* Action button based on type/related entity */}
-                    {(notif.action || notif.relatedType === 'booking' || notif.type === 'payout_requested') && (
-                      <button
-                        onClick={() => {
-                          if (notif.relatedType === 'booking' && notif.relatedId) {
-                            navigate(`/vendor/booking/${notif.relatedId}`);
-                          } else if (notif.action === 'view_booking' && notif.bookingId) {
-                            navigate(`/vendor/booking/${notif.bookingId}`);
-                          } else if (notif.action === 'view_wallet') {
-                            navigate('/vendor/wallet');
-                          }
-                        }}
-                        className="mt-3 text-sm font-bold flex items-center gap-1"
-                        style={{ color: themeColors.button }}
-                      >
-                        View Details
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                      </button>
-                    )}
                   </div>
                 </div>
 
                 {/* Actions: Mark Read & Delete - Positioned absolute top-right */}
-                <div className="absolute top-3 right-3 flex gap-2">
+                <div className="absolute top-4 right-3 flex items-center gap-2">
                   {!notif.read && (
                     <button
                       onClick={(e) => {
@@ -286,12 +297,22 @@ const Notifications = () => {
                     </button>
                   )}
                   <button
-                    onClick={(e) => handleDelete(e, notif.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(e, notif.id);
+                    }}
                     className="p-1.5 rounded-full bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shadow-sm"
                     title="Delete"
                   >
                     <FiX className="w-3.5 h-3.5" />
                   </button>
+                  
+                  {/* Dedicated Arrow Icon for entire card click visual cue */}
+                  <div className="text-gray-300 group-hover:text-gray-500 transition-colors ml-1">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             ))}

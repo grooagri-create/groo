@@ -29,7 +29,6 @@ const getVendorServices = async (req, res) => {
       status: SERVICE_STATUS.ACTIVE
     })
       .populate('categoryId', 'title slug')
-      .populate('categoryIds', 'title slug')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));

@@ -290,7 +290,23 @@ const Notifications = () => {
                             navigate(`/user/booking/${notif.bookingId}`);
                           } else if (notif.action === 'view_wallet') {
                             navigate('/user/wallet');
+                          } else if (notif.type?.includes('dispute') || notif.relatedType?.includes('dispute')) {
+                            const bId = notif.data?.bookingId || notif.bookingId;
+                            if (bId) navigate(`/user/booking/${bId}`);
                           }
+                        }}
+                        className="mt-3 text-sm font-bold flex items-center gap-1"
+                        style={{ color: themeColors.button }}
+                      >
+                        View Details
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      </button>
+                    )}
+                    {!notif.action && (notif.type?.includes('dispute') || notif.relatedType?.includes('dispute')) && (
+                      <button
+                        onClick={() => {
+                          const bId = notif.data?.bookingId || notif.bookingId;
+                          if (bId) navigate(`/user/booking/${bId}`);
                         }}
                         className="mt-3 text-sm font-bold flex items-center gap-1"
                         style={{ color: themeColors.button }}

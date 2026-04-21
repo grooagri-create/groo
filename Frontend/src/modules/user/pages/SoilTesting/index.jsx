@@ -39,6 +39,18 @@ const SoilTesting = () => {
         fetchMyRequests();
     }, []);
 
+    // Prevent background scrolling when modals are open
+    useEffect(() => {
+        if (showForm || paymentModal) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [showForm, paymentModal]);
+
     const fetchMyRequests = async () => {
         try {
             setLoading(true);
@@ -310,24 +322,33 @@ const SoilTesting = () => {
 
                                     {/* Approved — Verified Report Badge + Download */}
                                     {req.status === 'completed' && req.reportStatus === 'approved' && req.reportUrl && (
-                                        <div className="mt-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <FiShield className="text-emerald-600 w-5 h-5" />
-                                                <div>
-                                                    <p className="text-xs font-black text-emerald-800">Verified Report Ready</p>
-                                                    <p className="text-[10px] text-emerald-600 font-bold">Verified by Admin ✓</p>
+                                        <div className="mt-4 space-y-3">
+                                            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <FiShield className="text-emerald-600 w-5 h-5" />
+                                                    <div>
+                                                        <p className="text-xs font-black text-emerald-800">Verified Report Ready</p>
+                                                        <p className="text-[10px] text-emerald-600 font-bold">Verified by Admin ✓</p>
+                                                    </div>
                                                 </div>
+                                                {req.paymentStatus === 'paid' ? (
+                                                    <button onClick={() => handleDownload(req.reportUrl)}
+                                                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
+                                                        <FiDownload /> Download
+                                                    </button>
+                                                ) : (
+                                                    <button onClick={() => setPaymentModal(req)}
+                                                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
+                                                        <FiShield /> Pay ₹{req.totalAmount || 0} to View
+                                                    </button>
+                                                )}
                                             </div>
-                                            {req.paymentStatus === 'paid' ? (
-                                                <button onClick={() => handleDownload(req.reportUrl)}
-                                                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg shadow-emerald-600/20 active:scale-95 transition-all">
-                                                    <FiDownload /> Download
-                                                </button>
-                                            ) : (
-                                                <button onClick={() => setPaymentModal(req)}
-                                                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
-                                                    <FiShield /> Pay ₹{req.totalAmount || 0} to View
-                                                </button>
+                                            {/* Show Admin Notes to the Farmer if available */}
+                                            {req.adminNotes && (
+                                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs">
+                                                    <p className="font-black text-slate-700 mb-1">Admin Note:</p>
+                                                    <p className="text-slate-600 font-medium leading-relaxed">{req.adminNotes}</p>
+                                                </div>
                                             )}
                                         </div>
                                     )}

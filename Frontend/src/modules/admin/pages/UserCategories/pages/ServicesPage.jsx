@@ -331,7 +331,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
     }
 
     if (!searchTerm) return result;
-    const lower = searchTerm.toLowerCase();
+    const lower = searchTerm.trim().toLowerCase();
     return result.filter(s => s.title.toLowerCase().includes(lower));
   }, [brandServices, searchTerm, selectedCategoryFilter]);
 
