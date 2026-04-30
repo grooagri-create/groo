@@ -483,17 +483,22 @@ const VendorSignup = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         className={`block w-full pl-10 pr-10 py-2.5 border rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none ${
-                          formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) 
+                          formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i.test(formData.email) 
                             ? 'border-red-500 focus:border-red-500' 
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
                         style={{ '--tw-ring-color': brandColor }}
                         placeholder="vendor@example.com"
                       />
-                      {(formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) && (
+                      {(formData.email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i.test(formData.email)) && (
                         <FiCheckCircle className="text-green-500 absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5" />
                       )}
                     </div>
+                    {formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i.test(formData.email) && (
+                      <p className="mt-1 text-xs text-red-500 font-medium">
+                        Please enter a valid email address
+                      </p>
+                    )}
                   </div>
 
                   {!verificationToken && (

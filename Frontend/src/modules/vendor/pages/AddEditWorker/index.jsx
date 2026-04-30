@@ -180,6 +180,15 @@ const AddEditDriver = () => {
     }
   };
 
+  const validateEmail = (email) => {
+    if (!email) return "";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
   const handleInputChange = (field, value) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
@@ -190,7 +199,12 @@ const AddEditDriver = () => {
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+
+    if (field === 'email') {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    } else if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: null }));
+    }
   };
 
   const toggleCategory = (val) => {
@@ -423,7 +437,20 @@ const AddEditDriver = () => {
               <div className="space-y-3">
                 <input type="text" value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} placeholder="Full Name *" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.name ? 'border-red-500' : 'border-gray-100'}`} />
                 <input type="tel" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} placeholder="Mobile Number *" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.phone ? 'border-red-500' : 'border-gray-100'}`} maxLength={10} />
-                <input type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} placeholder="Email Address (Optional)" className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 ${errors.email ? 'border-red-500' : 'border-gray-100'}`} />
+                <div className="space-y-1">
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Email Address (Optional)"
+                    className={`w-full px-4 py-3 bg-gray-50 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all ${
+                      errors.email ? 'border-red-500 ring-red-100' : 'border-gray-100'
+                    }`}
+                  />
+                  {errors.email && (
+                    <p className="text-[10px] text-red-500 font-bold px-1">{errors.email}</p>
+                  )}
+                </div>
               </div>
             </div>
 

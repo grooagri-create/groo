@@ -29,9 +29,9 @@ const TestimonialSection = () => {
     if (loading || reviews.length === 0) return null;
 
     return (
-        <section className="py-24 bg-gradient-to-b from-white to-green-50/30 overflow-hidden">
+        <section className="py-12 md:py-24 bg-gradient-to-b from-white to-green-50/30 overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-16">
+                <div className="text-center mb-8 md:mb-16">
                     <motion.span 
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}

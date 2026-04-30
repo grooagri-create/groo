@@ -6,7 +6,8 @@ const {
   register,
   login,
   logout,
-  verifyLogin
+  verifyLogin,
+  deleteAccount
 } = require('../../controllers/userControllers/userAuthController');
 // ...
 
@@ -43,6 +44,9 @@ router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.post('/refresh-token', require('../../controllers/userControllers/userAuthController').refreshToken);
 router.post('/logout', authenticate, isUser, logout);
+router.delete('/delete-account', authenticate, isUser, deleteAccount);
 
 module.exports = router;
+
+
 

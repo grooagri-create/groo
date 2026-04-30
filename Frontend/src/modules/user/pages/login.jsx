@@ -67,7 +67,7 @@ const Login = () => {
     try {
       // Clean phone number
       const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const response = await userAuthService.sendOTP(cleanPhone);
+      const response = await userAuthService.sendOTP(cleanPhone, null, true);
 
       if (response.success) {
         setOtpToken(response.token);
@@ -86,7 +86,12 @@ const Login = () => {
       }
     } catch (error) {
       setIsLoading(false);
-      toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Failed to send OTP. Please try again.';
+      toast.error(errorMessage);
+      
+      if (error.response?.status === 404) {
+        navigate('/user/signup', { state: { phone: phoneNumber } });
+      }
     }
   };
 
@@ -310,7 +315,7 @@ const Login = () => {
                   if (isLoading || resendTimer > 0) return;
                   try {
                     setIsLoading(true);
-                    const response = await userAuthService.sendOTP(phoneNumber.replace(/\D/g, ''));
+                    const response = await userAuthService.sendOTP(phoneNumber.replace(/\D/g, ''), null, true);
                     if (response.success) {
                       setOtpToken(response.token);
                       setResendTimer(120);

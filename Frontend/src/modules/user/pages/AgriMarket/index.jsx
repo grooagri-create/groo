@@ -19,6 +19,7 @@ const AgriMarket = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [hasOrders, setHasOrders] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -50,6 +51,9 @@ const AgriMarket = () => {
                     return allowedKeywords.some(kw => title.includes(kw));
                 });
                 setCategories(filteredCats);
+                if (filteredCats.length > 0) {
+                    setSelectedCategory(filteredCats[0]._id);
+                }
             }
         } catch (err) {
             console.error('Categories fetch error:', err.message);
@@ -59,11 +63,22 @@ const AgriMarket = () => {
             toast.error("Products load karne mein dikkat hui");
         }
 
+        // Check for existing orders
+        try {
+            const orderRes = await ecommerceService.getMyOrders();
+            if (orderRes.success && orderRes.data?.length > 0) {
+                setHasOrders(true);
+            }
+        } catch (err) {
+            console.error('Orders check error:', err.message);
+        }
+        
         setLoading(false);
     };
 
     const filteredProducts = products.filter(p => {
-        const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const trimmedSearch = searchTerm.trim().toLowerCase();
+        const matchesSearch = p.title.toLowerCase().includes(trimmedSearch);
         const matchesCategory = selectedCategory === 'all' || p.categoryId?._id === selectedCategory;
         return matchesSearch && matchesCategory;
     });
@@ -83,7 +98,7 @@ const AgriMarket = () => {
                 </div>
 
                 <div className="flex gap-3">
-                    <div className="flex-1 bg-slate-50 rounded-2xl px-5 py-2 flex items-center gap-3 border border-slate-100">
+                    <div className="flex-1 bg-slate-50 rounded-2xl px-5 py-2 flex items-center gap-3 border border-slate-300">
                         <FiSearch className="text-slate-400" />
                         <input 
                             type="text" 
@@ -93,9 +108,6 @@ const AgriMarket = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button className="p-4 bg-teal-600 rounded-2xl shadow-lg shadow-teal-500/20 text-white">
-                        <FiFilter />
-                    </button>
                 </div>
             </div>
 
@@ -104,14 +116,6 @@ const AgriMarket = () => {
                 <div className="space-y-4">
                     <h2 className="text-xs font-black text-slate-800 uppercase tracking-widest ml-1">Categories</h2>
                     <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
-                        <div 
-                            onClick={() => setSelectedCategory('all')}
-                            className={`flex-shrink-0 px-6 py-4 rounded-3xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer snap-start border ${
-                                selectedCategory === 'all' ? 'bg-teal-600 text-white border-teal-600 shadow-lg shadow-teal-500/20' : 'bg-white text-slate-400 border-slate-100'
-                            }`}
-                        >
-                            All Items
-                        </div>
                         {categories.map((cat, idx) => (
                             <div 
                                 key={cat._id || `cat-${idx}`}
@@ -139,55 +143,75 @@ const AgriMarket = () => {
                         filteredProducts.map((product, idx) => (
                             <motion.div 
                                 layout
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.03 }}
                                 key={product._id || `prod-${idx}`} 
                                 onClick={() => navigate(`/user/agri-marketplace/${product._id}`)}
-                                className="bg-white rounded-[32px] p-3 shadow-sm border border-slate-100 flex flex-col gap-3 group active:scale-95 transition-all"
+                                className="bg-white rounded-[20px] p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col gap-1.5 group active:scale-[0.98] transition-all relative"
                             >
-                                <div className="aspect-square rounded-[24px] bg-slate-50 overflow-hidden relative border border-slate-100">
+                                {/* Image Container - Smaller aspect */}
+                                <div className="aspect-[1/1] rounded-[16px] bg-slate-50 overflow-hidden relative border border-slate-50">
                                     {product.imageUrl ? (
-                                        <img src={product.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        <img 
+                                            src={product.imageUrl} 
+                                            alt={product.title} 
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-slate-200">
-                                            <FiPackage className="w-8 h-8" />
+                                            <FiPackage className="w-8 h-8 stroke-[1]" />
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full shadow-sm">
-                                        <p className="text-[9px] font-black text-teal-600 uppercase tracking-tighter">Verified</p>
+                                    
+                                    {/* Small Verified Badge */}
+                                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-white/80 backdrop-blur-md rounded-md border border-white/50">
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-1 h-1 bg-teal-500 rounded-full" />
+                                            <p className="text-[7px] font-black text-teal-700 uppercase tracking-tighter">Verified</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="px-1 flex flex-col gap-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">{product.brandName || 'Local Brand'}</p>
-                                    <h3 className="font-black text-slate-800 text-xs leading-tight line-clamp-2 min-h-[2rem]">{product.title}</h3>
-                                    
-                                    <div className="mt-2 flex items-baseline gap-1">
-                                        <p className="text-sm font-black text-slate-800">₹{product.calculatorPrice?.totalPrice || product.price}</p>
-                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">/ {product.unit}</p>
-                                    </div>
 
-                                    {/* Stock Badge */}
-                                    <div className={`mt-1 inline-flex items-center gap-1 px-2 py-1 rounded-lg w-fit ${
-                                        product.stock > 10 
-                                            ? 'bg-green-50' 
-                                            : product.stock > 0 
-                                                ? 'bg-amber-50' 
-                                                : 'bg-red-50'
-                                    }`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${
-                                            product.stock > 10 
-                                                ? 'bg-green-500' 
-                                                : product.stock > 0 
-                                                    ? 'bg-amber-500' 
-                                                    : 'bg-red-500'
-                                        }`} />
-                                        <p className={`text-[8px] font-black uppercase tracking-tighter ${
-                                            product.stock > 10 
-                                                ? 'text-green-600' 
-                                                : product.stock > 0 
-                                                    ? 'text-amber-600' 
-                                                    : 'text-red-600'
-                                        }`}>
-                                            {product.stock > 0 ? `${product.stock} ${product.unit}s` : 'Out of Stock'}
-                                        </p>
+                                {/* Content - Reduced gaps */}
+                                <div className="px-1 pb-1 flex flex-col">
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">
+                                        {product.brandName || 'Agri Best'}
+                                    </p>
+                                    
+                                    <h3 className="font-bold text-slate-800 text-[12px] leading-tight line-clamp-1 mb-1">
+                                        {product.title}
+                                    </h3>
+                                    
+                                    <div className="flex flex-col">
+                                        <div className="flex items-baseline gap-0.5">
+                                            <span className="text-sm font-black text-slate-900">₹{product.calculatorPrice?.totalPrice || product.price}</span>
+                                            <span className="text-[8px] font-bold text-slate-400 uppercase">/ {product.unit}</span>
+                                        </div>
+
+                                        {/* Compact Stock Indicator */}
+                                        <div className="flex items-center justify-between mt-0.5">
+                                            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full ${
+                                                product.stock > 10 
+                                                    ? 'bg-emerald-50 text-emerald-600' 
+                                                    : product.stock > 0 
+                                                        ? 'bg-amber-50 text-amber-600' 
+                                                        : 'bg-red-50 text-red-600'
+                                            }`}>
+                                                <div className={`w-0.5 h-0.5 rounded-full ${
+                                                    product.stock > 10 ? 'bg-emerald-500' : product.stock > 0 ? 'bg-amber-500' : 'bg-red-500'
+                                                }`} />
+                                                <span className="text-[7px] font-black uppercase tracking-tight">
+                                                    {product.stock > 0 ? 'In Stock' : 'Out'}
+                                                </span>
+                                            </div>
+                                            
+                                            {product.stock > 0 && (
+                                                <p className="text-[8px] font-bold text-slate-300">
+                                                    {product.stock} left
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -196,18 +220,20 @@ const AgriMarket = () => {
                 </div>
             </div>
 
-            {/* Float Action - My Orders */}
-            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
-                <button 
-                    onClick={() => navigate('/user/my-agri-orders')}
-                    className="flex items-center gap-3 bg-slate-900 text-white px-8 py-5 rounded-full shadow-2xl shadow-slate-900/40 active:scale-95 transition-all"
-                >
-                    <span className="text-[10px] font-black uppercase tracking-widest">Track My Orders</span>
-                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                        <FiArrowRight className="w-3 h-3" />
-                    </div>
-                </button>
-            </div>
+            {/* Float Action - My Orders (Only if user has orders) */}
+            {hasOrders && (
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+                    <button 
+                        onClick={() => navigate('/user/my-agri-orders')}
+                        className="flex items-center gap-3 bg-slate-900 text-white px-8 py-5 rounded-full shadow-2xl shadow-slate-900/40 active:scale-95 transition-all"
+                    >
+                        <span className="text-[10px] font-black uppercase tracking-widest">Track My Orders</span>
+                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                            <FiArrowRight className="w-3 h-3" />
+                        </div>
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

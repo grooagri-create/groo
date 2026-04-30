@@ -24,6 +24,8 @@ const UpdateProfile = () => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [errors, setErrors] = useState({});
+
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -127,12 +129,25 @@ const UpdateProfile = () => {
     return phone;
   };
 
+  const validateEmail = (email) => {
+    if (!email) return "";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    if (name === 'email') {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    }
   };
 
   const handleSave = async () => {
@@ -312,17 +327,24 @@ const UpdateProfile = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={isLoading}
-                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:border-transparent transition-all"
+                className={`w-full pl-11 pr-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:border-transparent transition-all ${
+                  errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
                 onFocus={(e) => {
-                  e.target.style.borderColor = themeColors.button;
-                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 166, 166, 0.1)';
+                  e.target.style.borderColor = errors.email ? '#ef4444' : themeColors.button;
+                  e.target.style.boxShadow = errors.email ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 0 0 3px rgba(0, 166, 166, 0.1)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.borderColor = errors.email ? '#ef4444' : '#d1d5db';
                   e.target.style.boxShadow = 'none';
                 }}
                 placeholder="Enter your email address"
               />
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-500 font-medium ml-1">
+                  {errors.email}
+                </p>
+              )}
             </div>
           </div>
 

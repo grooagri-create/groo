@@ -7,7 +7,7 @@ import { SocketProvider } from './context/SocketContext';
 import { CartProvider } from './context/CartContext';
 import { CityProvider } from './context/CityContext';
 import { initializePushNotifications, setupForegroundNotificationHandler } from './services/pushNotificationService';
-import { LocationPermissionChecker } from './components/common';
+import { LocationPermissionChecker, Chatbot } from './components/common';
 
 function App() {
   // Initialize push notifications on app load
@@ -47,6 +47,7 @@ function App() {
             <div className="App">
               <AppRoutes />
               <LocationPermissionChecker />
+              <Chatbot />
               <Toaster
                 position="top-center"
                 reverseOrder={false}

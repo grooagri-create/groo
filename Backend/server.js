@@ -145,6 +145,7 @@ app.get('/api/test/redis', async (req, res) => {
 // API Routes
 
 app.use('/api/public/cities', require('./routes/public-routes/city.routes.js'));
+app.use('/api/public/stats', require('./routes/public-routes/stats.routes.js'));
 
 
 // User routes
@@ -243,6 +244,7 @@ app.use('/api/admin/support', require('./routes/admin-routes/support.routes'));
 app.use('/api/disputes', require('./routes/common-routes/dispute.routes'));
 
 // Public routes (no authentication required)
+app.use('/api/content', require('./routes/contentRoutes'));
 app.use('/api/public/website', require('./routes/public-routes/website.routes'));
 app.use('/api/public', require('./routes/public-routes/catalog.routes'));
 app.use('/api/public', require('./routes/public-routes/plan.routes'));
@@ -255,6 +257,9 @@ app.use('/api/v1/translate', require('./routes/common-routes/translation.routes'
 
 // SEO Dynamic Sitemap
 app.use('/', require('./routes/common-routes/sitemap.routes'));
+
+// Chatbot routes
+app.use('/api/chat', require('./routes/common-routes/chat.routes'));
 
 // 404 handler
 app.use((req, res) => {

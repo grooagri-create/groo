@@ -55,7 +55,7 @@ const MyAgriOrders = () => {
         <div className="min-h-screen bg-slate-50">
             {/* Header */}
             <div className="bg-white px-6 pt-12 pb-6 border-b border-slate-100 flex items-center gap-4 sticky top-0 z-40">
-                <button onClick={() => navigate(-1)} className="p-3 bg-slate-50 rounded-2xl">
+                <button onClick={() => navigate('/user/agri-marketplace')} className="p-3 bg-slate-50 rounded-2xl cursor-pointer pointer-events-auto active:scale-95 transition-all">
                     <FiChevronLeft className="w-6 h-6 text-slate-800" />
                 </button>
                 <div>

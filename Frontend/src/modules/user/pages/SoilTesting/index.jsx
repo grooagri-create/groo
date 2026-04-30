@@ -37,6 +37,10 @@ const SoilTesting = () => {
 
     useEffect(() => {
         fetchMyRequests();
+
+        // Auto-update status every 15 seconds
+        const interval = setInterval(fetchMyRequests, 15000);
+        return () => clearInterval(interval);
     }, []);
 
     // Prevent background scrolling when modals are open
@@ -53,7 +57,8 @@ const SoilTesting = () => {
 
     const fetchMyRequests = async () => {
         try {
-            setLoading(true);
+            // Only show loader on initial fetch
+            if (requests.length === 0) setLoading(true);
             const res = await soilTestService.getMyRequests();
             if (res.success) setRequests(res.data);
         } catch (err) {

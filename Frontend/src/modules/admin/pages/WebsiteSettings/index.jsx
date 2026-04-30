@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import Blogs from './Blogs';
 import Articles from './Articles';
 import Reviews from './Reviews';
+import FAQ from './FAQ';
+import AboutUs from './AboutUs';
 
 const WebsiteSettings = () => {
   const location = useLocation();
@@ -23,6 +25,8 @@ const WebsiteSettings = () => {
           <Route path="blogs" element={<Blogs />} />
           <Route path="articles" element={<Articles />} />
           <Route path="reviews" element={<Reviews />} />
+          <Route path="faq" element={<FAQ />} />
+          <Route path="about-us" element={<AboutUs />} />
           <Route path="*" element={<Navigate to="blogs" replace />} />
         </Routes>
       </motion.div>

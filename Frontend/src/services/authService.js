@@ -32,8 +32,8 @@ function getPlatformType() {
  */
 export const userAuthService = {
   // Send OTP
-  sendOTP: async (phone, email = null) => {
-    const response = await api.post('/users/auth/send-otp', { phone, email });
+  sendOTP: async (phone, email = null, isLogin = false) => {
+    const response = await api.post('/users/auth/send-otp', { phone, email, isLogin });
     return response.data;
   },
 
@@ -104,6 +104,21 @@ export const userAuthService = {
     const response = await api.put('/users/profile', data);
     if (response.data.user) {
       localStorage.setItem('userData', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
+
+  // Delete account permanently
+  deleteAccount: async () => {
+    await removeFCMToken('user').catch(() => {}); // Silent fail
+    const response = await api.delete('/users/auth/delete-account');
+    if (response.data.success) {
+      // Only clear localStorage AFTER backend confirms deletion
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userData');
+      localStorage.removeItem('currentAddress');
+      localStorage.removeItem('currentCity');
     }
     return response.data;
   }
@@ -211,6 +226,21 @@ export const vendorAuthService = {
       
       // Dispatch event to update profile UI
       window.dispatchEvent(new Event('vendorProfileUpdated'));
+    }
+    return response.data;
+  },
+
+  // Delete account permanently
+  deleteAccount: async () => {
+    await removeFCMToken('vendor').catch(() => {}); // Silent fail
+    const response = await api.delete('/vendors/auth/delete-account');
+    if (response.data.success) {
+      // Only clear localStorage AFTER backend confirms deletion
+      localStorage.removeItem('vendorAccessToken');
+      localStorage.removeItem('vendorRefreshToken');
+      localStorage.removeItem('vendorData');
+      localStorage.removeItem('vendorSettings');
+      localStorage.removeItem('vendorProfile');
     }
     return response.data;
   }

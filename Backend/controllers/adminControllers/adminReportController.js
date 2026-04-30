@@ -133,6 +133,20 @@ exports.getVendorReport = async (req, res) => {
       { $limit: 6 }
     ]);
 
+    // Calculate Growth (Percentage increase in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const vendorsBefore30Days = await Vendor.countDocuments({ createdAt: { $lt: thirtyDaysAgo } });
+    const newVendorsLast30Days = await Vendor.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
+
+    let growth = 0;
+    if (vendorsBefore30Days === 0) {
+      growth = newVendorsLast30Days > 0 ? 100 : 0;
+    } else {
+      growth = Math.round((newVendorsLast30Days / vendorsBefore30Days) * 100);
+    }
+
     res.status(200).json({
       success: true,
       data: {
@@ -141,7 +155,8 @@ exports.getVendorReport = async (req, res) => {
         topVendors,
         statusDistribution,
         categoryDistribution,
-        monthlyTrend
+        monthlyTrend,
+        growth: `${growth}%`
       }
     });
   } catch (error) {

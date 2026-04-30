@@ -146,6 +146,19 @@ const BookingTimeline = () => {
     }
   }, [booking?.paymentStatus]);
 
+  // Lock scroll when modals are open
+  useEffect(() => {
+    const shouldLock = isVisitModalOpen || isWorkDoneModalOpen || isTripModalOpen || confirmDialog.isOpen;
+    if (shouldLock) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isVisitModalOpen, isWorkDoneModalOpen, isTripModalOpen, confirmDialog.isOpen]);
+
   /* Handlers */
   const handleWorkerPayment = async () => {
     // Determine payment type
@@ -249,10 +262,13 @@ const BookingTimeline = () => {
         window.location.reload();
       } catch (err) {
         toast.error(err.response?.data?.message || 'Verification failed');
-      } finally {
         setActionLoading(false);
       }
-    });
+    }, (error) => {
+      console.error('Geolocation error:', error);
+      toast.error('Could not get your location. Please enable GPS.');
+      setActionLoading(false);
+    }, { timeout: 10000 });
   };
 
   const handleCompleteWork = async (photos = []) => {

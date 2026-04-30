@@ -10,6 +10,8 @@ import BottomNav from '../../components/layout/BottomNav';
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [settings, setSettings] = useState({
     notifications: true,
     soundAlerts: true,
@@ -99,17 +101,7 @@ const Settings = () => {
   };
 
   const handleDeleteAccount = () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      // Clear all vendor data
-      localStorage.removeItem('vendorProfile');
-      localStorage.removeItem('vendorSettings');
-      localStorage.removeItem('vendorWorkers');
-      localStorage.removeItem('vendorAcceptedBookings');
-      localStorage.removeItem('vendorWallet');
-      localStorage.removeItem('vendorTransactions');
-      // Navigate to home
-      navigate('/');
-    }
+    setShowDeleteConfirm(true);
   };
 
   return (
@@ -270,13 +262,62 @@ const Settings = () => {
         {/* Delete Account */}
         <button
           onClick={handleDeleteAccount}
-          className="w-full py-4 rounded-xl font-semibold text-red-600 border-2 border-red-600 transition-all active:scale-95"
+          className="w-full py-4 rounded-xl font-semibold text-red-600 border-2 border-red-600 transition-all active:scale-95 hover:bg-red-50"
         >
           <div className="flex items-center justify-center gap-2">
             <FiTrash2 className="w-5 h-5" />
             Delete Account
           </div>
         </button>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+              <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+                <FiTrash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Delete Account?</h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Yeh action permanent hai. Aapka vendor account aur saara data delete ho jayega.
+                Is number se dobara login karne ke liye aapko <strong>nayi registration</strong> karni padegi.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setIsDeleting(true);
+                    try {
+                      const response = await vendorAuthService.deleteAccount();
+                      if (response.success) {
+                        toast.success('Account deleted successfully.');
+                        navigate('/vendor/login', { replace: true });
+                      } else {
+                        toast.error(response.message || 'Failed to delete account.');
+                        setIsDeleting(false);
+                        setShowDeleteConfirm(false);
+                      }
+                    } catch (error) {
+                      toast.error('Failed to delete account. Please try again.');
+                      setIsDeleting(false);
+                      setShowDeleteConfirm(false);
+                    }
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-all disabled:opacity-60"
+                >
+                  {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <BottomNav />

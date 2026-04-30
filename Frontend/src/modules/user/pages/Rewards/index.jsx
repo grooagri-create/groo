@@ -11,21 +11,46 @@ const Rewards = () => {
   const getReferralLink = () => {
     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
     const userCode = userData._id || userData.id || 'NEW_USER';
-    return `${window.location.origin}/signup?ref=${userCode}`;
+    return `${window.location.origin}/user/signup?ref=${userCode}`;
   };
 
   const handleCopyLink = () => {
-    // Copy referral link to clipboard
     const referralLink = getReferralLink();
-    navigator.clipboard.writeText(referralLink).then(() => {
-      toast.success('Link copied to clipboard!');
-    });
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(referralLink).then(() => {
+        toast.success('Link copied! Ab ise WhatsApp par paste karein.');
+      }).catch(err => {
+        console.error('Clipboard error:', err);
+        fallbackCopyTextToClipboard(referralLink);
+      });
+    } else {
+      fallbackCopyTextToClipboard(referralLink);
+    }
+  };
+
+  const fallbackCopyTextToClipboard = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      toast.success('Link copied! Ab ise WhatsApp par paste karein.');
+    } catch (err) {
+      toast.error('Could not copy link');
+    }
+    document.body.removeChild(textArea);
   };
 
   const handleShareWhatsApp = () => {
-    const text = 'Check out this amazing service app! Join via my link:';
     const url = getReferralLink();
-    window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+    const text = `GrooAgri join karein aur apni pehli service par ₹100 ka discount payein! 🎁\n\nIs link se abhi register karein:\n${url}\n\nPhir hamari app Play Store se download karke farming aur agri services ka fayda uthayein!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleShareMessenger = () => {
@@ -68,7 +93,7 @@ const Rewards = () => {
                   Refer and get FREE services
                 </h2>
                 <p className="text-xs text-gray-700 leading-relaxed">
-                  Invite your friends to try our electrical services. They get instant ₹100 off. You win ₹100 once they take a service.
+                  Invite your friends to try our farming services. They get instant ₹100 off. You win ₹100 once they take a service.
                 </p>
               </div>
               {/* Gift Box Illustration */}

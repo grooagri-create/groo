@@ -140,7 +140,7 @@ const ProblemSolution = () => {
   const tags = ["Drones", "Soil Testing", "Marketplace"];
 
   return (
-    <section ref={sectionRef} id="problem" className="py-14 bg-gray-50 overflow-hidden">
+    <section ref={sectionRef} id="problem" className="py-8 md:py-14 bg-gray-50 overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
@@ -148,7 +148,7 @@ const ProblemSolution = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-10"
+          className="text-center mb-6 md:mb-10"
         >
           <span className="text-[10px] text-green-700 font-black tracking-[0.3em] uppercase">
             {getTranslatedText("The Challenge & The Change")}

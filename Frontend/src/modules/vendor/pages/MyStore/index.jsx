@@ -9,7 +9,10 @@ import {
     FiTrendingUp,
     FiPackage,
     FiInfo,
-    FiAlertCircle
+    FiAlertCircle,
+    FiShoppingBag,
+    FiMapPin,
+    FiFileText
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import vendorProductService from '../../services/vendorProductService';
@@ -26,6 +29,7 @@ const MyStore = () => {
     const [uploading, setUploading] = useState(false);
     const [shopStatus, setShopStatus] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [showDocModal, setShowDocModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
@@ -159,7 +163,7 @@ const MyStore = () => {
         return (
             <div className="min-h-screen bg-slate-50 pb-20">
                 <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100 flex items-center px-4 py-4 gap-4">
-                    <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-xl">
+                    <button onClick={() => navigate('/vendor/profile')} className="p-2 bg-slate-100 rounded-xl">
                         <FiChevronLeft className="w-6 h-6 text-slate-600" />
                     </button>
                     <div className="flex-1">
@@ -204,7 +208,7 @@ const MyStore = () => {
         <div className="min-h-screen bg-slate-50">
             {/* Custom Navbar */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-100 flex items-center px-4 py-4 gap-4">
-                <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 rounded-xl">
+                <button onClick={() => navigate('/vendor/profile')} className="p-2 bg-slate-100 rounded-xl">
                     <FiChevronLeft className="w-6 h-6 text-slate-600" />
                 </button>
                 <div className="flex-1">
@@ -214,6 +218,61 @@ const MyStore = () => {
             </div>
 
             <div className="p-6 space-y-6 pb-32">
+                {/* Shop Information Section */}
+                {shopStatus && (
+                    <div className="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100">
+                        <div className="flex items-center justify-between mb-4 px-1">
+                            <div>
+                                <h2 className="text-sm font-black text-slate-800 uppercase tracking-wider">Shop Information</h2>
+                                <p className="text-[9px] font-black text-teal-600 uppercase">Verified Business Details</p>
+                            </div>
+                            <button 
+                                onClick={() => navigate('/vendor/store/registration')}
+                                className="px-4 py-2 bg-slate-50 text-[10px] font-black text-slate-600 rounded-xl uppercase tracking-wider border border-slate-100 active:scale-95 transition-all"
+                            >
+                                Edit Info
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 border border-slate-100">
+                                    <FiShoppingBag className="text-slate-400 text-lg" />
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
+                                    <p className="text-sm font-bold text-slate-800">{shopStatus.shopName}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center flex-shrink-0 border border-slate-100">
+                                    <FiMapPin className="text-slate-400 text-lg" />
+                                </div>
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address</p>
+                                    <p className="text-[11px] font-medium text-slate-600 leading-tight">{shopStatus.shopAddress}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-50 mt-2">
+                                <div className="flex items-center gap-2">
+                                    <FiFileText className="text-slate-400" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">License: {shopStatus.shopLicense}</span>
+                                </div>
+                                {shopStatus.licenseDocument && (
+                                    <button 
+                                        onClick={() => setShowDocModal(true)}
+                                        className="text-[9px] font-black text-teal-600 uppercase underline tracking-widest"
+                                    >
+                                        View Document
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100">
                         <div className="w-10 h-10 rounded-2xl bg-teal-50 flex items-center justify-center mb-3">
@@ -420,6 +479,56 @@ const MyStore = () => {
                                     {editMode ? 'Update Product' : 'Add Product for Review'}
                                 </button>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Document Viewer Modal */}
+            <AnimatePresence>
+                {showDocModal && shopStatus?.licenseDocument && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            onClick={() => setShowDocModal(false)} 
+                            className="absolute inset-0 bg-slate-900/90 backdrop-blur-md" 
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="relative w-full max-w-lg bg-white rounded-[40px] overflow-hidden shadow-2xl"
+                        >
+                            <div className="p-6 flex items-center justify-between border-b border-slate-50">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-800">Shop License</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verified Document</p>
+                                </div>
+                                <button 
+                                    onClick={() => setShowDocModal(false)}
+                                    className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center font-bold text-slate-400 hover:text-slate-800 transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="p-4 bg-slate-50">
+                                <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-inner bg-white min-h-[300px] flex items-center justify-center">
+                                    <img 
+                                        src={shopStatus.licenseDocument} 
+                                        alt="License" 
+                                        className="max-w-full max-h-[60vh] object-contain"
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-6">
+                                <button 
+                                    onClick={() => setShowDocModal(false)}
+                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px]"
+                                >
+                                    Close Viewer
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

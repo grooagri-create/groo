@@ -53,11 +53,19 @@ const ManageSoilTests = () => {
     const [previewUrl, setPreviewUrl]               = useState(null);
     const [saving, setSaving]             = useState(false);
 
-    useEffect(() => { fetchRequests(); fetchVendors(); }, []);
+    useEffect(() => { 
+        fetchRequests(); 
+        fetchVendors(); 
+
+        // Auto-update status every 15 seconds
+        const interval = setInterval(fetchRequests, 15000);
+        return () => clearInterval(interval);
+    }, []);
 
     const fetchRequests = async () => {
         try {
-            setLoading(true);
+            // Only show loader on initial fetch
+            if (requests.length === 0) setLoading(true);
             const res = await adminSoilTestService.getAll();
             if (res.success) setRequests(res.data);
         } catch {

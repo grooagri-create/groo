@@ -115,6 +115,8 @@ const getChildRoute = (parentRoute, childName) => {
       "Blogs": "/admin/manage-website/blogs",
       "Articles": "/admin/manage-website/articles",
       "Reviews": "/admin/manage-website/reviews",
+      "FAQ": "/admin/manage-website/faq",
+      "About Us": "/admin/manage-website/about-us",
     },
   };
 

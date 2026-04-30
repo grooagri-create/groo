@@ -34,6 +34,8 @@ const WorkerSignup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [documentPreview, setDocumentPreview] = useState({});
   const [resendTimer, setResendTimer] = useState(0);
+  const [errors, setErrors] = useState({});
+
 
   // Timer countdown effect
   useEffect(() => {
@@ -74,12 +76,27 @@ const WorkerSignup = () => {
     }
   }, [step]);
 
+  const validateEmail = (email) => {
+    if (!email) return "";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    if (name === 'email') {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    } else if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
 
   const handleDocumentUpload = (e, type) => {
@@ -334,11 +351,18 @@ const WorkerSignup = () => {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 outline-none transition-all duration-300 hover:border-gray-400"
-                    style={{ '--tw-ring-color': brandColor }}
+                    className={`block w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-offset-2 outline-none transition-all duration-300 hover:border-gray-400 ${
+                      errors.email ? 'border-red-500 ring-red-100' : 'border-gray-300'
+                    }`}
+                    style={{ '--tw-ring-color': errors.email ? '#ef4444' : brandColor }}
                     placeholder="farmer@agri.com"
                   />
                 </div>
+                {errors.email && (
+                  <p className="mt-1 text-xs text-red-500 font-medium animate-fade-in">
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {!verificationToken && (

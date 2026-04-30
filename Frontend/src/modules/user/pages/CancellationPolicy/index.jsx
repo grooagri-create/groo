@@ -55,7 +55,7 @@ const CancellationPolicy = () => {
               <FiCheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <h3 className="font-bold text-gray-900 mb-1">Free Cancellation</h3>
-            <p className="text-xs text-gray-500 font-medium">Until professional is assigned</p>
+            <p className="text-xs text-gray-500 font-medium">Until service provider is assigned</p>
           </div>
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
             <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center mb-3">
@@ -79,7 +79,7 @@ const CancellationPolicy = () => {
               </span>
               <div>
                 <h3 className="text-sm font-bold text-gray-900">Before Journey Start</h3>
-                <p className="text-xs text-gray-500 mt-1 mb-2">Any time before professional starts travel</p>
+                <p className="text-xs text-gray-500 mt-1 mb-2">Any time before the provider starts travel to your farm</p>
                 <div className="inline-block px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-lg border border-green-100">
                   Full Refund • No Fee
                 </div>
@@ -93,7 +93,7 @@ const CancellationPolicy = () => {
               </span>
               <div>
                 <h3 className="text-sm font-bold text-gray-900">Journey Started</h3>
-                <p className="text-xs text-gray-500 mt-1 mb-2">When professional is on the way</p>
+                <p className="text-xs text-gray-500 mt-1 mb-2">When the service provider is on the way</p>
                 <div className="inline-block px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg border border-orange-100">
                   ₹{fees.penalty} Cancellation Penalty Applies
                 </div>
@@ -106,8 +106,8 @@ const CancellationPolicy = () => {
                 <FiAlertCircle className="w-4 h-4 text-white" />
               </span>
               <div>
-                <h3 className="text-sm font-bold text-gray-900">Professional Arrived</h3>
-                <p className="text-xs text-gray-500 mt-1 mb-2">When professional reaches your location</p>
+                <h3 className="text-sm font-bold text-gray-900">Provider Arrived</h3>
+                <p className="text-xs text-gray-500 mt-1 mb-2">When the provider reaches your farm location</p>
                 <div className="inline-block px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-100">
                   ₹{fees.visitingCharges} Visiting Charges Apply
                 </div>
@@ -125,12 +125,12 @@ const CancellationPolicy = () => {
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">Why do we charge a fee?</h2>
-              <p className="text-xs text-gray-500">To support our professionals time & effort</p>
+              <p className="text-xs text-gray-500">To support our service partners' time & effort</p>
             </div>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 leading-relaxed border border-gray-100">
-            Our service partners reserve their time exclusively for your booking and may travel significant distances. The cancellation fee compensates them for their lost time and travel expenses if a confirmed booking is cancelled last minute.
+            Our agricultural service partners reserve their machinery and time exclusively for your booking and often travel significant distances to reach your farm. The cancellation fee compensates them for their lost time and travel expenses if a confirmed booking is cancelled last minute.
           </div>
         </div>
 

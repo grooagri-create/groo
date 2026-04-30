@@ -221,7 +221,7 @@ const RoleCard = ({ role, idx, t }) => {
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => setHovered(false)}
       whileHover={{ y: -5 }}
-      className="bg-gray-900 border border-gray-800 rounded-2xl p-5 relative overflow-hidden cursor-default"
+      className="bg-gray-900 border border-gray-800 rounded-3xl p-5 relative overflow-hidden cursor-default flex-shrink-0 w-[85%] min-w-0 sm:min-w-[45%] lg:min-w-0 snap-center shadow-lg h-full flex flex-col"
     >
       <motion.div
         animate={{ opacity: hovered ? 0.08 : 0 }}
@@ -337,21 +337,20 @@ const EcosystemFlow = () => {
           </motion.div>
         </div>
 
-        {/* ─── ROLE CARDS ─── */}
-        <div className="mb-4">
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center text-[10px] text-gray-600 font-black uppercase tracking-[0.3em] mb-6"
-          >
-            {t("Who's involved")}
-          </motion.p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Mobile/Tablet Slider */}
+        <div className="md:hidden -mx-4">
+          <div className="flex flex-nowrap items-stretch overflow-x-auto w-full gap-4 pb-8 no-scrollbar snap-x snap-mandatory px-4 touch-pan-x relative">
             {ECOSYSTEM_ROLES.map((role, idx) => (
               <RoleCard key={role.role} role={role} idx={idx} t={t} />
             ))}
           </div>
+        </div>
+
+        {/* Desktop Grid */}
+        <div className="hidden md:grid md:grid-cols-3 gap-6 mt-10">
+          {ECOSYSTEM_ROLES.map((role, idx) => (
+            <RoleCard key={role.role} role={role} idx={idx} t={t} />
+          ))}
         </div>
 
       </div>

@@ -63,7 +63,7 @@ const WorkflowSection = () => {
   const colors = colorMap[currentRole.color];
 
   return (
-    <section ref={sectionRef} id="workflow" className="py-16 bg-gray-950 overflow-hidden relative">
+    <section ref={sectionRef} id="workflow" className="py-10 md:py-16 bg-gray-950 overflow-hidden relative">
       {/* Background decorative elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-green-900/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-900/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
@@ -75,7 +75,7 @@ const WorkflowSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-10"
+          className="mb-6 md:mb-10"
         >
           <span className="text-[10px] text-green-400 font-black uppercase tracking-[0.3em]">Platform</span>
           <h2 className="text-3xl md:text-4xl font-black mt-2 mb-3 tracking-tight">{getTranslatedText("How It Works")}</h2>
@@ -90,7 +90,7 @@ const WorkflowSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className="inline-flex bg-gray-900 p-1 rounded-2xl mb-10 border border-gray-800"
+          className="inline-flex bg-gray-900 p-1 rounded-2xl mb-6 md:mb-10 border border-gray-800"
         >
           {Object.entries(roleConfig).map(([role, config]) => (
             <button

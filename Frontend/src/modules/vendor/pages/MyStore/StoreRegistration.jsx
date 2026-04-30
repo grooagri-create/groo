@@ -143,36 +143,8 @@ const StoreRegistration = () => {
         setIsAddressModalOpen(false);
     };
 
-    if (status?.storeApprovalStatus === 'approved') {
-        return (
-            <div className="min-h-screen bg-gray-50 pb-20">
-                <Header title="Shop Registered" />
-                <div className="p-6 flex flex-col items-center justify-center pt-20">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                        <FiCheckCircle className="w-10 h-10 text-green-600" />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-800">Your Shop is Active!</h2>
-                    <p className="text-gray-500 text-center mt-2 px-4 text-sm leading-relaxed">
-                        Your shop has been approved. You can now manage seeds and fertilizers from the store section.
-                    </p>
-                    <div className="w-full space-y-3 mt-10">
-                        <button 
-                            onClick={() => navigate('/vendor/store')}
-                            className="w-full py-4 bg-teal-600 text-white rounded-2xl font-bold shadow-lg shadow-teal-600/20 active:scale-95 transition-all"
-                        >
-                            Go to My Store
-                        </button>
-                        <button 
-                            onClick={() => navigate('/vendor/profile')}
-                            className="w-full py-4 bg-white border border-gray-100 text-gray-600 rounded-2xl font-bold active:scale-95 transition-all"
-                        >
-                            Back to Profile
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // Removed the automatic redirect/success screen for approved status 
+    // so that vendors can always view and edit their registration details.
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">

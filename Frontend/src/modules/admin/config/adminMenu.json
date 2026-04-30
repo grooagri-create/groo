@@ -188,7 +188,9 @@
     "children": [
       "Blogs",
       "Articles",
-      "Reviews"
+      "Reviews",
+      "FAQ",
+      "About Us"
     ]
   },
   {

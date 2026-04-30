@@ -98,7 +98,11 @@ const UserRoutes = () => {
 
 
   // Check if we are on public pages (login/signup) where we shouldn't fetch bookings
-  const isPublicPage = location.pathname.includes('/login') || location.pathname.includes('/signup');
+  const isPublicPage = location.pathname.includes('/login') || 
+                       location.pathname.includes('/signup') ||
+                       location.pathname.includes('/privacy') ||
+                       location.pathname.includes('/help-support') ||
+                       location.pathname.includes('/cancellation-policy');
 
   return (
     <ErrorBoundary>
@@ -132,11 +136,11 @@ const UserRoutes = () => {
               <Route path="/my-rating" element={<ProtectedRoute userType="user"><MyRating /></ProtectedRoute>} />
               <Route path="/about-groo" element={<ProtectedRoute userType="user"><AboutGroo /></ProtectedRoute>} />
               <Route path="/update-profile" element={<ProtectedRoute userType="user"><UpdateProfile /></ProtectedRoute>} />
-              <Route path="/privacy" element={<ProtectedRoute userType="user"><Privacy /></ProtectedRoute>} />
+              <Route path="/privacy" element={<Privacy />} />
 
               <Route path="/notifications" element={<ProtectedRoute userType="user"><Notifications /></ProtectedRoute>} />
-              <Route path="/help-support" element={<ProtectedRoute userType="user"><HelpSupport /></ProtectedRoute>} />
-              <Route path="/cancellation-policy" element={<ProtectedRoute userType="user"><CancellationPolicy /></ProtectedRoute>} />
+              <Route path="/help-support" element={<HelpSupport />} />
+              <Route path="/cancellation-policy" element={<CancellationPolicy />} />
               <Route path="/weather" element={<ProtectedRoute userType="user"><WeatherReport /></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute userType="user"><Marketplace /></ProtectedRoute>} />
               <Route path="/machinery-explorer" element={<ProtectedRoute userType="user"><MachineryExplorer /></ProtectedRoute>} />

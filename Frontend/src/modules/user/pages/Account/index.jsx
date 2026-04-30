@@ -23,13 +23,16 @@ import {
   FiGift,
   FiShield,
   FiZap,
-  FiCheckCircle
+  FiCheckCircle,
+  FiTrash2
 } from 'react-icons/fi';
 import { MdAccountBalanceWallet } from 'react-icons/md';
 import NotificationBell from '../../components/common/NotificationBell';
 
 const Account = () => {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [userProfile, setUserProfile] = useState({
     name: 'Verified Farmer',
     phone: '',
@@ -439,6 +442,16 @@ const Account = () => {
               <FiLogOut className="w-5 h-5" />
               <span>Log out</span>
             </motion.button>
+
+            {/* Delete Account Button */}
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 p-4 bg-white border-2 border-red-300 text-red-500 font-black uppercase tracking-wider rounded-2xl transition-all hover:bg-red-50"
+            >
+              <FiTrash2 className="w-5 h-5" />
+              <span>Delete Account</span>
+            </motion.button>
           </motion.div>
 
           <motion.div variants={itemVariants} className="text-center pb-8">
@@ -447,6 +460,55 @@ const Account = () => {
 
         </motion.main>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+              <FiTrash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-black text-gray-900 text-center mb-2">Delete Account?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Yeh action permanent hai. Aapka account aur saara data delete ho jayega.
+              Is number se dobara login karne ke liye aapko <strong>nayi registration</strong> karni padegi.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    const response = await userAuthService.deleteAccount();
+                    if (response.success) {
+                      toast.success('Account deleted successfully.');
+                      navigate('/user/login', { replace: true });
+                    } else {
+                      toast.error(response.message || 'Failed to delete account.');
+                      setIsDeleting(false);
+                      setShowDeleteConfirm(false);
+                    }
+                  } catch (error) {
+                    toast.error('Failed to delete account. Please try again.');
+                    setIsDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-all disabled:opacity-60"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

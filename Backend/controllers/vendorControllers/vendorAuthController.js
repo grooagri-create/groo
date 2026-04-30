@@ -468,11 +468,47 @@ const refreshToken = async (req, res) => {
   }
 };
 
+/**
+ * Delete vendor account permanently
+ * After deletion, the phone number will be treated as a new vendor on next login attempt
+ */
+const deleteAccount = async (req, res) => {
+  try {
+    const vendorId = req.user._id;
+
+    // Find the vendor first
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vendor not found'
+      });
+    }
+
+    // Permanently delete the vendor document from MongoDB
+    await Vendor.findByIdAndDelete(vendorId);
+
+    console.log(`[AUTH] ✅ Vendor account permanently deleted: ${vendorId} (phone: ${vendor.phone})`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully. You will need to register again to use the app.'
+    });
+  } catch (error) {
+    console.error('Delete vendor account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete account. Please try again.'
+    });
+  }
+};
+
 module.exports = {
   sendOTP,
   verifyLogin,
   register,
   login,
   logout,
-  refreshToken
+  refreshToken,
+  deleteAccount
 };

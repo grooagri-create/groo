@@ -1,0 +1,80 @@
+const FAQ = require('../../models/FAQ');
+const About = require('../../models/About');
+
+// ==================== FAQ Controllers ====================
+
+// @desc    Get all FAQs (Public & Admin)
+exports.getFAQs = async (req, res) => {
+    try {
+        const query = req.user && req.user.role === 'admin' ? {} : { isActive: true };
+        const faqs = await FAQ.find(query).sort({ createdAt: -1 });
+        res.status(200).json({ success: true, count: faqs.length, data: faqs });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Create new FAQ (Admin)
+exports.createFAQ = async (req, res) => {
+    try {
+        const faq = await FAQ.create(req.body);
+        res.status(201).json({ success: true, data: faq });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Update FAQ (Admin)
+exports.updateFAQ = async (req, res) => {
+    try {
+        const faq = await FAQ.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+            runValidators: true
+        });
+        if (!faq) return res.status(404).json({ success: false, message: 'FAQ not found' });
+        res.status(200).json({ success: true, data: faq });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
+
+// @desc    Delete FAQ (Admin)
+exports.deleteFAQ = async (req, res) => {
+    try {
+        const faq = await FAQ.findByIdAndDelete(req.params.id);
+        if (!faq) return res.status(404).json({ success: false, message: 'FAQ not found' });
+        res.status(200).json({ success: true, data: {} });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// ==================== About Controllers ====================
+
+// @desc    Get About Content (Public & Admin)
+exports.getAbout = async (req, res) => {
+    try {
+        let about = await About.findOne();
+        if (!about) {
+            about = await About.create({ title: 'About Us', content: '<p>Welcome to GrooAgri.</p>' });
+        }
+        res.status(200).json({ success: true, data: about });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Update About Content (Admin)
+exports.updateAbout = async (req, res) => {
+    try {
+        let about = await About.findOne();
+        if (about) {
+            about = await About.findByIdAndUpdate(about._id, req.body, { new: true, runValidators: true });
+        } else {
+            about = await About.create(req.body);
+        }
+        res.status(200).json({ success: true, data: about });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};

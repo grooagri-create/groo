@@ -20,7 +20,18 @@ const sendOTP = async (req, res) => {
       });
     }
 
-    const { phone, email } = req.body;
+    const { phone, email, isLogin } = req.body;
+
+    // If this is a login attempt, verify user exists first
+    if (isLogin) {
+      const userExists = await User.findOne({ phone });
+      if (!userExists) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found with this number'
+        });
+      }
+    }
 
     // 1. Rate limit check
     const allowed = await checkRateLimit(phone);
@@ -387,11 +398,54 @@ const refreshToken = async (req, res) => {
   }
 };
 
+/**
+ * Delete user account permanently
+ * After deletion, the phone number will be treated as a new user on next login attempt
+ */
+const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find the user first
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Permanently delete the user document from MongoDB
+    const deleted = await User.findByIdAndDelete(userId);
+
+    if (!deleted) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete account. Please try again.'
+      });
+    }
+
+    console.log(`[AUTH] ✅ User account permanently deleted: ${userId} (phone: ${user.phone})`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully. You will need to register again to use the app.'
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete account. Please try again.'
+    });
+  }
+};
+
 module.exports = {
   sendOTP,
   verifyLogin,
   register,
   login,
   logout,
-  refreshToken
+  refreshToken,
+  deleteAccount
 };

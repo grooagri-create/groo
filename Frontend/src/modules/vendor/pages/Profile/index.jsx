@@ -11,6 +11,8 @@ import LogoLoader from '../../../../components/common/LogoLoader';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Helper function to convert hex to rgba
   const hexToRgba = (hex, alpha) => {
@@ -429,9 +431,70 @@ const Profile = () => {
             Logout
           </button>
         </div>
+
+        {/* Delete Account Button */}
+        <div className="px-4 mb-6">
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 border-2 border-red-400 text-red-500 hover:bg-red-50 active:scale-95"
+          >
+            <FiTrash2 className="w-5 h-5" />
+            Delete Account
+          </button>
+        </div>
       </main>
 
       <BottomNav />
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+              <FiTrash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-lg font-black text-gray-900 text-center mb-2">Delete Account?</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              Yeh action permanent hai. Aapka vendor account aur saara data delete ho jayega.
+              Is number se dobara login karne ke liye aapko <strong>nayi registration</strong> karni padegi.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    const response = await vendorAuthService.deleteAccount();
+                    if (response.success) {
+                      toast.success('Account deleted successfully.');
+                      navigate('/vendor/login', { replace: true });
+                    } else {
+                      toast.error(response.message || 'Failed to delete account.');
+                      setIsDeleting(false);
+                      setShowDeleteConfirm(false);
+                    }
+                  } catch (error) {
+                    toast.error('Failed to delete account. Please try again.');
+                    setIsDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-all disabled:opacity-60"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

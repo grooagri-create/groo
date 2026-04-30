@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import api from '../../../services/api';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import harvesterHero from '../landing_images/hero_premium.png';
@@ -32,8 +33,20 @@ const Hero = () => {
   const bgRef = useRef(null);
   const contentRef = useRef(null);
   const statsRef = useRef(null);
+  const [stats, setStats] = useState({ farmers: 0, owners: 0 });
 
   useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/public/stats');
+        if (response.data.success) {
+          setStats(response.data.data);
+        }
+      } catch (error) {
+        console.error('Fetch stats error:', error);
+      }
+    };
+    fetchStats();
     // GSAP Parallax on scroll only
     const ctx = gsap.context(() => {
       gsap.to(bgRef.current, {
@@ -57,6 +70,13 @@ const Hero = () => {
       opacity: 1, y: 0,
       transition: { delay: 0.8 + i * 0.15, duration: 0.6, ease: 'easeOut' }
     })
+  };
+
+  const formatNumber = (num) => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'k+';
+    }
+    return num + '+';
   };
 
   return (
@@ -172,9 +192,8 @@ const Hero = () => {
           {/* Stats */}
           <div ref={statsRef} className="flex items-center space-x-8 md:space-x-14">
             {[
-              { value: '500+', label: 'Active Machines' },
-              { value: '10k+', label: 'Happy Farmers' },
-              { value: '100%', label: 'Verified Owners' },
+              { value: formatNumber(stats.farmers), label: 'Happy Farmers' },
+              { value: formatNumber(stats.owners), label: 'Verified Owners' },
             ].map((stat, i) => (
               <motion.div
                 key={i}

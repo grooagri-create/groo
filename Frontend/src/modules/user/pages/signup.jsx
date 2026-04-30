@@ -30,6 +30,8 @@ const Signup = () => {
   const [verificationToken, setVerificationToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [errors, setErrors] = useState({});
+
 
   // Timer countdown effect
   useEffect(() => {
@@ -46,10 +48,12 @@ const Signup = () => {
   const nameInputRef = useRef(null);
   const otpInputRefs = useRef([]);
 
-  // Pre-fill from navigation state (Unified Flow)
+  // Pre-fill from navigation state
   useEffect(() => {
-    if (location.state?.phone && location.state?.verificationToken) {
+    if (location.state?.phone) {
       setFormData(prev => ({ ...prev, phoneNumber: location.state.phone }));
+    }
+    if (location.state?.verificationToken) {
       setVerificationToken(location.state.verificationToken);
     }
   }, [location.state]);
@@ -62,6 +66,15 @@ const Signup = () => {
       setTimeout(() => otpInputRefs.current[0].focus(), 100);
     }
   }, [step]);
+
+  const validateEmail = (email) => {
+    if (!email) return "";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -77,6 +90,10 @@ const Signup = () => {
       ...prev,
       [name]: value
     }));
+
+    if (name === 'email') {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    }
   };
 
   const handleDetailsSubmit = async (e) => {
@@ -289,7 +306,9 @@ const Signup = () => {
 
             <div>
               <div
-                className="relative flex items-center rounded-xl overflow-hidden px-4 py-1 border border-transparent focus-within:border-[#426B4F]/30 transition-colors"
+                className={`relative flex items-center rounded-xl overflow-hidden px-4 py-1 border transition-colors ${
+                  errors.email ? 'border-red-500' : 'border-transparent focus-within:border-[#426B4F]/30'
+                }`}
                 style={{ backgroundColor: inputBgColor }}
               >
                 <div className="flex items-center text-[#426B4F] mr-3">
@@ -302,16 +321,19 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`block w-full py-4 bg-transparent border-none focus:ring-0 font-bold placeholder-[#426B4F]/60 sm:text-sm ${
-                    formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-                      ? 'text-red-500'
-                      : 'text-[#426B4F]'
+                    errors.email ? 'text-red-500' : 'text-[#426B4F]'
                   }`}
                   placeholder="farmer@agri.com"
                 />
-                {(formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) && (
+                {(formData.email && !errors.email) && (
                   <FiCheckCircle className="text-green-500 absolute right-4 h-5 w-5" />
                 )}
               </div>
+              {errors.email && (
+                <p className="mt-1 text-xs text-red-500 font-medium px-2">
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             {!verificationToken && (

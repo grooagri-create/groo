@@ -34,14 +34,43 @@ const Navbar = () => {
   }, []);
 
   const navLinks = [
-    { id: 'home', name: <TranslatedText>Home</TranslatedText>, href: '#' },
-    { id: 'about', name: <TranslatedText>About</TranslatedText>, href: '#about' },
-    { id: 'services', name: <TranslatedText>Services</TranslatedText>, href: '#services' },
-    { id: 'blogs', name: <TranslatedText>Blogs</TranslatedText>, href: 'blogs' },
-    { id: 'articles', name: <TranslatedText>Articles</TranslatedText>, href: 'articles' },
-    { id: 'workflow', name: <TranslatedText>Workflow</TranslatedText>, href: '#workflow' },
-    { id: 'faq', name: <TranslatedText>FAQ</TranslatedText>, href: '#faq' },
+    { id: 'home', name: <TranslatedText>Home</TranslatedText>, href: '/', isAnchor: false },
+    { id: 'about', name: <TranslatedText>About</TranslatedText>, href: '/#about', isAnchor: true },
+    { id: 'services', name: <TranslatedText>Services</TranslatedText>, href: '/#services', isAnchor: true },
+    { id: 'blogs', name: <TranslatedText>Blogs</TranslatedText>, href: '/blogs', isAnchor: false },
+    { id: 'articles', name: <TranslatedText>Articles</TranslatedText>, href: '/articles', isAnchor: false },
+    { id: 'workflow', name: <TranslatedText>Workflow</TranslatedText>, href: '/#workflow', isAnchor: true },
+    { id: 'faq', name: <TranslatedText>FAQ</TranslatedText>, href: '/#faq', isAnchor: true },
   ];
+
+  const handleNavClick = (e, link) => {
+    // Check if we need to do an internal smooth scroll
+    if (link.isAnchor && location.pathname === '/') {
+      e.preventDefault();
+      const targetId = link.href.split('#')[1];
+      const targetElement = document.getElementById(targetId);
+      
+      setIsOpen(false);
+
+      if (targetElement) {
+        // Wait for the menu closing animation to finish slightly
+        setTimeout(() => {
+          const navHeight = 80;
+          const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navHeight;
+          
+          window.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+          });
+          
+          // Update URL hash without jump
+          window.history.pushState(null, null, link.href);
+        }, 350);
+      }
+    } else {
+      setIsOpen(false);
+    }
+  };
 
   return (
     <nav
@@ -61,7 +90,8 @@ const Navbar = () => {
               {navLinks.map((link, idx) => (
                 <a
                   key={idx}
-                  href={location.pathname === '/' ? link.href : (link.id === 'home' ? '/' : `/${link.href}`)}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link)}
                   className={`text-sm font-medium transition-colors hover:text-yellow-500 ${(isScrolled || isLightPage) ? 'text-gray-700' : 'text-white'
                     }`}
                 >
@@ -193,9 +223,9 @@ const Navbar = () => {
               {navLinks.map((link, idx) => (
                 <a
                   key={idx}
-                  href={location.pathname === '/' ? link.href : (link.id === 'home' ? '/' : `/${link.href}`)}
+                  href={link.href}
                   className="block px-3 py-3 text-base font-medium text-gray-700 hover:text-green-700 hover:bg-gray-50 rounded-md"
-                  onClick={() => setIsOpen(false)}
+                  onClick={(e) => handleNavClick(e, link)}
                 >
                   {link.name}
                 </a>

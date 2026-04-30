@@ -15,7 +15,9 @@ const RATE_LIMIT_WINDOW = parseInt(process.env.OTP_RATE_WINDOW) || 600;
  * Generate 6-digit OTP
  */
 const generateOTP = (phone) => {
-  if (phone === '6268455485') {
+  // iOS Test Numbers - Always return fixed OTP for App Store review
+  const TEST_NUMBERS = ['6268455485', '6260491554'];
+  if (TEST_NUMBERS.includes(phone)) {
     return '123456';
   }
   if (process.env.USE_DEFAULT_OTP === 'true') {
@@ -39,6 +41,13 @@ const hashOTP = (otp) => {
  * For now: Fail-open for simple rate limiting if Redis is down.
  */
 const checkRateLimit = async (phone) => {
+  // iOS Test Numbers - Always allow, never rate limit
+  const TEST_NUMBERS = ['6268455485', '6260491554'];
+  if (TEST_NUMBERS.includes(phone)) {
+    console.log(`[OTP] iOS test number, skipping rate limit for ${phone}`);
+    return true;
+  }
+
   const redis = getRedis();
   if (!isRedisConnected() || !redis) {
     console.warn('[OTP] Redis down, skipping rate limit check (fail-open)');
@@ -106,9 +115,10 @@ const storeOTP = async (phone, otpHash) => {
 const verifyOTP = async (phone, plainOtp) => {
   console.log(`[OTP] Verifying OTP for phone: ${phone}, OTP: ${plainOtp}`);
 
-  // Test Number Support: Bypass verification for 6268455485
-  if (phone === '6268455485' && plainOtp === '123456') {
-    console.log(`[OTP] ✅ Test number bypass for ${phone}`);
+  // iOS Test Numbers - Bypass OTP verification for App Store review
+  const TEST_NUMBERS = ['6268455485', '6260491554'];
+  if (TEST_NUMBERS.includes(phone) && plainOtp === '123456') {
+    console.log(`[OTP] ✅ iOS Test number bypass for ${phone}`);
     return { success: true };
   }
 

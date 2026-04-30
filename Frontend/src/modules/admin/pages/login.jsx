@@ -14,8 +14,19 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
 
+
+
+  const validateEmail = (email) => {
+    if (!email) return "";
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|in|net|co)$/i;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -23,6 +34,10 @@ const AdminLogin = () => {
       ...prev,
       [name]: value
     }));
+
+    if (name === 'email') {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -102,20 +117,27 @@ const AdminLogin = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="admin@appzeto.com"
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-gray-900"
+                  className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:border-transparent text-gray-900 transition-all ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   style={{
-                    focusRingColor: themeColors.button
+                    focusRingColor: errors.email ? '#ef4444' : themeColors.button
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = themeColors.button;
-                    e.target.style.boxShadow = `0 0 0 3px rgba(0, 166, 166, 0.1)`;
+                    e.target.style.borderColor = errors.email ? '#ef4444' : themeColors.button;
+                    e.target.style.boxShadow = errors.email ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : `0 0 0 3px rgba(0, 166, 166, 0.1)`;
                   }}
                   onBlur={(e) => {
-                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.borderColor = errors.email ? '#ef4444' : '#d1d5db';
                     e.target.style.boxShadow = 'none';
                   }}
                   required
                 />
+                {errors.email && (
+                  <p className="mt-1 text-xs text-red-100 font-medium ml-1">
+                    {errors.email}
+                  </p>
+                )}
               </div>
             </div>
 
