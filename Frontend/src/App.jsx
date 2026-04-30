@@ -7,7 +7,8 @@ import { SocketProvider } from './context/SocketContext';
 import { CartProvider } from './context/CartContext';
 import { CityProvider } from './context/CityContext';
 import { initializePushNotifications, setupForegroundNotificationHandler } from './services/pushNotificationService';
-import { LocationPermissionChecker, Chatbot } from './components/common';
+// Global common imports removed here as they are now handled in AppRoutes.jsx for conditional rendering
+// import { LocationPermissionChecker, Chatbot } from './components/common';
 
 function App() {
   // Initialize push notifications on app load
@@ -46,8 +47,7 @@ function App() {
           <CartProvider>
             <div className="App">
               <AppRoutes />
-              <LocationPermissionChecker />
-              <Chatbot />
+              {/* Global components moved to routes/index.jsx */}
               <Toaster
                 position="top-center"
                 reverseOrder={false}

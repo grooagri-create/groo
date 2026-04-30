@@ -353,12 +353,12 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                                 onClick={() => handleBrandClick(brand)}
                                 className="flex flex-col items-center cursor-pointer group active:scale-95 transition-all text-center"
                               >
-                                <div className="w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mb-2 group-hover:bg-gray-100 transition-colors shadow-sm overflow-hidden border border-gray-100 relative">
+                                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-2 group-hover:bg-gray-200 transition-all shadow-sm overflow-hidden border border-gray-100 relative">
                                   {brand.icon ? (
                                     <img
                                       src={toAssetUrl(brand.icon)}
                                       alt={brand.title}
-                                      className="w-14 h-14 object-contain group-hover:scale-110 transition-transform"
+                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                       loading="lazy"
                                     />
                                   ) : (
@@ -381,9 +381,9 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                         <div className="space-y-6 pb-32">
                           {/* Machine Summary Snippet */}
                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-4">
-                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
                               {toAssetUrl(selectedServiceForBooking?.icon) ? (
-                                <img src={toAssetUrl(selectedServiceForBooking?.icon)} className="w-8 h-8 object-contain" />
+                                <img src={toAssetUrl(selectedServiceForBooking?.icon)} className="w-full h-full object-cover" />
                               ) : <FiLayers className="w-6 h-6 text-slate-300" />}
                             </div>
                             <div>

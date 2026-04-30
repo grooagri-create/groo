@@ -11,6 +11,7 @@ import BlogListing from '../modules/landing/pages/BlogListing';
 import ArticleListing from '../modules/landing/pages/ArticleListing';
 import BlogDetail from '../modules/landing/pages/BlogDetail';
 import ArticleDetail from '../modules/landing/pages/ArticleDetail';
+import { LocationPermissionChecker, Chatbot } from '../components/common';
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -19,29 +20,47 @@ const AppRoutes = () => {
     // console.log('📍 Current Route Path:', location.pathname);
   }, [location.pathname]);
 
+  const hideGlobalElements = [
+    '/user/privacy',
+    '/user/help-support',
+    '/user/cancellation-policy',
+    '/privacy',
+    '/terms',
+    '/support'
+  ].includes(location.pathname);
+
   return (
-    <Routes>
-      {/* Module Routes - High Priority */}
-      <Route path="/user/*" element={<UserRoutes />} />
-      <Route path="/vendor/*" element={<VendorRoutes />} />
-      <Route path="/worker/*" element={<WorkerRoutes />} />
-      <Route path="/admin/*" element={<AdminRoutes />} />
+    <>
+      <Routes>
+        {/* Module Routes - High Priority */}
+        <Route path="/user/*" element={<UserRoutes />} />
+        <Route path="/vendor/*" element={<VendorRoutes />} />
+        <Route path="/worker/*" element={<WorkerRoutes />} />
+        <Route path="/admin/*" element={<AdminRoutes />} />
 
-      {/* Landing experience */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/blogs" element={<BlogListing />} />
-      <Route path="/blogs/:id" element={<BlogDetail />} />
-      <Route path="/articles" element={<ArticleListing />} />
-      <Route path="/articles/:id" element={<ArticleDetail />} />
+        {/* Landing experience */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/blogs" element={<BlogListing />} />
+        <Route path="/blogs/:id" element={<BlogDetail />} />
+        <Route path="/articles" element={<ArticleListing />} />
+        <Route path="/articles/:id" element={<ArticleDetail />} />
 
-      {/* Public utility URLs (Great for iOS/App Store) */}
-      <Route path="/privacy" element={<Navigate to="/user/privacy" replace />} />
-      <Route path="/support" element={<Navigate to="/user/help-support" replace />} />
-      <Route path="/terms" element={<Navigate to="/user/cancellation-policy" replace />} />
+        {/* Public utility URLs (Great for iOS/App Store) */}
+        <Route path="/privacy" element={<Navigate to="/user/privacy" replace />} />
+        <Route path="/support" element={<Navigate to="/user/help-support" replace />} />
+        <Route path="/terms" element={<Navigate to="/user/cancellation-policy" replace />} />
 
-      {/* Fallback for any unknown user routes to go to home */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Fallback for any unknown user routes to go to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {!hideGlobalElements && (
+        <>
+          <LocationPermissionChecker />
+          <Chatbot />
+        </>
+      )}
+    </>
   );
 };
 

@@ -18,6 +18,7 @@ import BottomNav from '../../components/layout/BottomNav';
 import soilTestService from '../../../../services/soilTestService';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import flutterBridge from '../../../../utils/flutterBridge';
 
 const SoilTesting = () => {
     const navigate = useNavigate();
@@ -223,17 +224,12 @@ const SoilTesting = () => {
     };
 
     const handleDownload = async (url) => {
+        const fileName = `soil_report_${Date.now()}${url.toLowerCase().includes('.pdf') ? '.pdf' : '.jpg'}`;
         try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.setAttribute('download', `soil_report_${Date.now()}${url.toLowerCase().includes('.pdf') ? '.pdf' : '.jpg'}`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(blobUrl);
+            const result = await flutterBridge.downloadFile(url, fileName);
+            if (result && result.success) {
+                toast.success("Download started...");
+            }
         } catch (error) {
             console.error('Download failed:', error);
             window.open(url, '_blank');

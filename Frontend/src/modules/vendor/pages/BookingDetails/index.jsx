@@ -32,6 +32,7 @@ import TripFlowModal from '../../components/common/TripFlowModal';
 import DisputeModal from '../../../../components/common/DisputeModal'; // NEW
 import disputeService from '../../../../services/disputeService'; // NEW
 import LogoLoader from '../../../../components/common/LogoLoader'; // NEW
+import flutterBridge from '../../../../utils/flutterBridge';
 
 export default function BookingDetails() {
   const { id } = useParams();
@@ -454,15 +455,13 @@ export default function BookingDetails() {
   const handleDownloadInvoice = async () => {
     try {
       setActionLoading(true);
-      const blob = await vendorBillService.downloadInvoice(id);
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Invoice_${booking.bookingNumber}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('Invoice Downloaded');
+      const url = `${import.meta.env.VITE_API_BASE_URL}/vendors/bookings/${id}/invoice`;
+      const fileName = `Invoice_${booking.bookingNumber}.pdf`;
+      
+      const result = await flutterBridge.downloadFile(url, fileName);
+      if (result && result.success) {
+        toast.success('Download started...');
+      }
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download invoice');

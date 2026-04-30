@@ -298,7 +298,8 @@ const Home = () => {
             slug: cat.slug,
             icon: toAssetUrl(cat.icon),
             hasSaleBadge: cat.hasSaleBadge,
-            badge: cat.badge
+            badge: cat.badge,
+            requiresDriver: cat.requiresDriver
           }));
           setCategories(mappedCategories);
           if (mappedCategories.length > 0) hasData = true;
@@ -631,16 +632,37 @@ const Home = () => {
               </motion.section>
 
 
-              {/* Categories Section */}
+              {/* Categories Section - Split into Driver Based and Farming Equipment */}
               {homeContent?.isCategoriesVisible !== false && (
-                <motion.section variants={itemVariants} className="relative overflow-hidden pt-2">
-                  <div className="absolute inset-0 bg-gradient-to-b from-blue-50/30 to-transparent pointer-events-none -z-10" />
-                  <ServiceCategories
-                    categories={categories}
-                    onCategoryClick={handleCategoryClick}
-                    onSeeAllClick={() => { }}
-                  />
-                </motion.section>
+                <>
+                  {/* Section 1: Driver Based Equipment */}
+                  {categories.some(c => c.requiresDriver) && (
+                    <motion.section variants={itemVariants} className="relative overflow-hidden pt-2 mb-4">
+                      <div className="absolute inset-0 bg-gradient-to-b from-blue-50/30 to-transparent pointer-events-none -z-10" />
+                      <ServiceCategories
+                        title="Driver Based Equipment"
+                        subtitle="MACHINERY WITH PROFESSIONAL OPERATORS"
+                        categories={categories.filter(c => c.requiresDriver)}
+                        onCategoryClick={handleCategoryClick}
+                        onSeeAllClick={() => { }}
+                      />
+                    </motion.section>
+                  )}
+
+                  {/* Section 2: Farming Equipment (Without Driver) */}
+                  {categories.some(c => !c.requiresDriver) && (
+                    <motion.section variants={itemVariants} className="relative overflow-hidden pt-2">
+                      <div className="absolute inset-0 bg-gradient-to-b from-green-50/30 to-transparent pointer-events-none -z-10" />
+                      <ServiceCategories
+                        title="Farming Equipment"
+                        subtitle="SELF-OPERATED TOOLS & IMPLEMENTS"
+                        categories={categories.filter(c => !c.requiresDriver)}
+                        onCategoryClick={handleCategoryClick}
+                        onSeeAllClick={() => { }}
+                      />
+                    </motion.section>
+                  )}
+                </>
               )}
 
               {/* Curated Services */}

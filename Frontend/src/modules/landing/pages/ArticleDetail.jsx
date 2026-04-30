@@ -6,6 +6,7 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import TranslatedText from '../../../components/TranslatedText';
+import flutterBridge from '../../../utils/flutterBridge';
 
 const ArticleDetail = () => {
     const { id } = useParams();
@@ -78,7 +79,13 @@ const ArticleDetail = () => {
                     <h3 className="text-2xl font-black mb-4">Deepen your knowledge</h3>
                     <p className="text-gray-500 mb-8 max-w-sm">Join our network of progressive farmers and experts to share knowledge and experience.</p>
                     <div className="flex gap-4">
-                        <button className="flex items-center gap-2 text-gray-900 font-black border-2 border-gray-900 px-8 py-3 rounded-2xl hover:bg-gray-900 hover:text-white transition-all">
+                        <button 
+                            onClick={() => flutterBridge.shareContent({
+                                title: article.title,
+                                text: `Check out this article on GrooAgri: ${article.title}`,
+                                url: window.location.href
+                            })}
+                            className="flex items-center gap-2 text-gray-900 font-black border-2 border-gray-900 px-8 py-3 rounded-2xl hover:bg-gray-900 hover:text-white transition-all">
                             <FiShare2 /> Share Resource
                         </button>
                         <Link to="/vendor/login" className="flex items-center gap-2 bg-orange-600 text-white font-black px-8 py-3 rounded-2xl hover:bg-orange-700 transition-all shadow-xl shadow-orange-950/20">

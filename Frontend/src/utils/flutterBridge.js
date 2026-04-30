@@ -129,6 +129,49 @@ class FlutterBridge {
   async hapticFeedback(type = "medium") {
     return this.callHandler("haptic", { type });
   }
+
+  /* ================================
+        DOWNLOADS (NATIVE BRIDGE)
+  ================================== */
+  async downloadFile(url, fileName) {
+    if (this.isFlutter) {
+      return this.callHandler("downloadFile", { url, fileName });
+    } else {
+      // Browser Fallback
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      return { success: true };
+    }
+  }
+
+  /* ================================
+        SHARING (NATIVE BRIDGE)
+  ================================== */
+  async shareContent(data = { title: '', text: '', url: '' }) {
+    if (this.isFlutter) {
+      return this.callHandler("share", data);
+    } else if (navigator.share) {
+      try {
+        await navigator.share(data);
+        return { success: true };
+      } catch (error) {
+        console.error("Web Share failed:", error);
+        return { success: false, error: error.message };
+      }
+    } else {
+      // Fallback: Copy to clipboard?
+      try {
+        await navigator.clipboard.writeText(data.url || data.text);
+        return { success: true, message: 'Link copied to clipboard' };
+      } catch (err) {
+        return { success: false, error: 'Sharing not supported' };
+      }
+    }
+  }
 }
 
 const bridgeInstance = new FlutterBridge();

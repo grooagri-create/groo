@@ -7,8 +7,8 @@ const Vendor = require('../../models/Vendor');
  */
 exports.getPublicStats = async (req, res) => {
     try {
-        const farmerCount = await User.countDocuments();
-        const ownerCount = await Vendor.countDocuments({ status: 'active' });
+        const farmerCount = await User.countDocuments({ role: 'user', isActive: true });
+        const ownerCount = await Vendor.countDocuments({ approvalStatus: 'approved', isActive: true });
 
         res.status(200).json({
             success: true,
