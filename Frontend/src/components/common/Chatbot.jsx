@@ -5,7 +5,7 @@ import { BsRobot } from 'react-icons/bs';
 import { IoClose, IoSend, IoMic, IoMicOutline } from 'react-icons/io5';
 import { motion } from 'framer-motion';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const Chatbot = () => {
   const location = useLocation();

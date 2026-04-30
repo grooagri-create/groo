@@ -11,7 +11,7 @@ const FAQSection = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     const tabs = ['Farmer', 'Owner', 'General'];
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
     const mockFaqs = [
         { question: "Is registration free on GROO?", answer: "Yes, registration for both farmers and shop/machine owners is completely free. You only pay for the services you use or when you make a sale.", category: "General", color: "blue" },
