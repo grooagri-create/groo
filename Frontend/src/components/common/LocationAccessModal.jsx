@@ -26,8 +26,15 @@ const LocationAccessModal = ({
   const themeColor = currentTheme.button || '#00A6A6';
 
   const getContent = () => {
+    if (userType === 'vendor' || userType === 'worker') {
+      return {
+        title: "VERIFY WORK LOCATION",
+        description: "We need your location to confirm you have arrived at the farmer's site to start the requested service."
+      };
+    }
     return {
-      title: "ALLOW GPS LOCATION"
+      title: "ALLOW GPS LOCATION",
+      description: "Allow location access to see equipment and services available in your area."
     };
   };
 
@@ -141,8 +148,8 @@ const LocationAccessModal = ({
               </button>
             </div>
 
-            <p className="mt-6 text-[10px] text-gray-400">
-              Your location is protected and used only for service accuracy.
+            <p className="mt-6 text-xs text-gray-500 leading-relaxed px-2">
+              {content.description}
             </p>
           </div>
 

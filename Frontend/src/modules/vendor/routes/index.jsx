@@ -8,29 +8,45 @@ import PublicRoute from '../../../components/auth/PublicRoute';
 import CashLimitModal from '../components/common/CashLimitModal'; // Import
 // import useAppNotifications from '../../../hooks/useAppNotifications.jsx'; // Handled globally
 
-// Lazy load wrapper with error handling (same as user app)
+// Lazy load wrapper with error handling and auto-retry
 const lazyLoad = (importFunc) => {
   return lazy(() => {
-    return Promise.resolve(importFunc()).catch((error) => {
-      console.error('Failed to load vendor page:', error);
-      // Return a fallback component wrapped in a Promise
-      return Promise.resolve({
+    return importFunc().catch((error) => {
+      console.error('Failed to load vendor page chunk:', error);
+      
+      // Check if we already tried to reload in this session to prevent infinite loops
+      const hasReloaded = sessionStorage.getItem('chunk_error_reload');
+      
+      if (!hasReloaded) {
+        sessionStorage.setItem('chunk_error_reload', 'true');
+        window.location.reload();
+        return new Promise(() => {}); // Wait for reload
+      }
+
+      // If reload didn't help, show a manual refresh UI
+      return {
         default: () => (
           <div className="flex items-center justify-center min-h-screen bg-white">
             <div className="text-center p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Failed to load page</h2>
-              <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">📡</span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Connection Issues</h2>
+              <p className="text-gray-600 mb-6">We couldn't load this part of the app. This often happens on slow networks or after an update.</p>
               <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-3 rounded-xl text-white font-semibold transition-all duration-300 hover:opacity-90"
-                style={{ backgroundColor: '#347989' }}
+                onClick={() => {
+                  sessionStorage.removeItem('chunk_error_reload');
+                  window.location.reload();
+                }}
+                className="w-full py-4 rounded-2xl text-white font-bold transition-all active:scale-95"
+                style={{ backgroundColor: '#347989', boxShadow: '0 8px 16px rgba(52, 121, 137, 0.2)' }}
               >
-                Refresh Page
+                Retry Loading
               </button>
             </div>
           </div>
         ),
-      });
+      };
     });
   });
 };

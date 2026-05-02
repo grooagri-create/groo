@@ -675,8 +675,8 @@ const EditProfile = () => {
                 ) : (
                   <>
                     <FiUpload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm text-gray-500 font-medium">Click to upload Aadhar Card</span>
-                    <span className="text-xs text-gray-400 mt-1">First Page Only (Max 5MB)</span>
+                    <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">Identity Verification</span>
+                    <span className="text-xs text-gray-400 mt-2 px-4 leading-relaxed">Aadhar card is required to verify your identity as a service provider for secure transactions.</span>
                   </>
                 )}
               </label>
