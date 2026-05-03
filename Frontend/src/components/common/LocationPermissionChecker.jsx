@@ -1,11 +1,13 @@
 // Location Permission Checker Component for Homster
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import LocationAccessModal from './LocationAccessModal';
 import flutterBridge from '../../utils/flutterBridge';
 
 export const LocationPermissionChecker = () => {
     const [showModal, setShowModal] = useState(false);
     const [userType, setUserType] = useState('user');
+    const location = useLocation();
 
     useEffect(() => {
         // ... previous user logic ...
@@ -18,6 +20,15 @@ export const LocationPermissionChecker = () => {
         else if (workerData._id || workerData.id) type = 'worker';
         setUserType(type);
 
+        const isHomePage = [
+            '/user', 
+            '/user/', 
+            '/vendor',
+            '/vendor/dashboard', 
+            '/worker',
+            '/worker/dashboard'
+        ].includes(location.pathname);
+
         const checkPermission = async (isManualTrigger = false) => {
             console.log('Checking location permissions (manual:', isManualTrigger, ')');
 
@@ -27,11 +38,15 @@ export const LocationPermissionChecker = () => {
                 return;
             }
 
+            if (!isHomePage) {
+                return; // Only show automatic prompt on home pages after login
+            }
+
             const hasGrantedPreviously = localStorage.getItem('location_granted') === 'true';
 
             // 1. Silent check via Unified Bridge (prefers Native GPS)
             try {
-                const location = await flutterBridge.getCurrentLocation();
+                const locationResult = await flutterBridge.getCurrentLocation();
                 console.log('Location already granted (bridge check success)');
                 localStorage.setItem('location_granted', 'true');
                 setShowModal(false);
@@ -83,7 +98,7 @@ export const LocationPermissionChecker = () => {
             clearTimeout(timer);
             window.removeEventListener('requestLocationPrompt', handleManualTrigger);
         };
-    }, []);
+    }, [location.pathname]);
 
 
 
