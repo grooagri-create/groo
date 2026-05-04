@@ -38,8 +38,15 @@ export const LocationPermissionChecker = () => {
                 return;
             }
 
-            if (!isHomePage) {
-                return; // Only show automatic prompt on home pages after login
+            const isIOSOrSafari = () => {
+                const ua = window.navigator.userAgent;
+                const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+                const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+                return isIOS || isSafari;
+            };
+
+            if (!isHomePage || isIOSOrSafari()) {
+                return; // Only show automatic prompt on home pages after login, and not on iOS/Safari
             }
 
             const hasGrantedPreviously = localStorage.getItem('location_granted') === 'true';

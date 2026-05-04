@@ -62,7 +62,14 @@ const LocationAccessModal = ({
     }
   };
 
-  if (!isOpen) return null;
+  const isIOSOrSafari = () => {
+    const ua = window.navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    return isIOS || isSafari;
+  };
+
+  if (!isOpen || isIOSOrSafari()) return null;
 
   return (
     <AnimatePresence>
