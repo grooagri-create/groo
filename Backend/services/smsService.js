@@ -16,18 +16,13 @@ const sendSMS = async (phone, message) => {
 
     // Check if SMS credentials are configured
     if (!process.env.SMS_INDIA_HUB_API_KEY || !process.env.SMS_INDIA_HUB_SENDER_ID) {
-      console.warn('[SMS] SMS credentials missing in .env. SMS not sent.');
+      console.warn('[SMS] Required SMS credentials (API_KEY or SENDER_ID) missing in .env. SMS not sent.');
       console.log(`[SMS MOCK] To: ${phone}, Msg: ${message}`);
       return { success: false, message: 'SMS configuration missing' };
     }
 
-    // Build parameters with multiple possible auth field names
+    // Build parameters
     const params = {
-      // Primary fields (as per docs)
-      user: process.env.SMS_INDIA_HUB_USERNAME,
-      password: process.env.SMS_INDIA_HUB_API_KEY,
-      // Fallback fields for compatibility
-      username: process.env.SMS_INDIA_HUB_USERNAME,
       apikey: process.env.SMS_INDIA_HUB_API_KEY,
       msisdn: phone,
       sid: process.env.SMS_INDIA_HUB_SENDER_ID,
@@ -35,6 +30,12 @@ const sendSMS = async (phone, message) => {
       fl: 0,
       gwid: 2,
     };
+
+    // Add User/Password if specifically provided (Legacy support)
+    if (process.env.SMS_INDIA_HUB_USERNAME) {
+      params.user = process.env.SMS_INDIA_HUB_USERNAME;
+    }
+
     // Add DLT Template ID if available
     if (process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID) {
       params.TemplateId = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID;
@@ -97,7 +98,7 @@ const sendSMS = async (phone, message) => {
 const sendOTP = async (phone, otp) => {
   // DLT-compliant message format (must match registered template)
   // Template: "Welcome to the ##var## powered by SMSINDIAHUB. Your OTP for registration is ##var##"
-  const appName = 'HOMECARE';
+  const appName = 'Grooagri';
   const message = `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
 
   console.log(`[SMS] Attempting to send OTP to ${phone}`);
