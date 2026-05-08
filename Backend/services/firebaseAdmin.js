@@ -150,8 +150,8 @@ async function sendPushNotification(tokens, payload) {
       ...message.webpush.notification,
       title: message.notification.title,
       body: message.notification.body,
-      icon: payload.icon || '/Homster-logo.png',
-      badge: '/Homster-logo.png',
+      icon: payload.icon || '/grooAgri-logo.png',
+      badge: '/grooAgri-logo.png',
     };
     */
 
