@@ -93,7 +93,9 @@ const AddEquipment = lazyLoad(() => import('../pages/Equipment/AddEquipment'));
 import LogoLoader from '../../../components/common/LogoLoader';
 
 const LoadingFallback = () => (
-  <LogoLoader />
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <LogoLoader size="w-12 h-12" delay={200} />
+  </div>
 );
 
 const VendorRoutes = () => {

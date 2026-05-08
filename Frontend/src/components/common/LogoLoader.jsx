@@ -9,7 +9,17 @@ import { motion } from 'framer-motion';
  *                            If false, uses transparent background (doesn't hide BottomNav).
  * @param {string} size - Size classes for the logo
  */
-const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size = "w-20 h-20" }) => {
+const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size = "w-20 h-20", delay = 0 }) => {
+  const [isVisible, setIsVisible] = React.useState(delay === 0);
+
+  React.useEffect(() => {
+    if (delay > 0) {
+      const timer = setTimeout(() => setIsVisible(true), delay);
+      return () => clearTimeout(timer);
+    }
+  }, [delay]);
+
+  if (!isVisible) return null;
   // For route transitions (default), use a non-blocking loader
   // For initial app load, use fullScreen with overlay
   // For inline loading (e.g. buttons), use inline
@@ -30,7 +40,7 @@ const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size 
           opacity: [0.7, 1, 0.7],
         }}
         transition={{
-          duration: 1.2,
+          duration: 0.7,
           repeat: Infinity,
           ease: "easeInOut"
         }}
@@ -49,7 +59,7 @@ const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size 
             opacity: [0.6, 0]
           }}
           transition={{
-            duration: 1,
+            duration: 0.7,
             repeat: Infinity,
             ease: "easeOut"
           }}

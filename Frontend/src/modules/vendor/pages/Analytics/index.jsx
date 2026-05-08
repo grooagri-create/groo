@@ -36,7 +36,27 @@ const Analytics = () => {
         fetchAnalytics();
     }, []);
 
-    if (loading) return <LogoLoader />;
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 pb-20">
+                <div className="bg-white px-6 pt-12 pb-6 shadow-sm sticky top-0 z-30">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <FiArrowLeft className="w-6 h-6 text-gray-700" />
+                            </button>
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Equipment Analytics</h1>
+                        </div>
+                        <FiBarChart2 className="w-6 h-6 text-teal-600" />
+                    </div>
+                </div>
+                <div className="flex flex-col items-center justify-center pt-20">
+                    <LogoLoader size="w-16 h-16" />
+                    <p className="text-gray-500 font-bold mt-4 animate-pulse uppercase tracking-widest text-[10px]">Analyzing Data...</p>
+                </div>
+            </div>
+        );
+    }
 
     const equipmentChartData = data?.equipmentStats.map(item => ({
         name: item._id || 'Unknown',
