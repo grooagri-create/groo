@@ -22,7 +22,7 @@ const categorySchema = new mongoose.Schema({
   slug: {
     type: String,
     required: true,
-    unique: true,
+    index: true,      // Removed global unique: true → same slug allowed in different cities
     lowercase: true
   },
   homeIconUrl: {

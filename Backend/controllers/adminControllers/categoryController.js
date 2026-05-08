@@ -151,29 +151,26 @@ const createCategory = async (req, res) => {
 
     const slugToCheck = slug?.trim().toLowerCase() || title.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
-    const duplicateQuery = {
-      $or: [
-        { slug: slugToCheck }
-      ]
-    };
-
-    const existingCategory = await Category.findOne(duplicateQuery);
+    // Find ALL categories with same slug to properly check city overlaps
+    const existingCategories = await Category.find({ slug: slugToCheck });
 
     let isDuplicate = false;
-    if (existingCategory) {
+    for (const existingCategory of existingCategories) {
       const existingCities = existingCategory.cityIds.map(id => id.toString());
       const newCities = (cityIds || []).map(id => id.toString());
 
       if (newCities.length === 0) {
-        if (existingCities.length === 0) isDuplicate = true;
+        // New category is global → duplicate only if an existing global one found
+        if (existingCities.length === 0) { isDuplicate = true; break; }
       } else {
+        // New category is city-specific
         const hasOverlap = newCities.some(cityId => existingCities.includes(cityId));
-        if (hasOverlap) isDuplicate = true;
-        if (existingCities.length === 0) isDuplicate = true;
+        if (hasOverlap) { isDuplicate = true; break; }          // Same city → duplicate
+        if (existingCities.length === 0) { isDuplicate = true; break; } // Existing is global → duplicate
       }
     }
 
-    if (isDuplicate && existingCategory) {
+    if (isDuplicate) {
       return res.status(400).json({
         success: false,
         message: 'Category with this title or slug already exists'
@@ -278,26 +275,29 @@ const updateCategory = async (req, res) => {
 
     if (title || slug || updateCityIds) {
       const slugToCheck = slug?.trim().toLowerCase() || (title ? title.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') : category.slug);
-      const existingCategory = await Category.findOne({ _id: { $ne: id }, slug: slugToCheck });
 
-      if (existingCategory) {
-        let isDuplicate = false;
+      // Find ALL other categories with same slug (exclude current one being updated)
+      const existingCategories = await Category.find({ _id: { $ne: id }, slug: slugToCheck });
+
+      let isDuplicate = false;
+      const newCities = (updateCityIds ? updateCityIds : category.cityIds).map(cityId => cityId.toString());
+
+      for (const existingCategory of existingCategories) {
         const existingCities = existingCategory.cityIds.map(cityId => cityId.toString());
-        const newCities = (updateCityIds ? updateCityIds : category.cityIds).map(cityId => cityId.toString());
 
         if (newCities.length === 0) {
-          if (existingCities.length === 0) isDuplicate = true;
+          if (existingCities.length === 0) { isDuplicate = true; break; }
         } else {
-          if (newCities.some(cityId => existingCities.includes(cityId))) isDuplicate = true;
-          if (existingCities.length === 0) isDuplicate = true;
+          if (newCities.some(cityId => existingCities.includes(cityId))) { isDuplicate = true; break; }
+          if (existingCities.length === 0) { isDuplicate = true; break; }
         }
+      }
 
-        if (isDuplicate) {
-          return res.status(400).json({
-            success: false,
-            message: 'Category with this title or slug already exists'
-          });
-        }
+      if (isDuplicate) {
+        return res.status(400).json({
+          success: false,
+          message: 'Category with this title or slug already exists'
+        });
       }
     }
 
