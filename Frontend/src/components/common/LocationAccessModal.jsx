@@ -12,6 +12,8 @@ const LocationAccessModal = ({
   onManualSearch,
   userType = 'user' // 'user' | 'vendor' | 'worker'
 }) => {
+  const [isManual, setIsManual] = useState(false);
+  const [address, setAddress] = useState('');
   const [requesting, setRequesting] = useState(false);
 
   const getTheme = () => {
@@ -28,13 +30,13 @@ const LocationAccessModal = ({
   const getContent = () => {
     if (userType === 'vendor' || userType === 'worker') {
       return {
-        title: "VERIFY WORK LOCATION",
-        description: "We need your location to confirm you have arrived at the farmer's site to start the requested service."
+        title: "Work Location Verification",
+        description: "We need your location to confirm you have arrived at the site to start the requested service. This is required to continue."
       };
     }
     return {
-      title: "ALLOW GPS LOCATION",
-      description: "Allow location access to see equipment and services available in your area."
+      title: "Location Access Required",
+      description: "We need your location to show you equipment and services available near you. Location access is required to continue."
     };
   };
 
@@ -80,7 +82,7 @@ const LocationAccessModal = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         />
 
         {/* Modal */}
@@ -88,85 +90,120 @@ const LocationAccessModal = ({
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          className="relative bg-white w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl"
+          className="relative bg-white w-full max-w-[320px] rounded-[1.5rem] overflow-hidden shadow-2xl p-6"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Decorative Header */}
-          <div
-            className="h-32 relative flex items-center justify-center overflow-hidden"
-            style={{ background: `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}dd 100%)` }}
+          {/* Close button at top right */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl" />
-              <div className="absolute bottom-0 right-0 w-32 h-32 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-2xl" />
+            <FiX className="w-5 h-5" />
+          </button>
+
+          <div className="flex flex-col items-center text-center">
+            {/* Icon Container */}
+            <div className="w-16 h-16 bg-[#FCEEEF] rounded-full flex items-center justify-center mb-4">
+              <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center">
+                <FiMapPin className="w-5 h-5 text-[#9C2235]" />
+              </div>
             </div>
 
-            <motion.div
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center relative z-10"
-              style={{ color: themeColor }}
-            >
-              <FiNavigation className="w-8 h-8" />
-            </motion.div>
-          </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+              {content.title}
+            </h3>
 
-          <div className="p-8 pt-6 text-center">
-            <h3 className="text-2xl font-black text-gray-900 mb-8">{content.title}</h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6 px-1">
+              {content.description}
+            </p>
 
-            {/* Actions */}
-            <div className="space-y-3">
-              <button
-                onClick={handleRequestLocation}
-                disabled={requesting}
-                className="w-full py-4 rounded-2xl text-white font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 relative overflow-hidden group"
-                style={{
-                  backgroundColor: themeColor,
-                  boxShadow: `0 10px 25px -5px ${themeColor}55`
-                }}
-              >
-                {requesting ? (
-                  <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    ALLOW LOCATION ACCESS
-                    <FiNavigation className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </>
-                )}
-
-                {/* Shine effect */}
-                <div className="absolute inset-x-0 top-0 h-1/2 bg-white/10 skew-y-[-10deg] -translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-              </button>
-
-              {onManualSearch && (
+            {!isManual ? (
+              /* Permission View */
+              <div className="w-full space-y-2">
                 <button
-                  onClick={onManualSearch}
-                  className="w-full py-3 rounded-2xl border border-gray-100 text-gray-400 font-bold text-xs hover:text-gray-600 transition-colors uppercase tracking-widest"
+                  onClick={handleRequestLocation}
+                  disabled={requesting}
+                  className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#9C2235' }}
+                >
+                  {requesting ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Allow Location Access"
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setIsManual(true)}
+                  className="w-full py-3 rounded-xl bg-[#F3F4F6] text-gray-800 font-bold text-sm hover:bg-gray-200 active:scale-[0.98] transition-all"
                 >
                   Enter Location Manually
                 </button>
-              )}
 
-              <button
-                onClick={onClose}
-                className="w-full py-2 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                Maybe Later
-              </button>
-            </div>
+                <button
+                  onClick={onClose}
+                  className="w-full pt-1 text-xs font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Maybe Later
+                </button>
+              </div>
+            ) : (
+              /* Manual Entry View */
+              <div className="w-full space-y-4">
+                <div className="text-left">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block ml-1">
+                    Search and select your location
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Type your address or location..."
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#9C2235] transition-colors"
+                  />
+                </div>
 
-            <p className="mt-6 text-xs text-gray-500 leading-relaxed px-2">
-              {content.description}
-            </p>
+                <div className="flex items-center gap-3">
+                  <div className="h-[1px] flex-1 bg-gray-100" />
+                  <span className="text-[10px] font-bold text-gray-300">OR</span>
+                  <div className="h-[1px] flex-1 bg-gray-100" />
+                </div>
+
+                <button
+                  onClick={handleRequestLocation}
+                  disabled={requesting}
+                  className="w-full py-3 rounded-xl bg-[#E8F5E9] text-[#2E7D32] font-bold text-xs flex items-center justify-center gap-2 border border-[#C8E6C9] active:scale-[0.98] transition-all"
+                >
+                  <FiMapPin className="w-3.5 h-3.5" />
+                  {requesting ? "Detecting..." : "Detect My Location"}
+                </button>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => setIsManual(false)}
+                    className="flex-1 py-3 rounded-xl bg-[#F3F4F6] text-gray-600 font-bold text-sm active:scale-[0.98] transition-all"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (address) {
+                        toast.success("Location saved!");
+                        if (onSuccess) onSuccess({ address });
+                        onClose();
+                      } else {
+                        toast.error("Please enter an address");
+                      }
+                    }}
+                    className="flex-[1.5] py-3 rounded-xl text-white font-bold text-sm active:scale-[0.98] transition-all"
+                    style={{ backgroundColor: '#9C2235' }}
+                  >
+                    Save Location
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Close tiny button */}
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
-          >
-            <FiX className="w-4 h-4" />
-          </button>
         </motion.div>
       </div>
     </AnimatePresence>
