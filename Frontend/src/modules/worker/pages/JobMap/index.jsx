@@ -496,9 +496,9 @@ const JobMap = () => {
           }}
         >
           <img
-            src="/MapRider.png"
+            src="/WhatsApp_Image_2026-05-11_at_1.51.50_PM-removebg-preview.png"
             alt="Rider"
-            className="w-full h-full object-contain drop-shadow-xl rounded-full"
+            className="w-full h-full object-contain drop-shadow-xl"
             onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/2972/2972185.png" }}
           />
         </div>

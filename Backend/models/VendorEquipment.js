@@ -117,6 +117,12 @@ const vendorEquipmentSchema = new mongoose.Schema({
       type: Number,
       default: 0
     }
+  },
+  workerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Worker',
+    default: null,
+    index: true
   }
 }, {
   timestamps: true

@@ -12,6 +12,7 @@ exports.getMyEquipment = async (req, res) => {
       .populate('categoryId', 'title slug homeIconUrl trackingType requiresDriver')
       .populate('subCategoryIds', 'title slug')
       .populate('implements.subCategoryId', 'title slug')
+      .populate('workerId', 'name phone profilePhoto status')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -51,7 +52,8 @@ exports.addEquipment = async (req, res) => {
       images, 
       pricing,
       includesDriver,
-      driver 
+      driver,
+      workerId
     } = req.body;
 
     // 1. Verify Category exists and is a "Main Category"
@@ -89,6 +91,7 @@ exports.addEquipment = async (req, res) => {
       pricing,
       includesDriver,
       driver,
+      workerId,
       status: 'pending'
     });
 

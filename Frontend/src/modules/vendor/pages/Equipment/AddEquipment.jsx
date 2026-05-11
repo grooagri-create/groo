@@ -8,6 +8,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import vendorEquipmentService from '../../../../services/vendorEquipmentService';
+import { getWorkers } from '../../services/workerService';
 import LogoLoader from '../../../../components/common/LogoLoader';
 
 const AddEquipment = () => {
@@ -20,6 +21,8 @@ const AddEquipment = () => {
   const [machineTypes, setMachineTypes] = useState([]);
   const [machineImplements, setMachineImplements] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [vendorWorkers, setVendorWorkers] = useState([]);
+  const [showWorkerLink, setShowWorkerLink] = useState(false);
 
   const [form, setForm] = useState({
     categoryId: '',
@@ -46,7 +49,8 @@ const AddEquipment = () => {
       aadharImage: '',
       licenseImage: '',
       additionalCharge: 0
-    }
+    },
+    workerId: null
   });
 
   // Tracks the selected category's metadata (trackingType, requiresDriver)
@@ -60,6 +64,9 @@ const AddEquipment = () => {
     try {
       const res = await vendorEquipmentService.getMachineTypes();
       if (res.success) setMachineTypes(res.data);
+
+      const workerRes = await getWorkers();
+      if (workerRes.success) setVendorWorkers(workerRes.data);
 
       if (isEdit) {
         const eqRes = await vendorEquipmentService.getMyEquipment();
@@ -422,6 +429,55 @@ const AddEquipment = () => {
           <AnimatePresence>
             {form.includesDriver && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-4">
+                
+                {/* Worker Link Toggle */}
+                {!isEdit && vendorWorkers.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setShowWorkerLink(!showWorkerLink)}
+                      className="text-[10px] font-black text-white/80 uppercase tracking-widest flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      {showWorkerLink ? "← Back to Manual Entry" : "🔗 Link from Registered Workers"}
+                    </button>
+                    
+                    {showWorkerLink && (
+                      <div className="grid grid-cols-1 gap-2 mt-1">
+                        {vendorWorkers.map(w => (
+                          <button
+                            key={w._id}
+                            type="button"
+                            onClick={() => {
+                              setForm(p => ({
+                                ...p,
+                                workerId: w._id,
+                                driver: {
+                                  ...p.driver,
+                                  name: w.name,
+                                  phone: w.phone,
+                                  photo: w.profilePhoto || '',
+                                  aadharNumber: w.aadhar?.number || '',
+                                }
+                              }));
+                              setShowWorkerLink(false);
+                              toast.success(`Linked to ${w.name}`);
+                            }}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${form.workerId === w._id ? 'bg-white border-white' : 'bg-white/10 border-white/20'}`}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-white/20 overflow-hidden">
+                              {w.profilePhoto ? <img src={w.profilePhoto} className="w-full h-full object-cover" /> : <FiUser className="m-auto text-white/50" />}
+                            </div>
+                            <div className="text-left">
+                              <p className={`text-xs font-black ${form.workerId === w._id ? 'text-purple-600' : 'text-white'}`}>{w.name}</p>
+                              <p className={`text-[9px] font-bold ${form.workerId === w._id ? 'text-purple-400' : 'text-white/50'}`}>{w.phone}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-4">
                   <label className="w-16 h-16 rounded-2xl bg-white/20 border-2 border-dashed border-white/30 flex items-center justify-center cursor-pointer overflow-hidden p-1">
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'driver')} />

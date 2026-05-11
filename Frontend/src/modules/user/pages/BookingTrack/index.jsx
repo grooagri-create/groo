@@ -557,9 +557,9 @@ const BookingTrack = () => {
           }}
         >
           <img
-            src="/MapRider.png"
+            src="/WhatsApp_Image_2026-05-11_at_1.51.50_PM-removebg-preview.png"
             alt="Rider"
-            className="w-full h-full object-contain drop-shadow-xl rounded-full"
+            className="w-full h-full object-contain drop-shadow-xl"
           />
         </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-teal-500/30 rounded-full animate-ping z-10 pointer-events-none"></div>
