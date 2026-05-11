@@ -89,12 +89,10 @@ const BusinessDetails = lazyLoad(() => import('../pages/BusinessDetails'));
 const EquipmentInventory = lazyLoad(() => import('../pages/Equipment/EquipmentInventory'));
 const AddEquipment = lazyLoad(() => import('../pages/Equipment/AddEquipment'));
 
-// Loading fallback component
-import LogoLoader from '../../../components/common/LogoLoader';
-
+// Lightweight loading fallback - no logo to avoid iOS rejection
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
-    <LogoLoader size="w-12 h-12" delay={200} />
+    <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
   </div>
 );
 

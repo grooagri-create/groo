@@ -30,8 +30,10 @@ export const vendorEquipmentService = {
   },
 
   // Fetch machinery types for the dropdown (Main Categories like Tractor)
-  getMachineTypes: async () => {
-    const response = await api.get('/public/categories');
+  getMachineTypes: async (cityId = null) => {
+    const response = await api.get('/public/categories', {
+      params: cityId ? { cityId } : {}
+    });
     if (response.data.success && Array.isArray(response.data.categories)) {
       return {
         success: true,

@@ -206,10 +206,13 @@ const Dashboard = memo(() => {
       if (showSpinner) setLoading(true);
       setError(null);
 
-      const response = await vendorDashboardService.getDashboardStats();
-      const maintRes = await maintenanceService.getSchedules();
-      
-      const activeMaintenanceCount = (maintRes.data || []).filter(m => 
+      // Run both API calls in PARALLEL to cut load time by ~50%
+      const [response, maintRes] = await Promise.all([
+        vendorDashboardService.getDashboardStats(),
+        maintenanceService.getSchedules()
+      ]);
+
+      const activeMaintenanceCount = (maintRes.data || []).filter(m =>
         isWithinInterval(new Date(), {
           start: parseISO(m.startDate),
           end: parseISO(m.endDate)
@@ -217,7 +220,7 @@ const Dashboard = memo(() => {
       ).length;
 
       processApiResponse(response);
-      
+
       setStats(prev => ({
         ...prev,
         machinesInMaintenance: activeMaintenanceCount

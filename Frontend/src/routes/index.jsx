@@ -20,14 +20,22 @@ const AppRoutes = () => {
     // console.log('📍 Current Route Path:', location.pathname);
   }, [location.pathname]);
 
-  const hideGlobalElements = [
-    '/user/privacy',
-    '/user/help-support',
-    '/user/cancellation-policy',
-    '/privacy',
-    '/terms',
-    '/support'
-  ].includes(location.pathname);
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isVendorRoute = location.pathname.startsWith('/vendor');
+  const isWorkerRoute = location.pathname.startsWith('/worker');
+
+  const hideGlobalElements =
+    isAdminRoute ||
+    isVendorRoute ||
+    isWorkerRoute ||
+    [
+      '/user/privacy',
+      '/user/help-support',
+      '/user/cancellation-policy',
+      '/privacy',
+      '/terms',
+      '/support'
+    ].includes(location.pathname);
 
   return (
     <>

@@ -8,6 +8,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import vendorEquipmentService from '../../../../services/vendorEquipmentService';
+import vendorService from '../../../../services/vendorService';
 import { getWorkers } from '../../services/workerService';
 import LogoLoader from '../../../../components/common/LogoLoader';
 
@@ -62,7 +63,11 @@ const AddEquipment = () => {
 
   const fetchInitialData = async () => {
     try {
-      const res = await vendorEquipmentService.getMachineTypes();
+      // 1. Get Vendor Profile for City-based filtering
+      const profileRes = await vendorService.getProfile();
+      const cityId = profileRes.data?.address?.cityId || profileRes.data?.cityId;
+
+      const res = await vendorEquipmentService.getMachineTypes(cityId);
       if (res.success) setMachineTypes(res.data);
 
       const workerRes = await getWorkers();

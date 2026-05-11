@@ -71,11 +71,11 @@ const AgriProductDetail = lazyLoad(() => import('../pages/AgriMarket/ProductDeta
 const MyAgriOrders = lazyLoad(() => import('../pages/AgriMarket/MyOrders'));
 const AgriOrderPayment = lazyLoad(() => import('../pages/AgriMarket/OrderPayment'));
 
-// Loading fallback component
-import LogoLoader from '../../../components/common/LogoLoader';
-
+// Lightweight loading fallback - no logo to avoid iOS rejection
 const LoadingFallback = () => (
-  <LogoLoader />
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin" />
+  </div>
 );
 
 // Import Live Booking Card

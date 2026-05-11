@@ -49,11 +49,11 @@ const JobMap = lazyLoad(() => import('../pages/JobMap'));
 const JobTimeline = lazyLoad(() => import('../pages/JobTimeline'));
 const Wallet = lazyLoad(() => import('../pages/Wallet'));
 
-// Loading fallback component
-import LogoLoader from '../../../components/common/LogoLoader';
-
+// Lightweight loading fallback - no logo to avoid iOS rejection
 const LoadingFallback = () => (
-  <LogoLoader />
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  </div>
 );
 
 const WorkerRoutes = () => {
