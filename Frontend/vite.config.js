@@ -41,47 +41,30 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        // Split dependencies into separate chunks for faster iOS loading
-        // iOS Safari's JavaScriptCore parses JS much slower than Chrome/V8.
-        // A single 5-10MB vendor.js causes 5-15s loading screen on iOS.
+        // CHUNK SPLITTING STRATEGY — iOS Optimized but React-Safe
+        //
+        // ⚠️ CRITICAL: React and React-dependent libraries CANNOT be split into
+        // separate chunks from each other. When loaded in parallel, 'vendor' chunk
+        // may execute before 'vendor-react' initializes → `React.forwardRef` = undefined crash.
+        //
+        // SAFE to split: Libraries with NO React dependency (Firebase SDK, GSAP).
+        // UNSAFE to split: React, Framer Motion, Socket.io (all use React internals).
         manualChunks: (id) => {
           if (!id.includes('node_modules')) return;
 
-          // Firebase - large, load separately
+          // Firebase — large, fully self-contained, no React dependency in core SDK
           if (id.includes('firebase') || id.includes('@firebase')) {
             return 'vendor-firebase';
           }
 
-          // Framer Motion - heavy animation library
-          if (id.includes('framer-motion')) {
-            return 'vendor-framer';
-          }
-
-          // GSAP - animation library (only used in landing page)
+          // GSAP — animation library, fully self-contained, no React dependency
           if (id.includes('gsap')) {
             return 'vendor-gsap';
           }
 
-          // Map libraries
-          if (id.includes('leaflet') || id.includes('react-leaflet') || id.includes('mapbox')) {
-            return 'vendor-maps';
-          }
-
-          // Socket.io client
-          if (id.includes('socket.io')) {
-            return 'vendor-socket';
-          }
-
-          // Core React + Router (smallest, loaded first)
-          if (
-            id.includes('react') ||
-            id.includes('react-dom') ||
-            id.includes('react-router')
-          ) {
-            return 'vendor-react';
-          }
-
-          // Everything else in a general vendor chunk
+          // Everything else (React, ReactDOM, React-Router, Framer Motion,
+          // Socket.io, Leaflet, etc.) stays in ONE vendor chunk to ensure
+          // React is available when any library calls React.forwardRef / React.createElement
           return 'vendor';
         },
         chunkFileNames: 'assets/[name]-[hash].js',
