@@ -3,12 +3,22 @@ import { motion } from 'framer-motion';
 
 /**
  * LogoLoader Component
- * @param {boolean} fullScreen - If true, shows a full-screen overlay (for initial app load). 
+ * @param {boolean} fullScreen - If true, shows a full-screen overlay (for initial app load).
  *                               If false, shows an inline loader (for route transitions).
- * @param {boolean} overlay - If true with fullScreen, uses solid white background. 
+ * @param {boolean} overlay - If true with fullScreen, uses solid white background.
  *                            If false, uses transparent background (doesn't hide BottomNav).
  * @param {string} size - Size classes for the logo
+ *
+ * NOTE: On iOS devices, we show a simple native-style spinner instead of the animated logo.
+ * Reason 1: App Store Guideline 4.2 — animated logo loading = instant web-wrapper identification = rejection.
+ * Reason 2: Framer Motion infinite animations on iOS drain CPU/battery during the critical first load.
  */
+
+// Detect iOS to avoid logo-based loading animation (App Store rejection risk)
+function isIOS() {
+  return /iP(hone|od|ad)/i.test(navigator.userAgent);
+}
+
 const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size = "w-20 h-20", delay = 0 }) => {
   const [isVisible, setIsVisible] = React.useState(delay === 0);
 
@@ -20,6 +30,7 @@ const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size 
   }, [delay]);
 
   if (!isVisible) return null;
+
   // For route transitions (default), use a non-blocking loader
   // For initial app load, use fullScreen with overlay
   // For inline loading (e.g. buttons), use inline
@@ -31,6 +42,20 @@ const LogoLoader = ({ fullScreen = false, overlay = false, inline = false, size 
       ? "flex items-center justify-center"
       : "flex items-center justify-center w-full min-h-[60vh] pb-20"; // Leave space for bottom nav
 
+  // On iOS: show a simple native spinner — no logo animation
+  // This avoids App Store Guideline 4.2 rejection (web-wrapper detection)
+  if (isIOS()) {
+    const spinnerSize = inline ? "w-6 h-6" : "w-10 h-10";
+    return (
+      <div className={containerClasses}>
+        <div
+          className={`${spinnerSize} border-4 border-teal-100 border-t-teal-500 rounded-full animate-spin`}
+        />
+      </div>
+    );
+  }
+
+  // On non-iOS (Android/Desktop): show the full branded logo loader
   return (
     <div className={containerClasses}>
       <motion.div

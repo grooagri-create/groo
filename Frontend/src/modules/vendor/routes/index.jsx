@@ -8,23 +8,24 @@ import PublicRoute from '../../../components/auth/PublicRoute';
 import CashLimitModal from '../components/common/CashLimitModal'; // Import
 // import useAppNotifications from '../../../hooks/useAppNotifications.jsx'; // Handled globally
 
-// Lazy load wrapper with error handling and auto-retry
+// Lazy load wrapper with error handling
+// NOTE: Do NOT use infinite Promise here — it freezes iOS Safari Suspense forever.
 const lazyLoad = (importFunc) => {
   return lazy(() => {
-    return importFunc().catch((error) => {
+    return Promise.resolve(importFunc()).catch((error) => {
       console.error('Failed to load vendor page chunk:', error);
-      
-      // Check if we already tried to reload in this session to prevent infinite loops
+
+      // On first failure: schedule a reload and immediately return error UI
+      // Do NOT use `return new Promise(() => {})` — that hangs Suspense on iOS forever
       const hasReloaded = sessionStorage.getItem('chunk_error_reload');
-      
       if (!hasReloaded) {
         sessionStorage.setItem('chunk_error_reload', 'true');
-        window.location.reload();
-        return new Promise(() => {}); // Wait for reload
+        // Reload after a short delay (UI will show briefly, then page reloads)
+        setTimeout(() => window.location.reload(), 300);
       }
 
-      // If reload didn't help, show a manual refresh UI
-      return {
+      // Always return a resolved module with a fallback UI
+      return Promise.resolve({
         default: () => (
           <div className="flex items-center justify-center min-h-screen bg-white">
             <div className="text-center p-6">
@@ -46,7 +47,7 @@ const lazyLoad = (importFunc) => {
             </div>
           </div>
         ),
-      };
+      });
     });
   });
 };

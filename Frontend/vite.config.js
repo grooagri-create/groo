@@ -41,24 +41,61 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
+        // Split dependencies into separate chunks for faster iOS loading
+        // iOS Safari's JavaScriptCore parses JS much slower than Chrome/V8.
+        // A single 5-10MB vendor.js causes 5-15s loading screen on iOS.
         manualChunks: (id) => {
-          // SAFE STRATEGY: Bundle all dependencies into one vendor file
-          // This fixes the "Cannot set properties of undefined (setting 'Activity')" error
-          // by ensuring all libraries share the same execution context.
-          if (id.includes('node_modules')) {
-            return 'vendor';
+          if (!id.includes('node_modules')) return;
+
+          // Firebase - large, load separately
+          if (id.includes('firebase') || id.includes('@firebase')) {
+            return 'vendor-firebase';
           }
+
+          // Framer Motion - heavy animation library
+          if (id.includes('framer-motion')) {
+            return 'vendor-framer';
+          }
+
+          // GSAP - animation library (only used in landing page)
+          if (id.includes('gsap')) {
+            return 'vendor-gsap';
+          }
+
+          // Map libraries
+          if (id.includes('leaflet') || id.includes('react-leaflet') || id.includes('mapbox')) {
+            return 'vendor-maps';
+          }
+
+          // Socket.io client
+          if (id.includes('socket.io')) {
+            return 'vendor-socket';
+          }
+
+          // Core React + Router (smallest, loaded first)
+          if (
+            id.includes('react') ||
+            id.includes('react-dom') ||
+            id.includes('react-router')
+          ) {
+            return 'vendor-react';
+          }
+
+          // Everything else in a general vendor chunk
+          return 'vendor';
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
-    // Increase limit since the vendor chunk will be larger
-    chunkSizeWarningLimit: 1500,
+    // Adjust limit for split chunks (each chunk should now be smaller)
+    chunkSizeWarningLimit: 800,
     sourcemap: false,
     cssCodeSplit: true,
-    target: 'es2020',
+    // es2018 is supported by iOS 13+ (much broader compatibility than es2020)
+    // es2020 breaks on iOS 13/14 with certain features
+    target: 'es2018',
     assetsInlineLimit: 4096,
   },
   optimizeDeps: {

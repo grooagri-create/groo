@@ -1,11 +1,24 @@
 /**
  * Push Notification Service
  * Handles FCM token registration and notification handling
+ * 
+ * NOTE: FCM Push Notifications are NOT supported on iOS Safari
+ * (requires iOS 16.4+ AND app added to Home Screen as PWA).
+ * All functions safely return/no-op on iOS to prevent hangs.
  */
 
 import { messaging, getToken, onMessage } from '../firebase';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+
+/**
+ * Check if running on iOS (iPhone, iPad, iPod)
+ * FCM Service Workers are not properly supported on iOS Safari.
+ * @returns {boolean}
+ */
+function isIOS() {
+  return /iP(hone|od|ad)/i.test(navigator.userAgent);
+}
 
 /**
  * Check if running inside Flutter WebView
@@ -25,16 +38,22 @@ function getPlatformType() {
 
 /**
  * Register service worker for push notifications
+ * Skipped on iOS — FCM service workers hang on iOS Safari.
  * @returns {Promise<ServiceWorkerRegistration>}
  */
 async function registerServiceWorker() {
+  // Skip on iOS — FCM SW registration hangs or fails on iOS Safari
+  if (isIOS()) {
+    throw new Error('FCM Service Workers not supported on iOS Safari');
+  }
+
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('✅ Service Worker registered:', registration.scope);
+      // console.log('✅ Service Worker registered:', registration.scope);
       return registration;
     } catch (error) {
-      console.error('❌ Service Worker registration failed:', error);
+      // console.error('❌ Service Worker registration failed:', error);
       throw error;
     }
   } else {
@@ -291,9 +310,16 @@ function setupForegroundNotificationHandler(handler) {
 /**
  * Initialize push notifications
  * Call this on app load
+ * Safely skipped on iOS to prevent hanging.
  */
 async function initializePushNotifications() {
   try {
+    // Skip entirely on iOS — FCM is not supported
+    if (isIOS()) {
+      // console.log('ℹ️ iOS detected — Push Notifications skipped (not supported without PWA install)');
+      return;
+    }
+
     if (!('serviceWorker' in navigator)) {
       // console.log('Service workers not supported');
       return;
