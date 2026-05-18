@@ -126,7 +126,23 @@ const Wallet = () => {
   };
 
   if (loading) {
-    return <LogoLoader />;
+    return (
+      <div className="min-h-screen pb-24" style={{ background: themeColors.backgroundGradient }}>
+        <Header title="Wallet & Ledger" />
+        <main className="px-4 py-6">
+          <div className="animate-pulse space-y-6">
+            <div className="h-36 bg-white/20 rounded-2xl border border-white/10"></div>
+            <div className="h-36 bg-white/20 rounded-2xl border border-white/10"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-24 bg-white/20 rounded-2xl border border-white/10"></div>
+              <div className="h-24 bg-white/20 rounded-2xl border border-white/10"></div>
+            </div>
+            <div className="h-40 bg-white/20 rounded-2xl border border-white/10 mt-6"></div>
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
   }
 
   return (

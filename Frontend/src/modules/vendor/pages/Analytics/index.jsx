@@ -50,9 +50,13 @@ const Analytics = () => {
                         <FiBarChart2 className="w-6 h-6 text-teal-600" />
                     </div>
                 </div>
-                <div className="flex flex-col items-center justify-center pt-20">
-                    <LogoLoader size="w-16 h-16" />
-                    <p className="text-gray-500 font-bold mt-4 animate-pulse uppercase tracking-widest text-[10px]">Analyzing Data...</p>
+                <div className="p-6 space-y-8">
+                    <div className="grid grid-cols-2 gap-4 animate-pulse">
+                        <div className="h-28 bg-gray-200/60 rounded-3xl border border-gray-100"></div>
+                        <div className="h-28 bg-gray-200/60 rounded-3xl border border-gray-100"></div>
+                    </div>
+                    <div className="h-[250px] bg-gray-200/60 rounded-[2.5rem] animate-pulse border border-gray-100"></div>
+                    <div className="h-[250px] bg-gray-200/60 rounded-[2.5rem] animate-pulse border border-gray-100"></div>
                 </div>
             </div>
         );
