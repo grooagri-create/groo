@@ -232,8 +232,8 @@ const register = async (req, res) => {
       otherUrls = uploadedOthers;
     }
 
-    const vendor = await Vendor.create({
-      name, email, phone,
+    const vendorData = {
+      name, phone,
       businessName,
       service: Array.isArray(service) ? service : (service ? [service] : []),
       aadhar: {
@@ -241,11 +241,22 @@ const register = async (req, res) => {
         document: aadharUrl,
         backDocument: aadharBackUrl
       },
-      pan: { number: pan, document: panUrl },
       otherDocuments: otherUrls,
       approvalStatus: VENDOR_STATUS.PENDING,
       isPhoneVerified: true
-    });
+    };
+
+    if (email && email.trim() !== '') {
+      vendorData.email = email;
+    }
+
+    if (pan || panUrl) {
+      vendorData.pan = {};
+      if (pan) vendorData.pan.number = pan;
+      if (panUrl) vendorData.pan.document = panUrl;
+    }
+
+    const vendor = await Vendor.create(vendorData);
 
     // Notify Admins
     try {

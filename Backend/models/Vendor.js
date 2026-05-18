@@ -10,8 +10,8 @@ const vendorSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [true, 'Please provide an email'],
     unique: true,
+    sparse: true,
     trim: true,
     lowercase: true
   },
@@ -65,13 +65,11 @@ const vendorSchema = new mongoose.Schema({
   pan: {
     number: {
       type: String,
-      required: [true, 'Please provide PAN number'],
       trim: true,
       uppercase: true
     },
     document: {
-      type: String, // Cloudinary URL
-      required: [true, 'Please upload PAN document']
+      type: String // Cloudinary URL
     }
   },
   otherDocuments: [{

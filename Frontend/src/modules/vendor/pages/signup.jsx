@@ -14,12 +14,12 @@ import { publicCatalogService } from '../../../services/catalogService';
 // Zod schema for Vendor Signup
 const vendorSignupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").regex(/^[a-zA-Z\s]+$/, "Name can only contain letters"),
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Please enter a valid email address").optional().or(z.literal('')),
   phoneNumber: z.string().regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian phone number"),
   businessName: z.string().min(3, "Business Name must be at least 3 characters"),
   service: z.array(z.string()).min(1, "Please select at least one equipment category"),
   aadhar: z.string().regex(/^\d{12}$/, "Aadhar number must be exactly 12 digits"),
-  pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format (e.g. ABCDE1234F)")
+  pan: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN format (e.g. ABCDE1234F)").optional().or(z.literal(''))
 });
 
 const VendorSignup = () => {
@@ -230,10 +230,8 @@ const VendorSignup = () => {
     // Manual Document Validation remains
     const hasAadharDoc = formData.documents.some(d => d.type === 'aadhar');
     const hasAadharBackDoc = formData.documents.some(d => d.type === 'aadharBack');
-    const hasPanDoc = formData.documents.some(d => d.type === 'pan');
     if (!hasAadharDoc) { toast.error('Please upload Aadhar Front document'); return; }
     if (!hasAadharBackDoc) { toast.error('Please upload Aadhar Back document'); return; }
-    if (!hasPanDoc) { toast.error('Please upload PAN document'); return; }
 
     setIsLoading(true);
 
@@ -479,7 +477,6 @@ const VendorSignup = () => {
                       <input
                         type="email"
                         name="email"
-                        required
                         value={formData.email}
                         onChange={handleInputChange}
                         className={`block w-full pl-10 pr-10 py-2.5 border rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none ${
@@ -547,7 +544,6 @@ const VendorSignup = () => {
                       </div>
                       <input
                         type="text"
-                        required
                         value={formData.pan}
                         onChange={(e) => setFormData(p => ({ ...p, pan: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }))}
                         className="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-2 transition-all duration-300 outline-none hover:border-gray-400"
