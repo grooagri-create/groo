@@ -59,7 +59,37 @@ const EquipmentInventory = () => {
     );
   };
 
-  if (loading) return <LogoLoader />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FBFF] pb-28">
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-black/[0.03] px-5 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/vendor/dashboard')} className="p-2 bg-slate-100 rounded-xl">
+              <FiChevronLeft className="w-6 h-6 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-xl font-black text-slate-800 leading-tight">My Machinery</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rentable Inventory</p>
+            </div>
+          </div>
+          <div className="w-12 h-12 bg-slate-200 rounded-2xl animate-pulse"></div>
+        </div>
+        <div className="p-5 space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white rounded-[32px] border border-slate-100 p-5 flex gap-4 animate-pulse">
+               <div className="w-24 h-24 rounded-[24px] bg-slate-200 flex-shrink-0"></div>
+               <div className="flex-1 space-y-3 py-2">
+                 <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                 <div className="h-6 bg-slate-200 rounded w-2/3"></div>
+                 <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FBFF] pb-28">
