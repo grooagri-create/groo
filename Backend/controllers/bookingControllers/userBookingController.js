@@ -192,14 +192,28 @@ const createBooking = async (req, res) => {
       console.log('Geocoded address for vendor search:', bookingLocation);
     }
 
-    // Find vendors within 10km radius who offer this service category
+    // Find vendors within dynamic radius (2km -> 5km -> 8km -> 10km -> 15km -> 20km -> 30km)
     // CUSTOM - Check Cash Limit only if payment method is CASH
     const vendorFilters = {
       ...(category ? { service: category.title } : {}),
       checkCashLimit: paymentMethod === 'cash'
     };
 
-    let nearbyVendors = await findNearbyVendors(bookingLocation, 10, vendorFilters);
+    let nearbyVendors = [];
+    let usedRadius = 2;
+    const searchRadii = [2, 5, 8, 10, 15, 20, 30];
+
+    for (const radius of searchRadii) {
+      usedRadius = radius;
+      nearbyVendors = await findNearbyVendors(bookingLocation, radius, vendorFilters);
+      
+      // OPTIONAL BUT RECOMMENDED: Pre-filter for online vendors so we don't assign offline ones to the top wave
+      nearbyVendors = nearbyVendors.filter(v => v.isOnline === true && v.availability === 'AVAILABLE');
+
+      if (nearbyVendors && nearbyVendors.length > 0) {
+        break; // Stop expanding radius if we found available vendors
+      }
+    }
 
     // Deduplicate nearbyVendors by _id to prevent duplicate notifications
     const uniqueVendorIds = new Set();
@@ -210,7 +224,7 @@ const createBooking = async (req, res) => {
       return true;
     });
 
-    console.log(`[CreateBooking] Found ${nearbyVendors.length} nearby vendors for booking`);
+    console.log(`[CreateBooking] Found ${nearbyVendors.length} ONLINE nearby vendors for booking within ${usedRadius}km`);
     // --- END VENDOR SEARCH BLOCK ---
 
     // Calculate pricing - use amount from frontend if provided, otherwise calculate

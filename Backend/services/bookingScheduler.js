@@ -16,9 +16,9 @@ const { createNotification } = require('../controllers/notificationControllers/n
 
 // Wave configuration
 const WAVE_CONFIG = {
-  1: { count: 3, duration: 15000 }, // Wave 1: 3 vendors, 15s
-  2: { count: 3, duration: 15000 }, // Wave 2: 3 vendors, 15s
-  3: { count: 4, duration: 15000 }, // Wave 3: 4 vendors, 15s
+  1: { count: 3, duration: 120000 }, // Wave 1: 3 vendors, 2 mins (120000ms)
+  2: { count: 3, duration: 120000 }, // Wave 2: 3 vendors, 2 mins
+  3: { count: 4, duration: 120000 }, // Wave 3: 4 vendors, 2 mins
   4: { count: Infinity, duration: 0 } // Wave 4: All remaining
 };
 
@@ -52,10 +52,10 @@ class BookingScheduler {
     // Run immediately on start
     this.processWaves();
 
-    // Then run every 5 seconds
+    // Then run every 30 seconds
     this.intervalId = setInterval(() => {
       this.processWaves();
-    }, 5000);
+    }, 30000);
   }
 
   stop() {

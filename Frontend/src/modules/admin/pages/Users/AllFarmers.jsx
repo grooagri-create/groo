@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiSearch, FiUser, FiPhone, FiMail, FiCheckCircle, FiSlash, FiCheck, FiTrash2 } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiSearch, FiUser, FiPhone, FiMail, FiCheckCircle, FiSlash, FiCheck, FiTrash2, FiPlus, FiX } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import { adminUserService } from '../../../../services/adminUserService';
 
@@ -13,12 +13,39 @@ const AllFarmers = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
 
+  // Add Farmer State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newFarmer, setNewFarmer] = useState({ name: '', phone: '', email: '' });
+  const [isAdding, setIsAdding] = useState(false);
+
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 500);
     return () => clearTimeout(timer);
   }, [search]);
+
+  const handleAddFarmer = async (e) => {
+    e.preventDefault();
+    if (!newFarmer.name || !newFarmer.phone) {
+      return toast.error('Name and Phone are required');
+    }
+    
+    try {
+      setIsAdding(true);
+      const response = await adminUserService.addUser(newFarmer);
+      if (response.success) {
+        toast.success(response.message || 'Farmer added successfully');
+        setIsAddModalOpen(false);
+        setNewFarmer({ name: '', phone: '', email: '' });
+        fetchUsers();
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to add farmer');
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -113,6 +140,14 @@ const AllFarmers = () => {
           <div className="px-3 py-2 bg-green-50 rounded-lg border border-green-100">
             <span className="text-xs font-bold text-green-700">{totalUsers} Farmers</span>
           </div>
+          
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors"
+          >
+            <FiPlus className="w-3.5 h-3.5" />
+            Add Farmer
+          </button>
         </div>
       </div>
 
@@ -231,6 +266,89 @@ const AllFarmers = () => {
           </div>
         )}
       </div>
+
+      {/* Add Farmer Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="font-bold text-gray-800">Add New Farmer</h3>
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddFarmer} className="p-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newFarmer.name}
+                    onChange={(e) => setNewFarmer({ ...newFarmer, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter farmer's name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={newFarmer.phone}
+                    onChange={(e) => setNewFarmer({ ...newFarmer, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Email Address (Optional)</label>
+                  <input
+                    type="email"
+                    value={newFarmer.email}
+                    onChange={(e) => setNewFarmer({ ...newFarmer, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAdding}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isAdding ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      'Add Farmer'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

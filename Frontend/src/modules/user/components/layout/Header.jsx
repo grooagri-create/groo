@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { HiLocationMarker } from 'react-icons/hi';
+import React, { useRef, useEffect, useState } from 'react';
+import { HiLocationMarker, HiMenuAlt2 } from 'react-icons/hi';
 import { gsap } from 'gsap';
 import LocationSelector from '../common/LocationSelector';
 import { animateLogo } from '../../../../utils/gsapAnimations';
@@ -10,11 +10,13 @@ import { themeColors } from '../../../../theme';
 import CitySelectorModal from '../common/CitySelectorModal';
 import { useCity } from '../../../../context/CityContext';
 import { HiChevronDown } from 'react-icons/hi';
+import Sidebar from './Sidebar';
 
 const Header = ({ location, onLocationClick }) => {
   const logoRef = useRef(null);
   const { currentCity } = useCity();
-  const [isCityModalOpen, setIsCityModalOpen] = React.useState(false);
+  const [isCityModalOpen, setIsCityModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (logoRef.current) {
@@ -29,9 +31,18 @@ const Header = ({ location, onLocationClick }) => {
         <div className="w-full">
           {/* Top Row: Logo (Left) and Location (Right) */}
           <div className="px-4 py-3 flex items-center justify-between">
-            {/* Left: Logo */}
-            <div
-              className="cursor-pointer shrink-0"
+            {/* Left: Hamburger & Logo */}
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors"
+                aria-label="Open Menu"
+              >
+                <HiMenuAlt2 className="w-6 h-6" />
+              </button>
+
+              <div
+                className="cursor-pointer"
               onMouseEnter={() => {
                 if (logoRef.current) {
                   gsap.to(logoRef.current, {
@@ -52,11 +63,12 @@ const Header = ({ location, onLocationClick }) => {
                   });
                 }
               }}
-            >
-              <Logo
-                ref={logoRef}
-                className="h-12 w-auto"
-              />
+              >
+                <Logo
+                  ref={logoRef}
+                  className="h-12 w-auto"
+                />
+              </div>
             </div>
 
             {/* Right: City & Location */}
@@ -100,6 +112,11 @@ const Header = ({ location, onLocationClick }) => {
       <CitySelectorModal
         isOpen={isCityModalOpen}
         onClose={() => setIsCityModalOpen(false)}
+      />
+
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
       />
     </header>
   );

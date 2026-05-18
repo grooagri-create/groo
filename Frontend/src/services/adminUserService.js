@@ -11,6 +11,16 @@ export const adminUserService = {
     }
   },
 
+  // Add a new farmer directly
+  addUser: async (data) => {
+    try {
+      const response = await api.post('/admin/users', data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { message: 'Failed to add farmer' };
+    }
+  },
+
   // Get all user bookings
   getAllUserBookings: async (params) => {
     try {

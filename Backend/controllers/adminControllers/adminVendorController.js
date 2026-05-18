@@ -651,6 +651,88 @@ module.exports = {
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
+  },
+  addVendor: async (req, res) => {
+    try {
+      const { name, email, phone, businessName, service, aadhar, pan } = req.body;
+      let aadharUrl = req.body.aadharDocument || null;
+      let aadharBackUrl = req.body.aadharBackDocument || null;
+      let panUrl = req.body.panDocument || null;
+      let otherUrls = req.body.otherDocuments || [];
+
+      // Check if vendor already exists
+      const existingVendor = await Vendor.findOne({ $or: [{ phone }, { email }] });
+      if (existingVendor) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vendor with this phone number or email already exists.'
+        });
+      }
+
+      // Upload documents to Cloudinary if they are base64 (data:)
+      const cloudinaryService = require('../../services/cloudinaryService');
+      if (aadharUrl && aadharUrl.startsWith('data:')) {
+        const uploadRes = await cloudinaryService.uploadFile(aadharUrl, { folder: 'vendors/documents' });
+        if (uploadRes.success) aadharUrl = uploadRes.url;
+      }
+      if (aadharBackUrl && aadharBackUrl.startsWith('data:')) {
+        const uploadRes = await cloudinaryService.uploadFile(aadharBackUrl, { folder: 'vendors/documents' });
+        if (uploadRes.success) aadharBackUrl = uploadRes.url;
+      }
+      if (panUrl && panUrl.startsWith('data:')) {
+        const uploadRes = await cloudinaryService.uploadFile(panUrl, { folder: 'vendors/documents' });
+        if (uploadRes.success) panUrl = uploadRes.url;
+      }
+      if (otherUrls && otherUrls.length > 0) {
+        const uploadedOthers = [];
+        for (const doc of otherUrls) {
+          if (doc && doc.startsWith('data:')) {
+            const up = await cloudinaryService.uploadFile(doc, { folder: 'vendors/documents/others' });
+            if (up.success) uploadedOthers.push(up.url);
+          } else {
+            uploadedOthers.push(doc);
+          }
+        }
+        otherUrls = uploadedOthers;
+      }
+
+      // Create the vendor document.
+      // Admin created vendors bypass the review process, so approvalStatus is APPROVED and isActive is true.
+      const vendor = await Vendor.create({
+        name,
+        email,
+        phone,
+        businessName,
+        service: Array.isArray(service) ? service : (service ? [service] : []),
+        categories: Array.isArray(service) ? service : (service ? [service] : []),
+        aadhar: {
+          number: aadhar,
+          document: aadharUrl,
+          backDocument: aadharBackUrl
+        },
+        pan: {
+          number: pan,
+          document: panUrl
+        },
+        otherDocuments: otherUrls,
+        approvalStatus: VENDOR_STATUS.APPROVED,
+        approvalDate: new Date(),
+        isActive: true,
+        isPhoneVerified: true
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Equipment Owner registered successfully!',
+        data: vendor
+      });
+    } catch (error) {
+      console.error('Admin add vendor error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to register equipment owner: ' + error.message
+      });
+    }
   }
 };
 

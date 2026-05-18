@@ -18,7 +18,8 @@ const {
   updateVendorServices,
   getPendingShopApprovals,
   updateShopStatus,
-  getApprovedShops
+  getApprovedShops,
+  addVendor
 } = require('../../controllers/adminControllers/adminVendorController');
 
 // Validation rules
@@ -31,6 +32,7 @@ router.get('/vendors/shop-approvals', authenticate, isAdmin, getPendingShopAppro
 router.post('/vendors/shop-approvals/:id', authenticate, isAdmin, updateShopStatus);
 router.get('/vendors/approved-shops', authenticate, isAdmin, getApprovedShops);
 router.get('/vendors', authenticate, isAdmin, getAllVendors);
+router.post('/vendors', authenticate, isAdmin, addVendor);
 router.get('/vendors/bookings', authenticate, isAdmin, getAllVendorBookings);
 router.get('/vendors/payments', authenticate, isAdmin, getVendorPaymentsSummary);
 router.get('/vendors/:id', authenticate, isAdmin, getVendorDetails);

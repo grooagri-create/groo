@@ -9,7 +9,7 @@ const serviceSchema = new mongoose.Schema({
   brandId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Brand',
-    required: [true, 'Please provide a brand ID'],
+    required: false,
     index: true
   },
   categoryId: {

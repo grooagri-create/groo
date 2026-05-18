@@ -69,7 +69,6 @@ const getChildRoute = (parentRoute, childName) => {
     "/admin/equipment-catalog": {
       "Home": "/admin/equipment-catalog/home",
       "Manage Categories": "/admin/equipment-catalog/categories",
-      "Manage Brands": "/admin/equipment-catalog/brands",
       "Manage Equipment Types": "/admin/equipment-catalog/sections",
       "Machinery Approvals": "/admin/equipment-approvals"
     },

@@ -8,7 +8,11 @@ const aboutSchema = new mongoose.Schema({
     title: {
         type: String,
         default: 'About Us'
-    }
+    },
+    images: [{
+        url: { type: String, required: true },
+        name: { type: String, default: '' }
+    }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('About', aboutSchema);

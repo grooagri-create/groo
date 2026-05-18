@@ -11,7 +11,8 @@ const {
   getUserBookings,
   getUserWalletTransactions,
   getAllUserBookings,
-  updateKycStatus
+  updateKycStatus,
+  addUser
 } = require('../../controllers/adminControllers/adminUserController');
 
 // Validation rules
@@ -28,6 +29,7 @@ router.delete('/users/:id', authenticate, isAdmin, deleteUser);
 router.get('/users/:id/bookings', authenticate, isAdmin, getUserBookings);
 router.get('/users/:id/wallet', authenticate, isAdmin, getUserWalletTransactions);
 router.put('/users/:id/kyc-status', authenticate, isAdmin, updateKycStatus);
+router.post('/users', authenticate, isAdmin, addUser);
 
 module.exports = router;
 

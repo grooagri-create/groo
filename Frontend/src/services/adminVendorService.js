@@ -103,6 +103,14 @@ const adminVendorService = {
   getVendorAnalytics: async (params = {}) => {
     const response = await api.get('/admin/reports/vendors', { params });
     return response.data;
+  },
+
+  /**
+   * Add a new vendor/owner directly by admin
+   */
+  addVendor: async (vendorData) => {
+    const response = await api.post('/admin/vendors', vendorData);
+    return response.data;
   }
 };
 

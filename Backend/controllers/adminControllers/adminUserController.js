@@ -377,6 +377,52 @@ const updateKycStatus = async (req, res) => {
   }
 };
 
+/**
+ * Add a new user directly (Admin)
+ */
+const addUser = async (req, res) => {
+  try {
+    const { name, phone, email } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name and phone are required'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ phone });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this phone number already exists'
+      });
+    }
+
+    // Create user
+    const user = await User.create({
+      name,
+      phone,
+      email: email || null,
+      isPhoneVerified: true, // Auto verify since admin is adding
+      isActive: true
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Farmer added successfully',
+      data: user
+    });
+  } catch (error) {
+    console.error('Add user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to add farmer'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserDetails,
@@ -385,6 +431,6 @@ module.exports = {
   getUserBookings,
   getUserWalletTransactions,
   getAllUserBookings,
-  updateKycStatus
+  updateKycStatus,
+  addUser
 };
-

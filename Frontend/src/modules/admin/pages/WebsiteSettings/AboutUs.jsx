@@ -4,6 +4,8 @@ import { toast } from "react-hot-toast";
 import CardShell from "../../components/CardShell";
 import API from "../../../../services/api";
 import LogoLoader from "../../../../components/common/LogoLoader";
+import { uploadToCloudinary } from "../../../../services/cloudinaryService";
+import { FiImage, FiX } from "react-icons/fi";
 
 const AboutUs = () => {
   const [loading, setLoading] = useState(true);
@@ -11,7 +13,8 @@ const AboutUs = () => {
   
   const [form, setForm] = useState({
     title: "About GROO",
-    content: ""
+    content: "",
+    images: []
   });
 
   useEffect(() => {
@@ -25,7 +28,8 @@ const AboutUs = () => {
       if (res.data.success && res.data.data) {
         setForm({
           title: res.data.data.title || "About GROO",
-          content: res.data.data.content || ""
+          content: res.data.data.content || "",
+          images: res.data.data.images || []
         });
       }
     } catch (error) {
@@ -33,6 +37,43 @@ const AboutUs = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    
+
+    try {
+      const loadingToast = toast.loading(`Uploading ${files.length} image(s)...`);
+      const uploadPromises = files.map(file => uploadToCloudinary(file));
+      const urls = await Promise.all(uploadPromises);
+      
+      const newImages = urls.map(url => ({ url, name: "" }));
+      
+      setForm(prev => ({ 
+        ...prev, 
+        images: [...prev.images, ...newImages] 
+      }));
+      
+      toast.dismiss(loadingToast);
+      toast.success("Images uploaded!");
+    } catch (error) {
+      toast.error("Failed to upload images");
+    }
+  };
+
+  const handleNameChange = (index, name) => {
+    const updatedImages = [...form.images];
+    updatedImages[index].name = name;
+    setForm({ ...form, images: updatedImages });
+  };
+
+  const removeImage = (index) => {
+    setForm(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -80,12 +121,46 @@ const AboutUs = () => {
             <label className="block text-sm font-bold mb-2">Content (Description)</label>
             <textarea 
               required 
-              rows="15" 
+              rows="10" 
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none leading-relaxed" 
               value={form.content} 
               onChange={e => setForm({...form, content: e.target.value})} 
               placeholder="Write your company information here..."
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold mb-2">Featured Images (About Section)</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {form.images.map((img, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 group shadow-sm">
+                    <img src={img.url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 p-1.5 bg-red-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    >
+                      <FiX size={14} />
+                    </button>
+                  </div>
+                  <input 
+                    type="text"
+                    placeholder="Image label (e.g. Rental)"
+                    className="w-full px-2 py-1.5 text-xs border rounded focus:ring-1 focus:ring-primary-500 outline-none"
+                    value={img.name}
+                    onChange={(e) => handleNameChange(index, e.target.value)}
+                  />
+                </div>
+              ))}
+              
+              <label className="flex flex-col items-center justify-center aspect-square rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer group shadow-sm">
+                <FiImage className="w-8 h-8 mb-1 text-gray-400 group-hover:text-primary-500 transition-colors" />
+                <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Add Image</span>
+                <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">These images and their names will appear on the homepage About section.</p>
           </div>
 
           <div className="flex justify-end pt-4 border-t">

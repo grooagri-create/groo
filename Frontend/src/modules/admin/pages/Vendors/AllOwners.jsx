@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiCheck, FiX, FiEye, FiSearch, FiFilter, FiDownload, FiLoader, FiPower, FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiX, FiEye, FiSearch, FiFilter, FiDownload, FiLoader, FiPower, FiTrash2, FiPlus, FiUpload } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import CardShell from '../UserCategories/components/CardShell';
 import Modal from '../UserCategories/components/Modal';
 import adminVendorService from '../../../../services/adminVendorService';
+import { publicCatalogService } from '../../../../services/catalogService';
 
 const AllOwners = () => {
   const [owners, setOwners] = useState([]);
@@ -15,11 +16,51 @@ const AllOwners = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [analytics, setAnalytics] = useState({ totalVendors: 0, totalBookings: 0 });
 
-  // Load owners from backend
+  // Add Owner modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    businessName: '',
+    service: [],
+    aadhar: '',
+    pan: '',
+    aadharDocument: '',
+    aadharBackDocument: '',
+    panDocument: '',
+    otherDocuments: []
+  });
+  const [documentPreviews, setDocumentPreviews] = useState({
+    aadhar: '',
+    aadharBack: '',
+    pan: ''
+  });
+  const [uploadingDocs, setUploadingDocs] = useState({
+    aadhar: false,
+    aadharBack: false,
+    pan: false
+  });
+
+  // Load owners and categories from backend
   useEffect(() => {
     loadOwners();
     fetchAnalytics();
+    loadCategories();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const response = await publicCatalogService.getCategories();
+      if (response.success) {
+        setCategories(response.categories || []);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
 
   const fetchAnalytics = async () => {
     try {
@@ -196,6 +237,127 @@ const AllOwners = () => {
     setIsViewModalOpen(true);
   };
 
+  const handleDocumentUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a valid image or PDF');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File size should be less than 15MB');
+      return;
+    }
+
+    setUploadingDocs(prev => ({ ...prev, [type]: true }));
+    const loadingToast = toast.loading("Processing file...");
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const previewUrl = reader.result;
+        setFormData(prev => ({
+          ...prev,
+          [`${type}Document`]: previewUrl
+        }));
+        setDocumentPreviews(prev => ({
+          ...prev,
+          [type]: previewUrl
+        }));
+        setUploadingDocs(prev => ({ ...prev, [type]: false }));
+        toast.dismiss(loadingToast);
+        toast.success("Document uploaded successfully!", { duration: 2000 });
+      };
+
+      reader.onerror = () => {
+        toast.error("Failed to read file");
+        setUploadingDocs(prev => ({ ...prev, [type]: false }));
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error("Failed to process file");
+      setUploadingDocs(prev => ({ ...prev, [type]: false }));
+    }
+  };
+
+  const removeDocument = (type) => {
+    setFormData(prev => ({
+      ...prev,
+      [`${type}Document`]: ''
+    }));
+    setDocumentPreviews(prev => ({
+      ...prev,
+      [type]: ''
+    }));
+  };
+
+  const handleAddOwnerSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validations
+    if (!formData.name.trim()) return toast.error('Please enter owner name');
+    if (!formData.businessName.trim()) return toast.error('Please enter business name');
+    if (formData.service.length === 0) return toast.error('Please select at least one category');
+    if (!formData.email.trim()) return toast.error('Please enter email address');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return toast.error('Please enter a valid email');
+    if (!formData.phone.trim()) return toast.error('Please enter phone number');
+    if (!/^[6-9]\d{9}$/.test(formData.phone)) return toast.error('Please enter a valid 10-digit Indian phone number');
+    if (!formData.aadhar.trim()) return toast.error('Please enter Aadhar number');
+    if (!/^\d{12}$/.test(formData.aadhar)) return toast.error('Please enter a valid 12-digit Aadhar number');
+    if (!formData.pan.trim()) return toast.error('Please enter PAN number');
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan.toUpperCase())) return toast.error('Please enter a valid PAN number');
+
+    if (!formData.aadharDocument) return toast.error('Please upload Aadhar card front');
+    if (!formData.aadharBackDocument) return toast.error('Please upload Aadhar card back');
+    if (!formData.panDocument) return toast.error('Please upload PAN card document');
+
+    try {
+      setIsAdding(true);
+      const payload = {
+        ...formData,
+        pan: formData.pan.toUpperCase()
+      };
+      
+      const response = await adminVendorService.addVendor(payload);
+      if (response.success) {
+        toast.success('Equipment Owner registered successfully!');
+        setIsAddModalOpen(false);
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          businessName: '',
+          service: [],
+          aadhar: '',
+          pan: '',
+          aadharDocument: '',
+          aadharBackDocument: '',
+          panDocument: '',
+          otherDocuments: []
+        });
+        setDocumentPreviews({
+          aadhar: '',
+          aadharBack: '',
+          pan: ''
+        });
+        loadOwners();
+      } else {
+        toast.error(response.message || 'Failed to add equipment owner');
+      }
+    } catch (error) {
+      console.error('Error adding equipment owner:', error);
+      toast.error(error.response?.data?.message || 'Failed to register equipment owner');
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const styles = {
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -270,6 +432,13 @@ const AllOwners = () => {
                 {status}
               </button>
             ))}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-3 py-2 bg-[#347989] hover:bg-[#2c6573] text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-sm whitespace-nowrap ml-auto"
+            >
+              <FiPlus className="w-3.5 h-3.5" />
+              Add Owner
+            </button>
           </div>
         </div>
 
@@ -559,6 +728,303 @@ const AllOwners = () => {
           </div>
         )}
       </Modal >
+
+      {/* Add Equipment Owner Modal */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            businessName: '',
+            service: [],
+            aadhar: '',
+            pan: '',
+            aadharDocument: '',
+            aadharBackDocument: '',
+            panDocument: '',
+            otherDocuments: []
+          });
+          setDocumentPreviews({
+            aadhar: '',
+            aadharBack: '',
+            pan: ''
+          });
+        }}
+        title="Add Equipment Owner"
+        size="lg"
+      >
+        <form onSubmit={handleAddOwnerSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Left Column: Business Details */}
+            <div className="space-y-4">
+              <h3 className="text-base font-bold text-gray-900 border-b pb-1.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-4 bg-[#347989] rounded-full"></span>
+                Business Profile
+              </h3>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Owner Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value.replace(/[^A-Za-z\s]/g, '') }))}
+                  className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#347989]/20 focus:border-[#347989] outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Business / Farm Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Krishna Agri Services"
+                  value={formData.businessName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+                  className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#347989]/20 focus:border-[#347989] outline-none text-xs transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Equipment Category (Select All That Apply)</label>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 border border-gray-200 rounded-xl bg-gray-50/50">
+                  {categories.map((cat) => {
+                    const isSelected = formData.service.includes(cat.title);
+                    return (
+                      <button
+                        key={cat._id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => {
+                            const selected = prev.service.includes(cat.title)
+                              ? prev.service.filter(s => s !== cat.title)
+                              : [...prev.service, cat.title];
+                            return { ...prev, service: selected };
+                          });
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
+                          isSelected
+                            ? 'bg-[#347989] text-white border-[#347989] shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-[#347989]'
+                        }`}
+                      >
+                        {cat.title}
+                      </button>
+                    );
+                  })}
+                  {categories.length === 0 && (
+                    <p className="text-[10px] text-gray-400 italic">No categories available</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="email@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#347989]/20 focus:border-[#347989] outline-none text-xs transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="9876543210"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#347989]/20 focus:border-[#347989] outline-none text-xs transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Aadhar Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="12-digit Aadhar"
+                    value={formData.aadhar}
+                    onChange={(e) => setFormData(prev => ({ ...prev, aadhar: e.target.value.replace(/\D/g, '').slice(0, 12) }))}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#347989]/20 focus:border-[#347989] outline-none text-xs transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">PAN Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. ABCDE1234F"
+                    value={formData.pan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pan: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }))}
+                    className="w-full px-3.5 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#347989]/20 focus:border-[#347989] outline-none text-xs transition-all"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column: Identity Documents */}
+            <div className="space-y-4">
+              <h3 className="text-base font-bold text-gray-900 border-b pb-1.5 flex items-center gap-1.5">
+                <span className="w-1.5 h-4 bg-[#347989] rounded-full"></span>
+                Identity Documents
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                
+                {/* Aadhar Front Upload */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Aadhar Card Front</p>
+                  {documentPreviews.aadhar ? (
+                    <div className="relative group overflow-hidden rounded-xl border border-gray-200">
+                      <img src={documentPreviews.aadhar} className="w-full h-24 object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button type="button" onClick={() => removeDocument('aadhar')} className="bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg">
+                          <FiX size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 transition-all hover:border-[#347989] bg-white relative">
+                      {uploadingDocs.aadhar && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-xl">
+                          <FiLoader className="animate-spin h-5 w-5 text-[#347989]" />
+                        </div>
+                      )}
+                      <label className="flex flex-col items-center cursor-pointer w-full h-full justify-center">
+                        <FiUpload className="w-5 h-5 text-gray-400 mb-1" />
+                        <span className="text-[9px] text-gray-500 font-bold">Upload Front</span>
+                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleDocumentUpload(e, 'aadhar')} disabled={uploadingDocs.aadhar} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Aadhar Back Upload */}
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Aadhar Card Back</p>
+                  {documentPreviews.aadharBack ? (
+                    <div className="relative group overflow-hidden rounded-xl border border-gray-200">
+                      <img src={documentPreviews.aadharBack} className="w-full h-24 object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button type="button" onClick={() => removeDocument('aadharBack')} className="bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg">
+                          <FiX size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 transition-all hover:border-[#347989] bg-white relative">
+                      {uploadingDocs.aadharBack && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-xl">
+                          <FiLoader className="animate-spin h-5 w-5 text-[#347989]" />
+                        </div>
+                      )}
+                      <label className="flex flex-col items-center cursor-pointer w-full h-full justify-center">
+                        <FiUpload className="w-5 h-5 text-gray-400 mb-1" />
+                        <span className="text-[9px] text-gray-500 font-bold">Upload Back</span>
+                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleDocumentUpload(e, 'aadharBack')} disabled={uploadingDocs.aadharBack} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* PAN Upload */}
+                <div className="space-y-1.5 col-span-2">
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">PAN Card Front</p>
+                  {documentPreviews.pan ? (
+                    <div className="relative group overflow-hidden rounded-xl border border-gray-200 max-w-xs mx-auto">
+                      <img src={documentPreviews.pan} className="w-full h-24 object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button type="button" onClick={() => removeDocument('pan')} className="bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg">
+                          <FiX size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 transition-all hover:border-[#347989] bg-white relative max-w-xs mx-auto">
+                      {uploadingDocs.pan && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-xl">
+                          <FiLoader className="animate-spin h-5 w-5 text-[#347989]" />
+                        </div>
+                      )}
+                      <label className="flex flex-col items-center cursor-pointer w-full h-full justify-center">
+                        <FiUpload className="w-5 h-5 text-gray-400 mb-1" />
+                        <span className="text-[9px] text-gray-500 font-bold">Upload PAN</span>
+                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleDocumentUpload(e, 'pan')} disabled={uploadingDocs.pan} />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              <div className="p-3 bg-teal-50 border border-teal-100 rounded-xl mt-4">
+                <p className="text-[10px] text-teal-700 leading-relaxed italic">
+                  Note: Equipment Owners registered directly by the admin are automatically verified and marked active, allowing immediate catalog listing and login.
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setFormData({
+                  name: '',
+                  email: '',
+                  phone: '',
+                  businessName: '',
+                  service: [],
+                  aadhar: '',
+                  pan: '',
+                  aadharDocument: '',
+                  aadharBackDocument: '',
+                  panDocument: '',
+                  otherDocuments: []
+                });
+                setDocumentPreviews({
+                  aadhar: '',
+                  aadharBack: '',
+                  pan: ''
+                });
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isAdding || uploadingDocs.aadhar || uploadingDocs.aadharBack || uploadingDocs.pan}
+              className="px-5 py-2 bg-[#347989] text-white rounded-xl text-xs font-bold hover:bg-[#28606c] disabled:opacity-50 transition-all flex items-center gap-1.5 shadow-sm shadow-[#347989]/10"
+            >
+              {isAdding ? (
+                <>
+                  <FiLoader className="animate-spin h-3.5 w-3.5" />
+                  Creating...
+                </>
+              ) : (
+                'Register Equipment Owner'
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div >
   );
 };

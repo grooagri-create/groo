@@ -9,11 +9,12 @@ const { SERVICE_STATUS } = require('../../utils/constants');
  */
 const getAllServices = async (req, res) => {
   try {
-    const { status, brandId } = req.query;
+    const { status, brandId, categoryId } = req.query;
 
     const query = {};
     if (status) query.status = status;
     if (brandId) query.brandId = brandId;
+    if (categoryId) query.categoryId = categoryId;
 
     const services = await Service.find(query)
       .populate('brandId', 'title')
@@ -95,13 +96,15 @@ const createService = async (req, res) => {
       parentSourceId
     } = req.body;
 
-    // Verify brand exists
-    const brand = await Brand.findById(brandId);
-    if (!brand) {
-      return res.status(404).json({
-        success: false,
-        message: 'Brand not found'
-      });
+    // Verify brand exists if brandId is supplied
+    if (brandId) {
+      const brand = await Brand.findById(brandId);
+      if (!brand) {
+        return res.status(404).json({
+          success: false,
+          message: 'Brand not found'
+        });
+      }
     }
 
     // Try to create service

@@ -23,7 +23,7 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
   const [isClosing, setIsClosing] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const [view, setView] = useState('brands'); // 'brands' | 'services'
+  const [view, setView] = useState('services'); // 'services' | 'attachments'
   const [brands, setBrands] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [services, setServices] = useState([]); // Sub-services
@@ -41,62 +41,38 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
       setIsClosing(false);
       // Reset state on close
       setTimeout(() => {
-        setView('brands');
+        setView('services');
         setSelectedBrand(null);
         setBrands([]);
         setServices([]);
         setIsRedirecting(false);
       }, 300);
-    } else if (category?.id) {
-      // Fetch Brands for this category
-      fetchBrands();
+    } else if (category?.id || category?._id) {
+      // Fetch Services directly for this category
+      fetchServicesDirectly();
     }
-  }, [isOpen, category?.id, cityId]);
+  }, [isOpen, category?.id, category?._id, cityId]);
 
-  const fetchBrands = async () => {
-    try {
-      setLoading(true);
-      const response = await publicCatalogService.getBrands({
-        categoryId: category.id,
-        cityId: cityId
-      });
-      if (response.success) {
-        setBrands(response.brands || []);
-      }
-    } catch (error) {
-      console.error("Failed to load brands:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchServices = async (brandId) => {
+  const fetchServicesDirectly = async () => {
     try {
       setLoading(true);
       const response = await publicCatalogService.getServices({
-        brandId: brandId,
+        categoryId: category?.id || category?._id,
         cityId: cityId,
-        categoryId: category?.id,
         pricing_context: 'standalone' // Only show standalone machines here
       });
       if (response.success) {
         setServices(response.services || []);
       }
     } catch (error) {
-      console.error("Failed to load services:", error);
+      console.error("Failed to load services directly:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBrandClick = (brand) => {
-    setSelectedBrand(brand);
-    setView('services');
-    fetchServices(brand.id || brand._id);
-  };
-
   const handleBackToBrands = () => {
-    setView('brands');
+    setView('services');
     setSelectedBrand(null);
     setServices([]);
   };
@@ -306,33 +282,31 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                 <div className="px-4 py-6">
                   {/* Header */}
                   <div className="flex items-center gap-3 mb-6">
-                    {(view === 'services' || view === 'slots') && (
-                      <button
-                        onClick={() => {
-                          if (view === 'slots') setView('services');
-                          else handleBackToBrands();
-                        }}
-                        className="p-1 rounded-full hover:bg-gray-100"
-                      >
-                        <FiArrowLeft className="w-6 h-6 text-gray-800" />
-                      </button>
-                    )}
-                    <div>
-                      <h1 className="text-xl font-bold text-gray-900 line-clamp-1">
-                        {view === 'brands'
-                          ? (category?.title || 'Brands')
-                          : view === 'attachments'
-                            ? `Attachments for ${selectedServiceForBooking?.title}`
-                            : (selectedBrand?.title || 'Services')}
-                      </h1>
-                      {view === 'services' && <p className="text-xs text-gray-500">Select a machine to continue</p>}
-                      {view === 'attachments' && <p className="text-xs text-gray-500">Step 2: Choose tools required for your task</p>}
-                    </div>
-                    {loading && <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin ml-auto"></div>}
-                  </div>
+                    {(view === 'attachments' || view === 'slots') && (
+                       <button
+                         onClick={() => {
+                           if (view === 'slots') setView('services');
+                           else setView('services');
+                         }}
+                         className="p-1 rounded-full hover:bg-gray-100"
+                       >
+                         <FiArrowLeft className="w-6 h-6 text-gray-800" />
+                       </button>
+                     )}
+                     <div>
+                       <h1 className="text-xl font-bold text-gray-900 line-clamp-1">
+                         {view === 'attachments'
+                           ? `Attachments for ${selectedServiceForBooking?.title}`
+                           : (category?.title || 'Services')}
+                       </h1>
+                       {view === 'services' && <p className="text-xs text-gray-500">Select a machine to continue</p>}
+                       {view === 'attachments' && <p className="text-xs text-gray-500">Step 2: Choose tools required for your task</p>}
+                     </div>
+                     {loading && <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin ml-auto"></div>}
+                   </div>
 
                   {/* Content */}
-                  {loading && (view === 'brands' ? brands.length === 0 : services.length === 0) ? (
+                  {loading && services.length === 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 animate-pulse">
                       {[1, 2, 3, 4, 5, 6].map((i) => (
                         <div key={i} className="flex flex-col items-center">
@@ -343,40 +317,7 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                     </div>
                   ) : (
                     <>
-                      {view === 'brands' ? (
-                        // Brands Grid
-                        brands.length > 0 ? (
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                            {brands.map((brand) => (
-                              <div
-                                key={brand.id || brand._id}
-                                onClick={() => handleBrandClick(brand)}
-                                className="flex flex-col items-center cursor-pointer group active:scale-95 transition-all text-center"
-                              >
-                                <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mb-2 group-hover:bg-gray-200 transition-all shadow-sm overflow-hidden border border-gray-100 relative">
-                                  {brand.icon ? (
-                                    <img
-                                      src={toAssetUrl(brand.icon)}
-                                      alt={brand.title}
-                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                      loading="lazy"
-                                    />
-                                  ) : (
-                                    <FiLayers className="w-8 h-8 text-gray-300" />
-                                  )}
-                                </div>
-                                <p className="text-[11px] font-bold text-gray-800 leading-tight line-clamp-2 px-1">
-                                  {brand.title}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12 text-gray-500">
-                            <p>No brands found in this category.</p>
-                          </div>
-                        )
-                      ) : view === 'attachments' ? (
+                      {view === 'attachments' ? (
                         // Attachments View
                         <div className="space-y-6 pb-32">
                           {/* Machine Summary Snippet */}
@@ -518,7 +459,7 @@ const CategoryModal = React.memo(({ isOpen, onClose, category, location, cartCou
                           </div>
                         ) : (
                           <div className="text-center py-12 text-gray-500">
-                            <p>No services available for this brand yet.</p>
+                            <p>No equipment available in this category yet.</p>
                           </div>
                         )
                       )}

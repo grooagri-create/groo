@@ -1,14 +1,25 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiCheckCircle, FiUsers, FiShield, FiClock, FiAward, FiHeart, FiGlobe, FiSmile, FiSmartphone } from 'react-icons/fi';
 import { gsap } from 'gsap';
 import Logo from '../../../../components/common/Logo';
+import api from '../../../../services/api';
 
 const AboutGrooAgri = () => {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const [aboutContent, setAboutContent] = useState(null);
 
   useEffect(() => {
+    // Fetch About content from API
+    api.get('/content/about')
+      .then(res => {
+        if (res.data?.success && res.data?.data) {
+          setAboutContent(res.data.data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch about content", err));
+
     // Simple entrance animation
     const ctx = gsap.context(() => {
       gsap.from('.animate-item', {
@@ -75,7 +86,7 @@ const AboutGrooAgri = () => {
       <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-30 border-b border-gray-100">
         <div className="px-4 py-4 flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => window.history.state && window.history.state.idx > 0 ? navigate(-1) : navigate('/user')}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors active:scale-95"
           >
             <FiArrowLeft className="w-5 h-5 text-gray-700" />
@@ -124,18 +135,31 @@ const AboutGrooAgri = () => {
           ))}
         </div>
 
-        {/* Mission Statement */}
-        <div className="animate-item">
-          <div className="bg-gradient-to-br from-[#347989]/5 to-[#BB5F36]/5 rounded-2xl p-6 border border-[#347989]/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-5">
-              <FiGlobe className="w-24 h-24" />
+        {/* Dynamic About Content from Backend */}
+        {aboutContent ? (
+          <div className="animate-item">
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative overflow-hidden">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">{aboutContent.title || 'About Us'}</h3>
+              <div 
+                className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: aboutContent.content }}
+              />
             </div>
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Our Mission</h3>
-            <p className="text-sm text-gray-600 leading-relaxed relative z-10">
-              GrooAgri is dedicated to revolutionizing how you experience agriculture equipment and services. We connect you with top-tier equipment owners to deliver safe, reliable, and high-quality services right at your farm. We believe in making farming simpler, one service at a time.
-            </p>
           </div>
-        </div>
+        ) : (
+          /* Fallback Mission Statement */
+          <div className="animate-item">
+            <div className="bg-gradient-to-br from-[#347989]/5 to-[#BB5F36]/5 rounded-2xl p-6 border border-[#347989]/10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <FiGlobe className="w-24 h-24" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Our Mission</h3>
+              <p className="text-sm text-gray-600 leading-relaxed relative z-10">
+                GrooAgri is dedicated to revolutionizing how you experience agriculture equipment and services. We connect you with top-tier equipment owners to deliver safe, reliable, and high-quality services right at your farm. We believe in making farming simpler, one service at a time.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Why Choose Us Grid */}
         <div className="animate-item">

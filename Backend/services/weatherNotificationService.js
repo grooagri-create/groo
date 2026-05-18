@@ -9,68 +9,61 @@ const { createNotification } = require('../controllers/notificationControllers/n
  */
 
 /**
- * Fetch weather for a specific lat/lon
+ * Fetch weather for a specific lat/lon using Google Weather API
  */
 async function fetchWeather(lat, lon) {
     try {
-        const apiKey = process.env.WEATHER_API_KEY;
+        const apiKey = process.env.GOOGLE_MAPS_API_KEY || process.env.WEATHER_API_KEY;
         if (!apiKey) return null;
-
-        const response = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+        
+        const url = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}&location.latitude=${lat}&location.longitude=${lon}&unitsSystem=METRIC`;
+        const response = await axios.get(url);
         return response.data;
     } catch (err) {
-        console.error(`[WeatherService] Error fetching weather for ${lat},${lon}:`, err.message);
+        console.error(`[WeatherService] Error fetching weather for ${lat},${lon}:`, err.response?.data || err.message);
         return null;
     }
 }
 
 /**
- * Generate a friendly daily update message based on weather data
+ * Generate a friendly daily update message based on Google weather data
  */
 function generateDailyMessage(weather) {
-    const temp = Math.round(weather.main.temp);
-    const description = weather.weather[0].description;
-    const main = weather.weather[0].main.toLowerCase();
-    const humidity = weather.main.humidity;
+    const temp = Math.round(weather.temperature?.degrees || 0);
+    const description = weather.weatherCondition?.description?.text || 'fair';
+    const mainType = (weather.weatherCondition?.type || '').toLowerCase();
+    const humidity = weather.relativeHumidity || 0;
 
-    let advice = "Have a great day in the fields!";
+    let advice = "Great day for farming! Keep an eye on your crops.";
 
-    if (main.includes('clear')) {
+    if (mainType.includes('rain') || mainType.includes('drizzle')) {
+        advice = "Rain is expected. Good for natural irrigation, but check for waterlogging.";
+    } else if (temp > 35) {
+        advice = "It's quite hot today. Ensure your crops are well hydrated.";
+    } else if (mainType.includes('clear') || mainType.includes('sunny')) {
         advice = "Ideal weather for irrigation. Plan your field work today!";
-    } else if (main.includes('cloud')) {
-        advice = "Perfect temperature for crop inspection and maintenance.";
-    } else if (main.includes('rain')) {
-        advice = "Rain expected. Postpone pesticide sprays and check drainage.";
     }
 
-    if (temp > 35) {
-        advice = "High heat alert! Ensure extra irrigation to protect your crops from stress.";
-    }
-
-    return `Good Morning! Today: ${temp}°C, ${description}. ${advice}`;
+    return `Morning Update: It's ${temp}°C with ${description}. ${advice}`;
 }
 
 /**
- * Generate a critical alert message based on weather data
+ * Generate a critical alert message based on Google weather data
  */
 function generateCriticalAlert(weather) {
-    const main = weather.weather[0].main.toLowerCase();
-    const windSpeed = weather.wind.speed * 3.6; // km/h
-    const temp = weather.main.temp;
+    const mainType = (weather.weatherCondition?.type || '').toLowerCase();
+    const windSpeed = weather.wind?.speed?.value || 0; // km/h
+    const temp = weather.temperature?.degrees || 0;
 
-    if (main.includes('thunderstorm') || main.includes('extreme')) {
+    if (mainType.includes('storm') || windSpeed > 40) {
         return "⚠️ CRITICAL WEATHER ALERT: Severe storm detected. Take cover and protect loose equipment.";
     }
 
-    if (windSpeed > 30) {
-        return `⚠️ HIGH WIND ALERT (${windSpeed.toFixed(1)} km/h): Avoid any drone services or high-elevation work.`;
-    }
-
     if (temp > 42) {
-        return `⚠️ EXTREME HEAT ALERT (${temp}°C): Major risk of crop damage. High irrigation recommended immediately.`;
+        return "🔥 HEAT ALERT: Extreme temperature detected. Protect young saplings and livestock.";
     }
 
-    if (main.includes('rain') || main.includes('drizzle')) {
+    if (mainType.includes('rain') || mainType.includes('shower')) {
         return "🌧️ WEATHER ALERT: Rain detected. Avoid fertilizing or spraying today.";
     }
 

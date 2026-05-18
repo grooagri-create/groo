@@ -128,6 +128,7 @@ export const serviceService = {
     const queryParams = new URLSearchParams();
     if (params.status) queryParams.append('status', params.status);
     if (params.brandId) queryParams.append('brandId', params.brandId);
+    if (params.categoryId) queryParams.append('categoryId', params.categoryId);
 
     const response = await api.get(`/admin/services${queryParams.toString() ? `?${queryParams.toString()}` : ''}`);
     return response.data;

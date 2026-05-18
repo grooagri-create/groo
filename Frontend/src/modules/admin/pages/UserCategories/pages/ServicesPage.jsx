@@ -4,10 +4,10 @@ import { toast } from "react-hot-toast";
 import CardShell from "../components/CardShell";
 import Modal from "../components/Modal";
 import { ensureIds, saveCatalog, toAssetUrl } from "../utils";
-import { brandService, serviceService, categoryService } from "../../../../../services/catalogService";
+import { serviceService, categoryService } from "../../../../../services/catalogService";
 import { z } from "zod";
 
-// Schema for Service Entity (Child of Brand)
+// Schema for Service Entity
 const serviceSchema = z.object({
   title: z.string().min(2, "Title is required"),
   basePrice: z.number().optional(),
@@ -22,51 +22,14 @@ const serviceSchema = z.object({
 
 const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
   const [fetching, setFetching] = useState(false);
-  const servicesData = catalog.services || []; // Brands
   const categories = catalog.categories || [];
 
-  // Filter logic for Brands
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("all");
+  // Selected Category State
+  const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const activeCategory = categories.find(c => c.id === activeCategoryId) || null;
 
-  // Robust filtering logic
-  const filteredBrands = useMemo(() => {
-    // If no data, return empty
-    if (!servicesData || servicesData.length === 0) return [];
-
-    // If filter is "all", show everything
-    if (selectedCategoryFilter === "all") return servicesData;
-
-    const filterId = String(selectedCategoryFilter);
-
-    return servicesData.filter(s => {
-      // 1. Check legacy categoryId
-      let directId = s.categoryId?.$oid || s.categoryId;
-      if (directId && typeof directId === 'object') {
-        directId = directId._id || directId.id; // Extract ID if populated
-      }
-      if (String(directId) === filterId) return true;
-
-      // 2. Check categoryIds array
-      if (Array.isArray(s.categoryIds) && s.categoryIds.length > 0) {
-        return s.categoryIds.some(cat => {
-          let id = cat?.$oid || cat;
-          if (id && typeof id === 'object') {
-            id = id._id || id.id; // Extract ID if populated
-          }
-          return String(id) === filterId;
-        });
-      }
-
-      return false;
-    });
-  }, [servicesData, selectedCategoryFilter]);
-
-  // Selected Brand State
-  const [activeBrandId, setActiveBrandId] = useState(null);
-  const activeBrand = servicesData.find(s => s.id === activeBrandId) || null;
-
-  // Services List State (The child services of the brand)
-  const [brandServices, setBrandServices] = useState([]);
+  // Services List State
+  const [categoryServices, setCategoryServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -74,66 +37,30 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Only show full loading spinner if we don't have data yet
-        if (!catalog.services || catalog.services.length === 0) {
+        if (!catalog.categories || catalog.categories.length === 0) {
           setFetching(true);
         }
 
         const params = { status: 'active' };
         if (selectedCity) params.cityId = selectedCity;
 
-        const [servicesRes, categoriesRes] = await Promise.all([
-          brandService.getAll(params),
-          categoryService.getAll(params)
-        ]);
+        const categoriesRes = await categoryService.getAll(params);
 
-        let mappedBrands = [];
         let mappedCategories = [];
-
-        if (servicesRes.success) {
-          mappedBrands = servicesRes.brands.map((svc) => {
-            // Helper to extract string ID from various formats
-            const getStrId = (item) => {
-              if (!item) return null;
-              if (typeof item === 'string') return item.trim();
-              if (item.$oid) return item.$oid.trim();
-              if (item._id) return typeof item._id === 'object' && item._id.$oid ? item._id.$oid.trim() : item._id.toString().trim();
-              if (item.id) return item.id.toString().trim();
-              return String(item).trim();
-            };
-
-            const safeId = getStrId(svc.id || svc._id);
-            const safeCategoryId = getStrId(svc.categoryId);
-            const safeCategoryIds = (svc.categoryIds || []).map(cid => getStrId(cid)).filter(Boolean);
-
-            return {
-              id: safeId,
-              title: svc.title,
-              slug: svc.slug,
-              categoryIds: safeCategoryIds,
-              categoryTitles: svc.categoryTitles || [],
-              categoryId: safeCategoryId,
-              iconUrl: svc.iconUrl || "",
-              badge: svc.badge || "",
-              routePath: svc.routePath || `/user/${svc.slug}`,
-              page: svc.page || {},
-              sections: svc.sections || [],
-            };
-          });
-        }
 
         if (categoriesRes.success) {
           mappedCategories = categoriesRes.categories.map(cat => ({
             id: (cat.id || cat._id?.$oid || cat._id)?.toString() || "",
             title: cat.title,
             slug: cat.slug,
+            icon: cat.icon || "",
             parentCategories: Array.isArray(cat.parentCategories) ? cat.parentCategories.map(p => (p._id || p.id || p).toString()) : [],
             parentCategory: (cat.parentCategory?._id || cat.parentCategory?.id || cat.parentCategory)?.toString() || ""
           }));
         }
 
         setCatalog(prev => {
-          const next = { ...prev, services: mappedBrands, categories: mappedCategories };
+          const next = { ...prev, categories: mappedCategories };
           saveCatalog(next);
           return next;
         });
@@ -148,36 +75,35 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
 
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCity]); // Only re-fetch when city changes
+  }, [selectedCity]);
 
-  // Auto-select first brand
+  // Auto-select first Category
   useEffect(() => {
-    if (filteredBrands.length > 0) {
-      if (!activeBrandId || !filteredBrands.find(b => b.id === activeBrandId)) {
-        setActiveBrandId(filteredBrands[0].id);
+    if (categories.length > 0) {
+      if (!activeCategoryId || !categories.find(c => c.id === activeCategoryId)) {
+        setActiveCategoryId(categories[0].id);
       }
     } else {
-      setActiveBrandId(null);
-      setBrandServices([]);
+      setActiveCategoryId(null);
+      setCategoryServices([]);
     }
-  }, [filteredBrands]);
+  }, [categories]);
 
-  // Fetch Services when Active Brand Changes
+  // Fetch Services when Active Category Changes
   useEffect(() => {
     const fetchServices = async () => {
-      if (!activeBrandId) return;
+      if (!activeCategoryId) return;
 
       try {
         setLoadingServices(true);
-        // Using serviceService to get services for this brand
-        const response = await serviceService.getAll({ brandId: activeBrandId });
+        const response = await serviceService.getAll({ categoryId: activeCategoryId });
         if (response.success) {
-          setBrandServices(response.services || []);
+          setCategoryServices(response.services || []);
         } else {
-          setBrandServices([]);
+          setCategoryServices([]);
         }
       } catch (error) {
-        console.error("Failed to fetch brand services:", error);
+        console.error("Failed to fetch services:", error);
         toast.error("Failed to load services");
       } finally {
         setLoadingServices(false);
@@ -185,7 +111,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
     };
 
     fetchServices();
-  }, [activeBrandId]);
+  }, [activeCategoryId]);
 
   // Form State
   const [editingId, setEditingId] = useState(null);
@@ -205,20 +131,11 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
   // Form Actions
   const resetForm = () => {
     setEditingId(null);
-
-    // Default to strict category if filter is active
-    let defaultCat = "";
-    if (selectedCategoryFilter !== "all") {
-      defaultCat = selectedCategoryFilter;
-    } else {
-      defaultCat = activeBrand?.categoryIds?.[0] || activeBrand?.categoryId || "";
-    }
-
     setForm({
       title: "",
       basePrice: "",
       gstPercentage: 18,
-      categoryId: String(defaultCat?.$oid || defaultCat),
+      categoryId: activeCategoryId || "",
       hourly_price: "",
       land_price: "",
       daily_price: "",
@@ -246,10 +163,9 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!activeBrandId) return;
+    if (!activeCategoryId) return;
 
     const data = {
-      brandId: activeBrandId,
       title: form.title,
       basePrice: parseFloat(form.hourly_price) || parseFloat(form.daily_price) || parseFloat(form.land_price) || 0,
       gstPercentage: parseFloat(form.gstPercentage) || 18,
@@ -270,31 +186,22 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
     try {
       setSaving(true);
       if (editingId) {
-        const response = await serviceService.update(editingId, {
-          ...result.data,
-          brandId: activeBrandId
-        });
+        const response = await serviceService.update(editingId, result.data);
         if (response.success) {
           toast.success("Equipment updated");
-          // Refresh list locally
-          setBrandServices(prev => prev.map(s => (s.id === editingId || s._id === editingId ? { ...s, ...result.data, categoryId: result.data.categoryId } : s)));
+          setCategoryServices(prev => prev.map(s => (s.id === editingId || s._id === editingId ? { ...s, ...result.data, categoryId: result.data.categoryId } : s)));
           resetForm();
-          // Reload to ensure population
-          const reloadRes = await serviceService.getAll({ brandId: activeBrandId });
-          if (reloadRes.success) setBrandServices(reloadRes.services);
+          const reloadRes = await serviceService.getAll({ categoryId: activeCategoryId });
+          if (reloadRes.success) setCategoryServices(reloadRes.services);
         }
       } else {
-        const response = await serviceService.create({
-          ...result.data,
-          brandId: activeBrandId
-        });
+        const response = await serviceService.create(result.data);
         if (response.success) {
           toast.success("Equipment created");
-          setBrandServices(prev => [...prev, response.service || response.data]);
+          setCategoryServices(prev => [...prev, response.service || response.data]);
           resetForm();
-          // Reload to be safe
-          const reloadRes = await serviceService.getAll({ brandId: activeBrandId });
-          if (reloadRes.success) setBrandServices(reloadRes.services);
+          const reloadRes = await serviceService.getAll({ categoryId: activeCategoryId });
+          if (reloadRes.success) setCategoryServices(reloadRes.services);
         }
       }
     } catch (error) {
@@ -310,109 +217,52 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
     try {
       await serviceService.delete(id);
       toast.success("Equipment deleted");
-      setBrandServices(prev => prev.filter(s => (s.id !== id && s._id !== id)));
+      setCategoryServices(prev => prev.filter(s => (s.id !== id && s._id !== id)));
     } catch (error) {
       console.error("Delete service error:", error);
       toast.error("Failed to delete service");
     }
   };
 
-  // Filtered Services List based on search AND Selected Category
+  // Filtered Services List based on search
   const displayedServices = useMemo(() => {
-    let result = brandServices;
-
-    // Filter by Category if selected
-    if (selectedCategoryFilter !== "all" && selectedCategoryFilter) {
-      result = result.filter(s => {
-        // Handle populated object or direct string ID
-        const sCatId = s.categoryId?._id || s.categoryId;
-        return String(sCatId) === String(selectedCategoryFilter);
-      });
-    }
-
+    let result = categoryServices;
     if (!searchTerm) return result;
     const lower = searchTerm.trim().toLowerCase();
     return result.filter(s => s.title.toLowerCase().includes(lower));
-  }, [brandServices, searchTerm, selectedCategoryFilter]);
+  }, [categoryServices, searchTerm]);
 
   return (
     <div className="space-y-6">
-      <CardShell icon={FiPackage}>
-        {/* Top: Category Filter Only */}
-        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-          <label className="block text-sm font-bold text-gray-700 mb-2">Filter by Category</label>
-          <div className="flex gap-2 items-center">
-            <div className="relative flex-1">
-              <select
-                value={selectedCategoryFilter}
-                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm font-medium text-gray-700 shadow-sm appearance-none cursor-pointer"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="text-sm text-gray-500 whitespace-nowrap px-2">
-              <strong>{filteredBrands.length}</strong> brands
-            </div>
-          </div>
-        </div>
-      </CardShell>
-
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* LEFT COLUMN: LIST OF BRANDS */}
+        {/* LEFT COLUMN: LIST OF CATEGORIES */}
         <div className="lg:col-span-1">
-          <CardShell icon={FiGrid} title="Select Brand">
+          <CardShell icon={FiGrid} title="Select Category">
             <div className="max-h-[600px] overflow-y-auto space-y-2 pr-1">
-              {fetching && (!servicesData || servicesData.length === 0) ? (
-                <div className="text-center py-4 text-sm text-gray-500">Loading brands...</div>
-              ) : filteredBrands.length === 0 ? (
-                <div className="text-center text-gray-400 py-4 text-sm">No brands found</div>
+              {fetching && (!categories || categories.length === 0) ? (
+                <div className="text-center py-4 text-sm text-gray-500">Loading categories...</div>
+              ) : categories.length === 0 ? (
+                <div className="text-center text-gray-400 py-4 text-sm">No categories found</div>
               ) : (
-                filteredBrands.map(brand => (
+                categories.map(cat => (
                   <div
-                    key={brand.id}
-                    onClick={() => setActiveBrandId(brand.id)}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-3 ${activeBrandId === brand.id
+                    key={cat.id}
+                    onClick={() => setActiveCategoryId(cat.id)}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-3 ${activeCategoryId === cat.id
                       ? 'bg-blue-50 border-blue-500 shadow-sm ring-1 ring-blue-200'
                       : 'bg-white border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                       }`}
                   >
-                    {brand.iconUrl ? (
-                      <img src={toAssetUrl(brand.iconUrl)} className="w-8 h-8 rounded-md object-contain bg-white border border-gray-100" />
+                    {cat.icon ? (
+                      <img src={toAssetUrl(cat.icon)} className="w-8 h-8 rounded-md object-contain bg-white border border-gray-100" />
                     ) : (
                       <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-xs text-gray-400 font-bold">
-                        {brand.title.charAt(0)}
+                        {cat.title.charAt(0)}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className={`font-bold text-sm truncate ${activeBrandId === brand.id ? 'text-blue-700' : 'text-gray-800'}`}>
-                        {brand.title}
-                      </div>
-                      <div className="text-xs text-gray-400 truncate" title={
-                        selectedCategoryFilter !== "all"
-                          ? categories.find(c => String(c.id) === String(selectedCategoryFilter))?.title
-                          : (brand.categoryIds && brand.categoryIds.length > 0
-                            ? brand.categoryIds.map(cid => {
-                              const cIdStr = cid?._id || cid; // Handle populated ID if any
-                              return categories.find(c => String(c.id) === String(cIdStr))?.title;
-                            }).filter(Boolean).join(', ')
-                            : 'Uncategorized')
-                      }>
-                        {selectedCategoryFilter !== "all"
-                          ? categories.find(c => String(c.id) === String(selectedCategoryFilter))?.title
-                          : (brand.categoryIds && brand.categoryIds.length > 0
-                            ? brand.categoryIds.map(cid => {
-                              const cIdStr = cid?._id || cid;
-                              return categories.find(c => String(c.id) === String(cIdStr))?.title;
-                            }).filter(Boolean).join(', ')
-                            : ((categories.find(c => String(c.id) === String(brand.categoryId))?.title) || 'Uncategorized')
-                          )
-                        }
+                      <div className={`font-bold text-sm truncate ${activeCategoryId === cat.id ? 'text-blue-700' : 'text-gray-800'}`}>
+                        {cat.title}
                       </div>
                     </div>
                   </div>
@@ -424,15 +274,15 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
 
         {/* RIGHT COLUMN: SERVICES LIST */}
         <div className="lg:col-span-3">
-          {activeBrand ? (
+          {activeCategory ? (
             <CardShell icon={FiPackage}>
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 border-b border-gray-100 pb-4">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    {activeBrand.iconUrl && <img src={toAssetUrl(activeBrand.iconUrl)} className="w-6 h-6 object-contain" />}
-                    {activeBrand.title}
+                    {activeCategory.icon && <img src={toAssetUrl(activeCategory.icon)} className="w-6 h-6 object-contain" />}
+                    {activeCategory.title}
                   </h3>
-                  <p className="text-sm text-gray-500">Manage individual equipment types for this brand</p>
+                  <p className="text-sm text-gray-500">Manage individual equipment models directly under this category</p>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -466,9 +316,9 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
               ) : displayedServices.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                   <FiPackage className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 font-bold">No equipment found for {activeBrand.title}</p>
+                  <p className="text-gray-500 font-bold">No equipment models found for {activeCategory.title}</p>
                   <button onClick={() => setIsModalOpen(true)} className="mt-2 text-primary-600 hover:underline text-sm font-semibold">
-                    Add the first equipment type
+                    Add the first equipment model
                   </button>
                 </div>
               ) : (
@@ -554,7 +404,7 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
             </CardShell>
           ) : (
             <div className="h-full flex flex-col items-center justify-center p-12 bg-gray-50 rounded-xl border border-gray-200 text-center text-gray-500">
-              <p>Select a brand from the left to manage its equipment types.</p>
+              <p>Select a category from the left to manage its equipment types.</p>
             </div>
           )}
         </div>
@@ -575,38 +425,9 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
               required
             >
               <option value="">Select Category</option>
-              {(() => {
-                const getStrId = (item) => {
-                  if (!item) return null;
-                  if (typeof item === 'string') return item.trim();
-                  if (item.$oid) return item.$oid.trim();
-                  if (item._id) return typeof item._id === 'object' && item._id.$oid ? item._id.$oid.trim() : item._id.toString().trim();
-                  if (item.id) return item.id.toString().trim();
-                  return String(item).trim();
-                };
-
-                const uniqueIds = new Set();
-                (activeBrand?.categoryIds || []).forEach(cid => {
-                  const sid = getStrId(cid);
-                  if (sid) uniqueIds.add(sid);
-                });
-                const mainCatId = getStrId(activeBrand?.categoryId);
-                if (mainCatId) uniqueIds.add(mainCatId);
-
-                const validOptions = Array.from(uniqueIds).map(catId => {
-                  const category = categories.find(c => String(c.id) === String(catId));
-                  if (!category) return null;
-                  return { id: catId, title: category.title };
-                }).filter(Boolean);
-
-                return validOptions.length > 0 ? (
-                  validOptions.map(opt => (
-                    <option key={opt.id} value={opt.id}>{opt.title}</option>
-                  ))
-                ) : (
-                  <option value="" disabled>No categories assigned to this brand</option>
-                );
-              })()}
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.title}</option>
+              ))}
             </select>
           </div>
 
@@ -650,12 +471,10 @@ const ServicesPage = ({ catalog, setCatalog, selectedCity }) => {
                   let allowedParents = [];
                   
                   if (selectedCategoryObj) {
-                    // Collect all mapped parent IDs
                     const pIds = [...(selectedCategoryObj.parentCategories || [])];
                     if (selectedCategoryObj.parentCategory && !pIds.includes(selectedCategoryObj.parentCategory)) {
                       pIds.push(selectedCategoryObj.parentCategory);
                     }
-                    
                     allowedParents = categories.filter(c => pIds.includes(String(c.id)));
                   }
 
