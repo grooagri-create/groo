@@ -1,0 +1,207 @@
+[
+  {
+    "title": "Dashboard",
+    "route": "/admin/dashboard",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Farmers",
+    "route": "/admin/users",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "All Farmers",
+      "Farmer Bookings",
+      "Farmer Analytics"
+    ]
+  },
+  {
+    "title": "Equipment Owners",
+    "route": "/admin/vendors",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "All Owners",
+      "Owner Bookings",
+      "Owner Analytics"
+    ]
+  },
+  {
+    "title": "Bookings",
+    "route": "/admin/bookings",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "All Bookings",
+      "Booking Tracking",
+      "Booking Notifications"
+    ]
+  },
+  {
+    "title": "Payments",
+    "route": "/admin/payments",
+    "allowedRoles": [
+      "super_admin"
+    ],
+    "children": [
+      "Payment Overview",
+      "Farmer Payments",
+      "Owner Payments",
+      "Admin Revenue",
+      "Payment Reports"
+    ]
+  },
+  {
+    "title": "Settlements",
+    "route": "/admin/settlements",
+    "allowedRoles": [
+      "super_admin"
+    ],
+    "children": [
+      "Pending",
+      "Withdrawals",
+      "Owners with Due",
+      "History"
+    ]
+  },
+  {
+    "title": "Equipment Catalog",
+    "route": "/admin/equipment-catalog",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "Home",
+      "Manage Categories",
+      "Manage Equipment Types"
+    ]
+  },
+  {
+    "title": "Machinery Approvals",
+    "route": "/admin/equipment-approvals",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Reports",
+    "route": "/admin/reports",
+    "allowedRoles": [
+      "super_admin"
+    ],
+    "children": [
+      "Revenue Report",
+      "Booking Report",
+      "Payment Report",
+      "Agriculture Insights"
+    ]
+  },
+  {
+    "title": "Reviews",
+    "route": "/admin/reviews",
+    "allowedRoles": [
+      "super_admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Plans",
+    "route": "/admin/plans",
+    "allowedRoles": [
+      "super_admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Agri Marketplace",
+    "route": "/admin/marketplace",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "Marketplace Manager",
+      "Global Orders",
+      "Store Approvals",
+      "Registered Shops"
+    ]
+  },
+  {
+    "title": "Machinery Management",
+    "route": "/admin/products",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "Equipment Approval"
+    ]
+  },
+  {
+    "title": "Soil Testing",
+    "route": "/admin/soil-tests",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Disputes",
+    "route": "/admin/disputes",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Help & Support",
+    "route": "/admin/support",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  },
+  {
+    "title": "Manage Website",
+    "route": "/admin/manage-website",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": [
+      "Blogs",
+      "Articles",
+      "Reviews",
+      "FAQ",
+      "About Us",
+      "App Guide",
+      "Policies",
+      "Customize Footer"
+    ]
+  },
+  {
+    "title": "Settings",
+    "route": "/admin/settings",
+    "allowedRoles": [
+      "super_admin",
+      "admin"
+    ],
+    "children": []
+  }
+]

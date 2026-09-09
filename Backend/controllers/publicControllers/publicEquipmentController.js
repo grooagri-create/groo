@@ -1,0 +1,99 @@
+const VendorEquipment = require('../../models/VendorEquipment');
+
+/**
+ * Public Equipment Controllers (For Farmers)
+ * Handles browsing and viewing details of equipment without needing login.
+ */
+
+// GET /api/public/equipment
+exports.getPublicEquipment = async (req, res) => {
+  try {
+    const { cityId, categoryId, search, isFeatured } = req.query;
+
+    const query = { status: 'approved' }; // Only show approved equipment
+
+    if (cityId) query.cityIds = cityId;
+    if (categoryId) query.categoryId = categoryId;
+    if (isFeatured) query.isFeatured = true;
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.name = { $regex: escapedSearch, $options: 'i' };
+    }
+
+    const equipment = await VendorEquipment.find(query)
+      .populate('categoryId', 'title slug homeIconUrl')
+      .populate('subCategoryIds', 'title slug')
+      .populate('vendorId', 'name phone rating avatar')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: equipment.length,
+      data: equipment
+    });
+  } catch (error) {
+    console.error('Get public equipment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch machinery catalog'
+    });
+  }
+};
+
+// GET /api/public/equipment/:id
+exports.getPublicEquipmentById = async (req, res) => {
+  try {
+    const equipment = await VendorEquipment.findOne({
+      _id: req.params.id,
+      status: 'approved'
+    })
+      .populate('categoryId', 'title slug homeIconUrl')
+      .populate('subCategoryIds', 'title slug')
+      .populate('vendorId', 'name phone rating avatar')
+      .lean();
+
+    if (!equipment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Machinery not found or not yet approved'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: equipment
+    });
+  } catch (error) {
+    console.error('Get public equipment by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch machinery details'
+    });
+  }
+};
+
+// GET /api/public/equipment/:id/availability
+exports.checkAvailability = async (req, res) => {
+  try {
+    const { date, timeSlot } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, message: 'Date is required' });
+    }
+
+    // Logic for checking existing bookings will go here later
+    // For now, return available: true
+    res.status(200).json({
+      success: true,
+      available: true,
+      message: 'Slot is available'
+    });
+  } catch (error) {
+    console.error('Check availability error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check availability'
+    });
+  }
+};

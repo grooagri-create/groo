@@ -1,0 +1,267 @@
+1️⃣ Farmer App Flow
+2️⃣ Equipment Owner Flow
+3️⃣ Admin Panel Flow
+4️⃣ Homepage Structure
+
+1️⃣ Farmer App Flowchart (Correct Structure)
+Farmer
+  │
+  ▼
+Open App
+(Logo + Trustline)
+  │
+  ▼
+Register / Login
+(Mobile Number + OTP)
+  │
+  ▼
+Select Location
+(Fetch Current Location / Manual)
+  │
+  ▼
+Home Page
+(Search Equipment & Services)
+  │
+  ├── Equipment
+  │     ├ Tractor
+  │     ├ Harvester
+  │     ├ Drone
+  │     └ Heavy Machinery
+  │
+  └── Services
+        ├ Seeds
+        ├ Fertilizer
+        ├ Pesticide
+        ├ Soil Testing
+        └ Weather Forecast
+  │
+  ▼
+Choose Rental Type
+(Hourly / Land Based / Monthly)
+  │
+  ▼
+Add More Equipment (Optional)
+  │
+  ▼
+Check Equipment Availability
+  │
+  ├── Available
+  │        │
+  │        ▼
+  │     Book Now
+  │
+  └── Not Available
+           │
+           ▼
+     Schedule Booking
+     (Select Date & Time Slot)
+  │
+  ▼
+Show Estimated Price
+  │
+  ▼
+Confirm Booking
+  │
+  ▼
+Choose Location
+(Current / Farm Location)
+  │
+  ▼
+Payment
+  │
+  ▼
+Equipment Arrives at Farm
+  │
+  ├ Driver OTP Verification
+  ├ Track Map
+  └ Speedometer / KM Photo Before Work
+  │
+  ▼
+Work Completed
+  │
+  ├ Driver Upload KM / Speedometer Photo
+  └ OTP Verification
+  │
+  ▼
+Rating & Review
+  ├ Driver Rating
+  ├ Equipment Rating
+  └ Feedback
+2️⃣ Equipment Owner Flowchart
+Equipment Owner
+  │
+  ▼
+Register
+  │
+  ▼
+Complete KYC
+  │
+  ▼
+Add Equipment Details
+  │
+  ├ Equipment Name
+  ├ Model
+  ├ Price
+  ├ Images
+  ├ Owner Details
+  ├ Documents
+  └ Terms & Conditions
+  │
+  ▼
+Admin Verification
+  │
+  ▼
+Equipment Goes Live
+  │
+  ▼
+Receive Booking Request
+  │
+  ├ Accept Booking
+  └ Reject Booking
+  │
+  ▼
+Equipment Delivered to Farm
+  │
+  ▼
+Work Completed
+  │
+  ▼
+Receive Payment
+  │
+  ▼
+View Earnings Dashboard
+3️⃣ Admin Panel Flowchart
+Admin
+  │
+  ▼
+Admin Login
+  │
+  ▼
+Dashboard Overview
+  │
+  ├ Total Farmers
+  ├ Total Equipment Owners
+  ├ Active Bookings
+  └ Revenue
+  │
+  ▼
+Manage Users
+  ├ Farmers
+  └ Equipment Owners
+  │
+  ▼
+Verify Equipment
+  │
+  ▼
+Monitor Bookings
+  │
+  ▼
+Trip Tracking
+(GPS / Map)
+  │
+  ▼
+Handle Disputes
+  │
+  ▼
+Payment Settlement
+  │
+  ▼
+Commission Management
+  │
+  ▼
+Fare Transparency
+  │
+  ▼
+Reports & Analytics
+  │
+  ├ Booking Reports
+  ├ Equipment Usage
+  └ AI Insights
+  │
+  ▼
+Send Notifications
+  │
+  ├ WhatsApp
+  ├ App Notification
+  └ SMS
+  │
+  ▼
+Weather Forecast Alerts
+(SMS / WhatsApp)
+4️⃣ Homepage Structure (Client UI Concept)
+Home Page
+ │
+ ▼
+Logo + Trustline
+ │
+ ▼
+Language Selection
+ │
+ ▼
+Search Bar
+(Location Based Search)
+ │
+ ▼
+Trending / Offer Equipment
+ │
+ ├ Tractor (Price)
+ ├ Harvester
+ └ Drone
+ │
+ ▼
+Categories
+ │
+ ├ Tractor
+ ├ Land Preparation
+ ├ Harvester
+ ├ Planting
+ ├ Irrigation
+ ├ Crop Protection
+ ├ Modern Equipment
+ ├ Heavy Equipment
+ ├ Fertilizer
+ ├ Drone
+ ├ Soil Testing
+ ├ Weather
+ └ Manpower
+ │
+ ▼
+Account / Orders / Profile
+5️⃣ Scheduling Logic (Important Feature)
+User Select Equipment
+      │
+      ▼
+Check Availability
+      │
+      ├ Available
+      │     ▼
+      │   Book Now
+      │
+      └ Not Available
+            │
+            ▼
+      Show Next Available Time
+            │
+            ▼
+      Schedule Booking
+            │
+            ▼
+      Confirm Slot
+6️⃣ Complete System Architecture (Simple View)
+                Farmer
+                   │
+                   ▼
+                Mobile App
+                   │
+     ┌─────────────┼─────────────┐
+     ▼             ▼             ▼
+Equipment      Marketplace      Weather
+Rental         (Seeds/Fertilizer) Forecast
+     │             │             │
+     ▼             ▼             ▼
+Equipment       Product       Weather API
+Owner           Sellers
+     │
+     ▼
+Admin Panel
+(Manage Users, Equipment, Payments)
