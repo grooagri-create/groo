@@ -1,6 +1,8 @@
 import api from '../../../services/api';
 import { registerFCMToken } from '../../../services/pushNotificationService';
 
+const pendingOtpRequests = new Map();
+
 /**
  * Notify Flutter WebView about successful login
  * This directly calls Flutter's captureLoginResponse handler
@@ -25,14 +27,25 @@ function notifyFlutterLogin(responseData) {
  * @param {string} phone - Phone number
  * @returns {Promise<Object>} OTP response with token
  */
-export const sendOTP = async (phone) => {
-  try {
-    const response = await api.post('/vendors/auth/send-otp', { phone });
-    return response.data;
-  } catch (error) {
-    console.error('Error sending OTP:', error);
-    throw error;
-  }
+export const sendOTP = (phone) => {
+  const normalizedPhone = String(phone || '').replace(/\D/g, '');
+  const pending = pendingOtpRequests.get(normalizedPhone);
+  if (pending) return pending;
+
+  const request = api.post('/vendors/auth/send-otp', {
+    phone: normalizedPhone
+  })
+    .then(response => response.data)
+    .catch(error => {
+      console.error('Error sending OTP:', error);
+      throw error;
+    })
+    .finally(() => {
+      pendingOtpRequests.delete(normalizedPhone);
+    });
+
+  pendingOtpRequests.set(normalizedPhone, request);
+  return request;
 };
 
 /**

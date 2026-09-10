@@ -268,17 +268,23 @@ const WorkerLogin = () => {
                   <button
                     type="button"
                     onClick={async () => {
+                      if (isLoading || resendTimer > 0) return;
                       try {
+                        setIsLoading(true);
                         const response = await workerAuthService.sendOTP(phoneNumber.replace(/\D/g, ''));
                         if (response.success) {
                           setOtpToken(response.token);
                           setResendTimer(120);
                           toast.success('New code sent!');
                         }
-                      } catch (e) { toast.error('Resend failed'); }
+                      } catch (e) {
+                        toast.error('Resend failed');
+                      } finally {
+                        setIsLoading(false);
+                      }
                     }}
                     className="text-sm font-semibold hover:text-[#D68F35] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={resendTimer > 0}
+                    disabled={isLoading || resendTimer > 0}
                     style={{ color: brandColor }}
                   >
                     {resendTimer > 0

@@ -1,6 +1,22 @@
 import api from './api';
 import { registerFCMToken, removeFCMToken } from './pushNotificationService';
 
+const pendingOtpRequests = new Map();
+
+const sendOtpOnce = (endpoint, phone, payload) => {
+  const normalizedPhone = String(phone || '').replace(/\D/g, '');
+  const key = `${endpoint}:${normalizedPhone}:${JSON.stringify(payload)}`;
+  const pending = pendingOtpRequests.get(key);
+  if (pending) return pending;
+
+  const request = api.post(endpoint, { ...payload, phone: normalizedPhone })
+    .then(response => response.data)
+    .finally(() => pendingOtpRequests.delete(key));
+
+  pendingOtpRequests.set(key, request);
+  return request;
+};
+
 /**
  * Notify Flutter WebView about successful login
  * This directly calls Flutter's captureLoginResponse handler
@@ -32,10 +48,9 @@ function getPlatformType() {
  */
 export const userAuthService = {
   // Send OTP
-  sendOTP: async (phone, email = null, isLogin = false) => {
-    const response = await api.post('/users/auth/send-otp', { phone, email, isLogin });
-    return response.data;
-  },
+  sendOTP: (phone, email = null, isLogin = false) => sendOtpOnce(
+    '/users/auth/send-otp', phone, { email, isLogin }
+  ),
 
   // Verify Login (Unified Flow)
   verifyLogin: async (data) => {
@@ -129,10 +144,9 @@ export const userAuthService = {
  */
 export const vendorAuthService = {
   // Send OTP
-  sendOTP: async (phone, email = null) => {
-    const response = await api.post('/vendors/auth/send-otp', { phone, email });
-    return response.data;
-  },
+  sendOTP: (phone, email = null) => sendOtpOnce(
+    '/vendors/auth/send-otp', phone, { email }
+  ),
 
   // Verify Login (Unified Flow)
   verifyLogin: async (data) => {
@@ -251,10 +265,9 @@ export const vendorAuthService = {
  */
 export const workerAuthService = {
   // Send OTP
-  sendOTP: async (phone, email = null) => {
-    const response = await api.post('/workers/auth/send-otp', { phone, email });
-    return response.data;
-  },
+  sendOTP: (phone, email = null) => sendOtpOnce(
+    '/workers/auth/send-otp', phone, { email }
+  ),
 
   // Verify Login (Unified Flow)
   verifyLogin: async (data) => {

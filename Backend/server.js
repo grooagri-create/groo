@@ -291,8 +291,9 @@ app.use((err, req, res, next) => {
 let server;
 if (process.env.VERCEL !== '1' && !process.env.VERCEL_ENV) {
   const PORT = process.env.PORT || 5000;
-  server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  const HOST = process.env.HOST || '127.0.0.1';
+  server = app.listen(PORT, HOST, () => {
+    console.log(`Server running on ${HOST}:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
   });
 
   // Initialize Socket.io
