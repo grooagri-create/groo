@@ -15,7 +15,11 @@ const RATE_LIMIT_SCRIPT = `
 local function increment(key, limit, window)
   local current = redis.call('INCR', key)
   if current == 1 then redis.call('EXPIRE', key, window) end
-  if current > limit then return 0 end
+  if current > limit then
+    local ttl = redis.call('TTL', key)
+    if ttl > 0 then redis.call('SET', key, limit, 'EX', ttl) end
+    return 0
+  end
   return 1
 end
 
