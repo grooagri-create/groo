@@ -40,7 +40,7 @@ const loginValidation = [
 ];
 
 // Routes
-router.post('/send-otp', otpRateLimiter, sendOTPValidation, sendOTP);
+router.post('/send-otp', sendOTPValidation, otpRateLimiter, sendOTP);
 router.post('/verify-login', verifyLoginValidation, verifyLogin); // New Unified Entry
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);

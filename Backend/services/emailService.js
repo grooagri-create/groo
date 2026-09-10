@@ -114,7 +114,7 @@ const createTransporter = () => {
 const sendOTPEmail = async (email, otp, purpose = 'verification') => {
   try {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.log(`[EMAIL SERVICE] OTP for ${email}: ${otp}`);
+      console.log(`[EMAIL SERVICE] OTP email prepared for ${email}`);
       return { success: true };
     }
 

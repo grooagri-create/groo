@@ -1,5 +1,11 @@
 const axios = require('axios');
 
+const maskPhone = (phone) => {
+  const value = String(phone || '');
+  if (value.length < 4) return '****';
+  return `${value.slice(0, 2)}${'*'.repeat(Math.max(2, value.length - 4))}${value.slice(-2)}`;
+};
+
 /**
  * Send SMS via SMS India Hub
  * @param {string} phone - Phone number
@@ -10,14 +16,14 @@ const sendSMS = async (phone, message) => {
   try {
     // Check for Test Mode or Specific Test Number
     if (process.env.USE_DEFAULT_OTP === 'true' || phone === '6268455485') {
-      console.log(`[SMS MOCK] To: ${phone}, Msg: ${message}`);
+      console.log(`[SMS MOCK] To: ${maskPhone(phone)}`);
       return { success: true, data: 'Mock Success' };
     }
 
     // Check if SMS credentials are configured
     if (!process.env.SMS_INDIA_HUB_API_KEY || !process.env.SMS_INDIA_HUB_SENDER_ID) {
       console.warn('[SMS] Required SMS credentials (API_KEY or SENDER_ID) missing in .env. SMS not sent.');
-      console.log(`[SMS MOCK] To: ${phone}, Msg: ${message}`);
+      console.log(`[SMS MOCK] To: ${maskPhone(phone)}`);
       return { success: false, message: 'SMS configuration missing' };
     }
 
@@ -44,7 +50,7 @@ const sendSMS = async (phone, message) => {
     // Use HTTPS for secure transmission
     const baseUrl = process.env.SMS_BASE_URL || 'https://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
     console.log('[SMS] Sending request to (HTTPS):', baseUrl);
-    console.log('[SMS] Params (masked):', { ...params, password: '***', apikey: '***' });
+    console.log('[SMS] Provider request prepared', { phone: maskPhone(phone) });
 
     const response = await axios.get(baseUrl, { params });
 
@@ -70,7 +76,7 @@ const sendSMS = async (phone, message) => {
     }
 
     if (isSuccess) {
-      console.log(`[SMS] ✅ SMS sent successfully to ${phone}`);
+      console.log(`[SMS] SMS sent successfully to ${maskPhone(phone)}`);
       return { success: true, data: response.data };
     } else {
       console.error(`[SMS] ❌ SMS Provider Error:`, JSON.stringify(response.data));
@@ -100,13 +106,12 @@ const sendOTP = async (phone, otp) => {
   const appName = 'Grooagri';
   const message = `Welcome to the ${appName} powered by Appzeto.Your OTP for registration is ${otp}.BGADEC`;
 
-  console.log(`[SMS] Attempting to send OTP to ${phone}`);
-  console.log(`[SMS] Message: ${message}`);
+  console.log(`[SMS] Attempting OTP delivery to ${maskPhone(phone)}`);
 
   const result = await sendSMS(phone, message);
 
   if (!result.success) {
-    console.error(`[SMS] Failed to send OTP to ${phone}:`, result.error);
+    console.error('[SMS] Failed to send OTP:', result.error);
   }
 
   return result;

@@ -1,5 +1,5 @@
 const Worker = require('../../models/Worker');
-const { generateOTP, hashOTP, storeOTP, verifyOTP, checkRateLimit } = require('../../utils/redisOtp.util');
+const { generateOTP, hashOTP, storeOTP, verifyOTP } = require('../../utils/redisOtp.util');
 const { generateTokenPair, verifyRefreshToken, generateVerificationToken, verifyVerificationToken } = require('../../utils/tokenService');
 const { sendOTP: sendSMSOTP } = require('../../services/smsService');
 const cloudinaryService = require('../../services/cloudinaryService');
@@ -22,16 +22,7 @@ const sendOTP = async (req, res) => {
 
     const { phone, email } = req.body;
 
-    // 1. Rate limit check
-    const allowed = await checkRateLimit(phone);
-    if (!allowed) {
-      return res.status(429).json({
-        success: false,
-        message: 'Too many OTP requests. Please try again after 10 minutes.'
-      });
-    }
-
-    // 2. Generate OTP
+    // Rate limits run in the route middleware before this controller.
     const otp = generateOTP(phone);
     const otpHash = hashOTP(otp);
 
@@ -41,13 +32,8 @@ const sendOTP = async (req, res) => {
     // 4. Send OTP via SMS
     const smsResult = await sendSMSOTP(phone, otp);
 
-    // Log OTP
-    if (process.env.NODE_ENV === 'development' || process.env.USE_DEFAULT_OTP === 'true') {
-      console.log(`[DEV] Worker OTP for ${phone}: ${otp}`);
-    }
-
     if (!smsResult.success) {
-      console.warn(`[OTP] SMS failed for worker ${phone}, but OTP stored`);
+      console.warn('[OTP] SMS failed for worker, but OTP was stored');
     }
 
     res.status(200).json({

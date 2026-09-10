@@ -1,6 +1,6 @@
 const User = require('../../models/User');
 const { generateTokenPair, verifyRefreshToken, generateVerificationToken, verifyVerificationToken } = require('../../utils/tokenService');
-const { generateOTP, hashOTP, storeOTP, verifyOTP, checkRateLimit } = require('../../utils/redisOtp.util');
+const { generateOTP, hashOTP, storeOTP, verifyOTP } = require('../../utils/redisOtp.util');
 const { sendOTP: sendSMSOTP } = require('../../services/smsService');
 const { sendOTPEmail, sendWelcomeEmail } = require('../../services/emailService');
 const { USER_ROLES } = require('../../utils/constants');
@@ -33,16 +33,7 @@ const sendOTP = async (req, res) => {
       }
     }
 
-    // 1. Rate limit check
-    const allowed = await checkRateLimit(phone);
-    if (!allowed) {
-      return res.status(429).json({
-        success: false,
-        message: 'Too many OTP requests. Please try again after 10 minutes.'
-      });
-    }
-
-    // 2. Generate OTP
+    // Rate limits run in the route middleware before this controller.
     const otp = generateOTP(phone);
     const otpHash = hashOTP(otp);
 
@@ -52,19 +43,13 @@ const sendOTP = async (req, res) => {
     // 4. Send OTP via SMS
     const smsResult = await sendSMSOTP(phone, otp);
 
-    // Log OTP in development mode only (NEVER in production)
-    if (process.env.NODE_ENV === 'development' || process.env.USE_DEFAULT_OTP === 'true') {
-      console.log(`[DEV] OTP for ${phone}: ${otp}`);
-    }
-
-    // 5. Optional: Send email notification if email provided
+    // Optional: Send email notification if email provided
     if (email) {
       await sendOTPEmail(email, otp, 'verification');
     }
 
-    // Check if SMS failed
     if (!smsResult.success) {
-      console.warn(`[OTP] SMS failed for ${phone}, but OTP stored for manual entry`);
+      console.warn('[OTP] SMS failed, but OTP was stored for manual entry');
     }
 
     res.status(200).json({
