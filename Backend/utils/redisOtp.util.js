@@ -10,6 +10,30 @@ const OTP_EXPIRY = parseInt(process.env.OTP_EXPIRY_SECONDS) || 300;
 const MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS) || 3;
 const RATE_LIMIT_COUNT = parseInt(process.env.OTP_RATE_LIMIT) || 3;
 const RATE_LIMIT_WINDOW = parseInt(process.env.OTP_RATE_WINDOW) || 600;
+const localRateLimits = new Map();
+
+const checkLocalRateLimit = (phone) => {
+  const now = Date.now();
+  const existing = localRateLimits.get(phone);
+
+  if (!existing || existing.resetAt <= now) {
+    localRateLimits.set(phone, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW * 1000
+    });
+    return true;
+  }
+
+  existing.count += 1;
+  return existing.count <= RATE_LIMIT_COUNT;
+};
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [phone, entry] of localRateLimits) {
+    if (entry.resetAt <= now) localRateLimits.delete(phone);
+  }
+}, Math.min(RATE_LIMIT_WINDOW * 1000, 60 * 1000)).unref();
 
 /**
  * Generate 6-digit OTP
@@ -36,22 +60,21 @@ const hashOTP = (otp) => {
 /**
  * Check rate limit for phone number
  * Returns true if allowed, false if limit exceeded
- * NOTE: Rate limiting primarily uses Redis. If Redis is down, we ALLOW the request 
- * to prevent blocking users during outages (fail-open), or we could implement basic memory/mongo limit.
- * For now: Fail-open for simple rate limiting if Redis is down.
+ * Uses Redis when available and a bounded process-local fallback when Redis is unavailable.
  */
 const checkRateLimit = async (phone) => {
-  // iOS Test Numbers - Always allow, never rate limit
+  // Test-number bypass is only allowed outside production.
   const TEST_NUMBERS = ['6268455485', '6260491554'];
-  if (TEST_NUMBERS.includes(phone)) {
+  if (process.env.NODE_ENV !== 'production' && TEST_NUMBERS.includes(phone)) {
     console.log(`[OTP] iOS test number, skipping rate limit for ${phone}`);
     return true;
   }
 
   const redis = getRedis();
   if (!isRedisConnected() || !redis) {
-    console.warn('[OTP] Redis down, skipping rate limit check (fail-open)');
-    return true;
+    const allowed = checkLocalRateLimit(phone);
+    console.warn(`[OTP] Redis unavailable, using local rate limit for ${phone}: ${allowed ? 'allowed' : 'blocked'}`);
+    return allowed;
   }
 
   const key = `rate:otp:${phone}`;
@@ -63,7 +86,7 @@ const checkRateLimit = async (phone) => {
     return current <= RATE_LIMIT_COUNT;
   } catch (err) {
     console.error('[OTP] Rate limit error:', err);
-    return true; // Fail open
+    return checkLocalRateLimit(phone);
   }
 };
 

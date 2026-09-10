@@ -13,6 +13,7 @@ const {
 
 const { authenticate } = require('../../middleware/authMiddleware');
 const { isUser } = require('../../middleware/roleMiddleware');
+const otpRateLimiter = require('../../middleware/otpRateLimiter');
 
 const sendOTPValidation = [
   body('phone').trim().notEmpty().withMessage('Phone number is required')
@@ -38,7 +39,7 @@ const registerValidation = [
 ];
 
 // Routes
-router.post('/send-otp', sendOTPValidation, sendOTP);
+router.post('/send-otp', otpRateLimiter, sendOTPValidation, sendOTP);
 router.post('/verify-login', verifyLoginValidation, verifyLogin); // New Unified Entry
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);

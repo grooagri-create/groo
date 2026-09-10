@@ -9,6 +9,7 @@ const {
   refreshToken,
   verifyLogin
 } = require('../../controllers/workerControllers/workerAuthController');
+const otpRateLimiter = require('../../middleware/otpRateLimiter');
 const { authenticate } = require('../../middleware/authMiddleware');
 const { isWorker } = require('../../middleware/roleMiddleware');
 
@@ -37,7 +38,7 @@ const loginValidation = [
 ];
 
 // Routes
-router.post('/send-otp', sendOTPValidation, sendOTP);
+router.post('/send-otp', otpRateLimiter, sendOTPValidation, sendOTP);
 router.post('/verify-login', verifyLoginValidation, verifyLogin); // New Unified Entry
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);

@@ -9,6 +9,7 @@ const {
   verifyLogin,
   deleteAccount
 } = require('../../controllers/vendorControllers/vendorAuthController');
+const otpRateLimiter = require('../../middleware/otpRateLimiter');
 const { authenticate } = require('../../middleware/authMiddleware');
 const { isVendor } = require('../../middleware/roleMiddleware');
 
@@ -39,7 +40,7 @@ const loginValidation = [
 ];
 
 // Routes
-router.post('/send-otp', sendOTPValidation, sendOTP);
+router.post('/send-otp', otpRateLimiter, sendOTPValidation, sendOTP);
 router.post('/verify-login', verifyLoginValidation, verifyLogin); // New Unified Entry
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
