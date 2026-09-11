@@ -23,6 +23,7 @@ local function increment(key, limit, window)
   return 1
 end
 
+if redis.call('EXISTS', KEYS[4]) == 1 then return {0, 'cooldown'} end
 if increment(KEYS[1], tonumber(ARGV[1]), tonumber(ARGV[2])) == 0 then return {0, 'global-limit'} end
 if increment(KEYS[2], tonumber(ARGV[3]), tonumber(ARGV[4])) == 0 then return {0, 'ip-limit'} end
 if increment(KEYS[3], tonumber(ARGV[5]), tonumber(ARGV[4])) == 0 then return {0, 'phone-limit'} end
@@ -54,6 +55,10 @@ const localCheck = (phone, ip) => {
   const now = Date.now();
   const windowMs = OTP_WINDOW_SECONDS * 1000;
   const globalWindowMs = OTP_GLOBAL_WINDOW * 1000;
+  const cooldownKey = `cooldown:${phone}`;
+  const cooldown = localState.get(cooldownKey);
+  if (cooldown && cooldown.resetAt > now) return { allowed: false, reason: 'cooldown' };
+
   const keyData = [
     ['global', globalWindowMs, OTP_GLOBAL_LIMIT],
     [`ip:${ip}`, windowMs, OTP_IP_LIMIT],
@@ -70,9 +75,6 @@ const localCheck = (phone, ip) => {
     }
   }
 
-  const cooldownKey = `cooldown:${phone}`;
-  const cooldown = localState.get(cooldownKey);
-  if (cooldown && cooldown.resetAt > now) return { allowed: false, reason: 'cooldown' };
   localState.set(cooldownKey, { count: 1, resetAt: now + OTP_PHONE_COOLDOWN * 1000 });
   return { allowed: true };
 };
