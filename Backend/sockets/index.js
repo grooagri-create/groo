@@ -11,10 +11,24 @@ const initializeSocket = (server) => {
     cors: {
       origin: [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'].filter(Boolean),
       credentials: true,
-      methods: ["GET", "POST"]
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["my-custom-header", "Access-Control-Allow-Private-Network"]
     },
     transports: ['websocket', 'polling'],
     allowEIO3: true
+  });
+
+  // Handle Chrome Private Network Access (PNA) errors
+  io.engine.on("initial_headers", (headers, req) => {
+    if (req.headers["access-control-request-private-network"]) {
+      headers["Access-Control-Allow-Private-Network"] = "true";
+    }
+  });
+
+  io.engine.on("headers", (headers, req) => {
+    if (req.headers["access-control-request-private-network"]) {
+      headers["Access-Control-Allow-Private-Network"] = "true";
+    }
   });
 
   // Authentication middleware for Socket.io

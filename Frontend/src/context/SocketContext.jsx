@@ -66,7 +66,9 @@ const SwipeableNotification = ({ t, data, onClick }) => {
 
 const SocketContext = createContext(null);
 
-const SOCKET_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+const defaultHost = window.location.hostname === 'localhost' ? 'localhost' : (window.location.hostname || '127.0.0.1');
+const defaultSocketUrl = `http://${defaultHost}:5000`;
+const SOCKET_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/api$/, '') || defaultSocketUrl;
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
@@ -137,7 +139,9 @@ export const SocketProvider = ({ children }) => {
     }
 
     // Use HTTP URL for socket.io client - it handles WS upgrade automatically
-    const socketBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+    const defaultHost = window.location.hostname === 'localhost' ? 'localhost' : (window.location.hostname || '127.0.0.1');
+    const defaultSocketUrl = `http://${defaultHost}:5000`;
+    const socketBaseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/api$/, '') || defaultSocketUrl;
 
     const newSocket = io(socketBaseUrl, {
       auth: {

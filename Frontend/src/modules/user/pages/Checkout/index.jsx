@@ -149,7 +149,7 @@ const Checkout = () => {
           const settings = configRes.value.settings;
           if (!plan) setVisitedFee(settings.visitedCharges !== undefined ? settings.visitedCharges : 0);
           else setVisitedFee(0);
-          setGstPercentage(settings.serviceGstPercentage || 18);
+          setGstPercentage(settings.serviceGstPercentage !== undefined ? settings.serviceGstPercentage : 18);
           setRentalGstPercentage(settings.rentalGstPercentage !== undefined ? settings.rentalGstPercentage : 5);
         }
 

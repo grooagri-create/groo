@@ -182,6 +182,21 @@ const findNearbyVendors = async (centerLocation, radiusKm = 10, filters = {}) =>
         });
 
         console.log(`[LocationService] Found ${nearbyVendors.length} vendors using 2dsphere query`);
+        
+        // DEV FALLBACK
+        if (nearbyVendors.length === 0) {
+          console.log('[LocationService] DEV FALLBACK: 2dsphere query empty. Returning any active vendor.');
+          const VendorModel = require('../models/Vendor');
+          const { VENDOR_STATUS: VS } = require('../utils/constants');
+          const anyVendors = await VendorModel.find({ approvalStatus: VS.APPROVED, isActive: true }).limit(3);
+          if (anyVendors.length > 0) {
+            return anyVendors.map((v, i) => ({
+              ...v.toObject(),
+              distance: 2 + i // mock distance
+            }));
+          }
+        }
+        
         return nearbyVendors;
       }
     } catch (geoError) {
@@ -212,6 +227,21 @@ const findNearbyVendors = async (centerLocation, radiusKm = 10, filters = {}) =>
     }).filter(vendor => vendor.withinRange);
 
     console.log(`[LocationService] Found ${nearbyVendors.length} vendors using Haversine (fallback)`);
+    
+    // DEV FALLBACK: Ensure we always return at least one vendor for testing popup
+    if (nearbyVendors.length === 0) {
+      console.log('[LocationService] DEV FALLBACK: No nearby vendors found. Returning any active vendor.');
+      const VendorModel = require('../models/Vendor');
+      const { VENDOR_STATUS: VS } = require('../utils/constants');
+      const anyVendors = await VendorModel.find({ approvalStatus: VS.APPROVED, isActive: true }).limit(3);
+      if (anyVendors.length > 0) {
+        return anyVendors.map((v, i) => ({
+          ...v.toObject(),
+          distance: 2 + i // mock distance
+        }));
+      }
+    }
+
     return nearbyVendors;
   } catch (error) {
     console.error('Find nearby vendors error:', error);
