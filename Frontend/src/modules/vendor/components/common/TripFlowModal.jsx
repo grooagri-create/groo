@@ -41,15 +41,13 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType, 
             try {
                 const file = await flutterBridge.openCamera();
                 if (!file) return;
-                const reader = new FileReader();
                 if (target === 'km') {
                     setPhotoFile(file);
-                    reader.onloadend = () => setPhotoPreview(reader.result);
+                    setPhotoPreview(URL.createObjectURL(file));
                 } else {
                     setEvidenceFile(file);
-                    reader.onloadend = () => setEvidencePreview(reader.result);
+                    setEvidencePreview(URL.createObjectURL(file));
                 }
-                reader.readAsDataURL(file);
                 flutterBridge.hapticFeedback('success');
             } catch (err) {
                 console.error('[TripFlowModal] Native camera failed:', err);
@@ -113,14 +111,10 @@ const TripFlowModal = ({ isOpen, onClose, mode = 'start', onSubmit, rentalType, 
         
         if (target === 'km') {
             setPhotoFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPhotoPreview(reader.result);
-            reader.readAsDataURL(file);
+            setPhotoPreview(URL.createObjectURL(file));
         } else {
             setEvidenceFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setEvidencePreview(reader.result);
-            reader.readAsDataURL(file);
+            setEvidencePreview(URL.createObjectURL(file));
         }
     };
 
