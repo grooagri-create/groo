@@ -1,5 +1,6 @@
 import axios from 'axios';
 import api from '../services/api';
+import imageCompression from 'browser-image-compression';
 
 /**
  * Cloudinary Direct Upload Utility
@@ -16,6 +17,21 @@ import api from '../services/api';
  */
 export const uploadToCloudinary = async (file, folder = 'appzeto', onProgress) => {
   try {
+    // 0. Compress the image before uploading to avoid timeouts and file size limits
+    let fileToUpload = file;
+    if (file instanceof File && file.type && file.type.startsWith('image/')) {
+      const options = {
+        maxSizeMB: 0.8,            // Max size 800 KB
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      try {
+        fileToUpload = await imageCompression(file, options);
+      } catch (cErr) {
+        console.warn('Image compression failed, proceeding with original file:', cErr);
+      }
+    }
+
     // 1. Get signature from our backend
     // Use the generic /upload/sign-signature instead of /admin prefix to ensure User access
     const signResponse = await api.get(`/upload/sign-signature?folder=${folder}`);
@@ -28,7 +44,7 @@ export const uploadToCloudinary = async (file, folder = 'appzeto', onProgress) =
 
     // 2. Prepare Form Data
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', fileToUpload);
     formData.append('api_key', apiKey);
     formData.append('timestamp', timestamp);
     formData.append('signature', signature);
@@ -49,8 +65,9 @@ export const uploadToCloudinary = async (file, folder = 'appzeto', onProgress) =
     // 4. Return the secure URL
     return response.data.secure_url;
   } catch (error) {
-    console.error('Cloudinary Direct Upload Error:', error);
-    throw error;
+    const errorMsg = error.response?.data?.error?.message || error.response?.data?.message || error.message || 'Unknown upload error';
+    console.error('Cloudinary Direct Upload Error:', errorMsg, error);
+    throw new Error(errorMsg);
   }
 };
 
